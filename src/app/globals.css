@@ -1,26 +1,246 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Finance-specific colors */
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-breaking: var(--breaking);
+  --color-gold: var(--gold);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Dark theme as primary (finance professional) */
+:root {
+  --radius: 0.5rem;
+
+  /* Dark backgrounds */
+  --background: #0d0d0d;
+  --foreground: #ffffff;
+  --surface: #1a1a1a;
+  --surface-hover: #262626;
+
+  /* Card & popover */
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+
+  /* Primary accent (blue for links/CTAs) */
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #262626;
+  --secondary-foreground: #a3a3a3;
+
+  /* Muted */
+  --muted: #262626;
+  --muted-foreground: #737373;
+
+  /* Accent */
+  --accent: #262626;
+  --accent-foreground: #ffffff;
+
+  /* Destructive (for errors) */
+  --destructive: #ef4444;
+
+  /* Borders & inputs */
+  --border: #262626;
+  --input: #262626;
+  --ring: #3b82f6;
+
+  /* Finance-specific */
+  --positive: #22c55e;
+  --negative: #ef4444;
+  --breaking: #dc2626;
+  --gold: #f59e0b;
+
+  /* Chart colors */
+  --chart-1: #3b82f6;
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+
+  /* Sidebar */
+  --sidebar: #0d0d0d;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #262626;
+  --sidebar-ring: #3b82f6;
+}
+
+/* Light theme variant (optional toggle) */
+.light {
+  --background: #ffffff;
+  --foreground: #0d0d0d;
+  --surface: #f5f5f5;
+  --surface-hover: #e5e5e5;
+
+  --card: #ffffff;
+  --card-foreground: #0d0d0d;
+  --popover: #ffffff;
+  --popover-foreground: #0d0d0d;
+
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f5f5f5;
+  --secondary-foreground: #525252;
+
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+
+  --accent: #f5f5f5;
+  --accent-foreground: #0d0d0d;
+
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #2563eb;
+
+  --sidebar: #f5f5f5;
+  --sidebar-foreground: #0d0d0d;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e5e5e5;
+  --sidebar-accent-foreground: #0d0d0d;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #2563eb;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom utility classes for finance UI */
+@layer utilities {
+  /* Stock movement colors */
+  .text-positive {
+    color: var(--positive);
+  }
+  .text-negative {
+    color: var(--negative);
+  }
+  .text-breaking {
+    color: var(--breaking);
+  }
+  .bg-positive {
+    background-color: var(--positive);
+  }
+  .bg-negative {
+    background-color: var(--negative);
+  }
+  .bg-breaking {
+    background-color: var(--breaking);
+  }
+  .bg-surface {
+    background-color: var(--surface);
+  }
+  .bg-surface-hover {
+    background-color: var(--surface-hover);
+  }
+
+  /* Tabular numbers for financial data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Gradient overlay for hero images */
+  .gradient-overlay {
+    background: linear-gradient(
+      to top,
+      rgba(13, 13, 13, 0.95) 0%,
+      rgba(13, 13, 13, 0.7) 40%,
+      rgba(13, 13, 13, 0.3) 70%,
+      transparent 100%
+    );
+  }
+
+  /* Breaking news pulse animation */
+  .pulse-breaking {
+    animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-red {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Ticker scroll animation */
+  .animate-ticker {
+    animation: ticker 30s linear infinite;
+  }
+
+  @keyframes ticker {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  }
 }
