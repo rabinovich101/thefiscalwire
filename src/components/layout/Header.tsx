@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { navLinks } from "@/data/mockData";
 import { useUIStore } from "@/stores";
+import { useSession, signOut } from "next-auth/react";
 
 export function Header() {
   const { isMobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useUIStore();
+  const { data: session, status } = useSession();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -46,13 +48,47 @@ export function Header() {
             <span className="sr-only">Search</span>
           </Button>
 
-          {/* Subscribe Button */}
-          <Button
-            variant="default"
-            className="hidden sm:inline-flex bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-          >
-            Subscribe
-          </Button>
+          {/* Auth Buttons */}
+          {status === "loading" ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="h-9 w-16 bg-muted animate-pulse rounded-md" />
+            </div>
+          ) : session ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">
+                  {session.user?.name || session.user?.email?.split("@")[0]}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => signOut()}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4 mr-1" />
+                Sign out
+              </Button>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2">
+              <Link href="/login">
+                <Button variant="ghost" size="sm">
+                  Sign in
+                </Button>
+              </Link>
+              <Link href="/signup">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                >
+                  Sign up
+                </Button>
+              </Link>
+            </div>
+          )}
 
           {/* Mobile Menu Button */}
           <Button
@@ -85,12 +121,43 @@ export function Header() {
                 {link.name}
               </Link>
             ))}
-            <Button
-              variant="default"
-              className="mt-3 w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-            >
-              Subscribe
-            </Button>
+            {session ? (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 px-2 py-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-foreground">
+                    {session.user?.name || session.user?.email?.split("@")[0]}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    signOut();
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign out
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <Button variant="outline" className="w-full">
+                    Sign in
+                  </Button>
+                </Link>
+                <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                  <Button
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+                  >
+                    Sign up
+                  </Button>
+                </Link>
+              </div>
+            )}
           </nav>
         </div>
       )}

@@ -23,7 +23,11 @@
       "Bash(npx prisma:*)",
       "Bash(npm run db:seed:*)",
       "mcp__playwright__browser_click",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(find:*)",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_wait_for",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []

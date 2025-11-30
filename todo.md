@@ -134,3 +134,103 @@ All database integration tasks are finished. The application now:
 ### Next Steps (Optional)
 1. Add admin panel for content management
 2. Deploy database to production (Railway, Supabase, or VPS)
+
+---
+
+# Sign Up & Login Implementation Plan
+
+## Overview
+Implement user authentication (sign up and login) for the finance news website using NextAuth.js with credentials provider and Prisma adapter.
+
+## Tech Stack for Auth
+- **NextAuth.js v5** - Authentication library for Next.js
+- **bcryptjs** - Password hashing
+- **Prisma Adapter** - Connect NextAuth to our PostgreSQL database
+
+---
+
+## To-Do Checklist
+
+### 1. Database Setup
+- [x] Add User model to Prisma schema (id, email, password, name, createdAt, updatedAt)
+- [x] Add Account, Session, VerificationToken models for NextAuth
+- [x] Run Prisma migration
+
+### 2. Install Dependencies
+- [x] Install next-auth, @auth/prisma-adapter, bcryptjs, @types/bcryptjs
+
+### 3. NextAuth Configuration
+- [x] Create auth configuration file (src/lib/auth.ts)
+- [x] Create API route for NextAuth (src/app/api/auth/[...nextauth]/route.ts)
+- [x] Add AUTH_SECRET to environment variables
+
+### 4. UI Components
+- [x] Create Login page (src/app/login/page.tsx)
+- [x] Create Sign Up page (src/app/signup/page.tsx)
+- [x] Create Input component for forms (src/components/ui/input.tsx)
+- [x] Create Label component for forms (src/components/ui/label.tsx)
+
+### 5. API Routes
+- [x] Create signup API route (src/app/api/auth/signup/route.ts)
+
+### 6. Header Integration
+- [x] Update Header component to show login/signup buttons or user info
+
+### 7. Session Provider
+- [x] Create AuthProvider wrapper component
+- [x] Add AuthProvider to root layout
+
+---
+
+## Current Status: ✅ Complete
+
+## Review Section
+
+### Summary
+Successfully implemented user authentication with sign up and login functionality using NextAuth.js v5.
+
+### Features Implemented
+- **Sign Up**: Users can create accounts with name, email, and password
+- **Login**: Users can sign in with email/password credentials
+- **Session Management**: JWT-based session handling
+- **Header Integration**: Shows user name and sign out button when logged in, or sign in/sign up buttons when logged out
+- **Mobile Support**: Auth buttons also work in mobile menu
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/lib/auth.ts` | NextAuth configuration with credentials provider |
+| `src/app/api/auth/[...nextauth]/route.ts` | NextAuth API route handler |
+| `src/app/api/auth/signup/route.ts` | User registration endpoint |
+| `src/app/login/page.tsx` | Login page with form |
+| `src/app/signup/page.tsx` | Sign up page with form |
+| `src/components/ui/input.tsx` | Input form component |
+| `src/components/ui/label.tsx` | Label form component |
+| `src/components/providers/AuthProvider.tsx` | SessionProvider wrapper |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `prisma/schema.prisma` | Added User, Account, Session, VerificationToken models |
+| `src/app/layout.tsx` | Wrapped app with AuthProvider |
+| `src/components/layout/Header.tsx` | Added auth buttons and user display |
+| `.env` | Added AUTH_SECRET and NEXTAUTH_URL |
+
+### Database Models Added
+- `User` - Stores user credentials and profile
+- `Account` - OAuth account linking (for future providers)
+- `Session` - Session management
+- `VerificationToken` - Email verification (for future use)
+
+### Security Features
+- Password hashing with bcryptjs (12 rounds)
+- JWT-based sessions
+- CSRF protection via NextAuth
+- Input validation on forms
+
+### Test Credentials
+Created test user during development:
+- Email: test@example.com
+- Password: password123
