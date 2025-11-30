@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   AreaChart,
   Area,
@@ -9,20 +10,55 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import type { ChartDataPoint } from "@/data/mockData";
+import { Loader2 } from "lucide-react";
+
+interface ChartDataPoint {
+  time: string;
+  value: number;
+  volume?: number;
+}
 
 interface InlineStockChartProps {
   symbol: string;
-  data: ChartDataPoint[];
+  initialData?: ChartDataPoint[];
 }
 
-export function InlineStockChart({ symbol, data }: InlineStockChartProps) {
+export function InlineStockChart({ symbol, initialData = [] }: InlineStockChartProps) {
+  const [data, setData] = useState<ChartDataPoint[]>(initialData);
+  const [isLoading, setIsLoading] = useState(initialData.length === 0);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await fetch(`/api/market/chart?symbol=${symbol}&period=1mo`);
+        if (response.ok) {
+          const chartData = await response.json();
+          if (Array.isArray(chartData) && chartData.length > 0) {
+            setData(chartData);
+          }
+        } else {
+          setError("Failed to load chart data");
+        }
+      } catch (err) {
+        console.error(`Error fetching chart for ${symbol}:`, err);
+        setError("Failed to load chart data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, [symbol]);
+
   // Calculate if the stock is up or down
   const firstValue = data[0]?.value ?? 0;
   const lastValue = data[data.length - 1]?.value ?? 0;
   const isPositive = lastValue >= firstValue;
   const change = lastValue - firstValue;
-  const changePercent = ((change / firstValue) * 100).toFixed(2);
+  const changePercent = firstValue > 0 ? ((change / firstValue) * 100).toFixed(2) : "0.00";
 
   // Format value based on magnitude (for BTC vs stocks)
   const formatValue = (value: number) => {
@@ -41,6 +77,26 @@ export function InlineStockChart({ symbol, data }: InlineStockChartProps) {
       maximumFractionDigits: 2,
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="my-8 p-4 sm:p-6 bg-surface rounded-xl border border-border">
+        <div className="flex items-center justify-center h-[300px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || data.length === 0) {
+    return (
+      <div className="my-8 p-4 sm:p-6 bg-surface rounded-xl border border-border">
+        <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+          {error || `No chart data available for ${symbol}`}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="my-8 p-4 sm:p-6 bg-surface rounded-xl border border-border">
@@ -130,7 +186,7 @@ export function InlineStockChart({ symbol, data }: InlineStockChartProps) {
       {/* Chart Footer */}
       <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <span>Last 30 days</span>
-        <span>Data for illustration purposes only</span>
+        <span>Live data from Yahoo Finance</span>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
-import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
-import { useState } from "react";
+import { TrendingUp, TrendingDown, BarChart3, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface MarketMover {
@@ -13,14 +13,43 @@ interface MarketMover {
 }
 
 interface MarketMoversProps {
-  gainers: MarketMover[];
-  losers: MarketMover[];
+  initialGainers?: MarketMover[];
+  initialLosers?: MarketMover[];
 }
 
 type TabType = "gainers" | "losers";
 
-export function MarketMovers({ gainers, losers }: MarketMoversProps) {
+export function MarketMovers({ initialGainers = [], initialLosers = [] }: MarketMoversProps) {
   const [activeTab, setActiveTab] = useState<TabType>("gainers");
+  const [gainers, setGainers] = useState<MarketMover[]>(initialGainers);
+  const [losers, setLosers] = useState<MarketMover[]>(initialLosers);
+  const [isLoading, setIsLoading] = useState(initialGainers.length === 0);
+
+  // Fetch live market movers
+  const fetchMovers = async () => {
+    try {
+      const response = await fetch("/api/market/movers");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.gainers) setGainers(data.gainers);
+        if (data.losers) setLosers(data.losers);
+      }
+    } catch (error) {
+      console.error("Error fetching market movers:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch immediately
+    fetchMovers();
+
+    // Set up auto-refresh every 60 seconds
+    const interval = setInterval(fetchMovers, 60000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const data = activeTab === "gainers" ? gainers : losers;
 
@@ -64,37 +93,47 @@ export function MarketMovers({ gainers, losers }: MarketMoversProps) {
 
       {/* Stock List */}
       <div className="space-y-0">
-        {data.map((stock) => (
-          <div
-            key={stock.symbol}
-            className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0"
-          >
-            {/* Symbol & Name */}
-            <div className="flex flex-col">
-              <span className="text-sm font-semibold text-foreground">
-                {stock.symbol}
-              </span>
-              <span className="text-xs text-muted-foreground truncate max-w-[100px]">
-                {stock.name}
-              </span>
-            </div>
-
-            {/* Price & Change */}
-            <div className="flex flex-col items-end">
-              <span className="text-sm font-medium tabular-nums text-foreground">
-                ${stock.price.toFixed(2)}
-              </span>
-              <span
-                className={`text-xs font-medium tabular-nums ${
-                  stock.change >= 0 ? "text-positive" : "text-negative"
-                }`}
-              >
-                {stock.change >= 0 ? "+" : ""}
-                {stock.changePercent.toFixed(2)}%
-              </span>
-            </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ))}
+        ) : data.length === 0 ? (
+          <div className="text-center py-8 text-sm text-muted-foreground">
+            No data available
+          </div>
+        ) : (
+          data.map((stock) => (
+            <div
+              key={stock.symbol}
+              className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0"
+            >
+              {/* Symbol & Name */}
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-foreground">
+                  {stock.symbol}
+                </span>
+                <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                  {stock.name}
+                </span>
+              </div>
+
+              {/* Price & Change */}
+              <div className="flex flex-col items-end">
+                <span className="text-sm font-medium tabular-nums text-foreground">
+                  ${stock.price.toFixed(2)}
+                </span>
+                <span
+                  className={`text-xs font-medium tabular-nums ${
+                    stock.change >= 0 ? "text-positive" : "text-negative"
+                  }`}
+                >
+                  {stock.change >= 0 ? "+" : ""}
+                  {stock.changePercent.toFixed(2)}%
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

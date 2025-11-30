@@ -10,7 +10,6 @@ import {
   getArticleBySlug,
   getRelatedArticles,
   getArticleSlugs,
-  getMarketIndices,
 } from "@/lib/data";
 
 interface ArticlePageProps {
@@ -20,11 +19,8 @@ interface ArticlePageProps {
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
 
-  // Fetch article and market data in parallel
-  const [article, marketIndices] = await Promise.all([
-    getArticleBySlug(slug),
-    getMarketIndices(),
-  ]);
+  // Fetch article
+  const article = await getArticleBySlug(slug);
 
   if (!article) {
     notFound();
@@ -38,8 +34,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       {/* Header */}
       <Header />
 
-      {/* Market Ticker */}
-      <MarketTicker indices={marketIndices} />
+      {/* Market Ticker - fetches live data from Yahoo Finance */}
+      <MarketTicker />
 
       {/* Main Content */}
       <main className="flex-1">

@@ -314,3 +314,95 @@ Using **block-based editor** to match existing ArticleContentBlock structure:
 
 ## Review Section
 _(To be filled after implementation)_
+
+---
+
+# Live Yahoo Finance Stock Prices Implementation
+
+## Overview
+Replace static/mock stock price data with live data from Yahoo Finance API.
+
+## Current State
+- Mock data in `src/data/mockData.ts`
+- MarketTicker shows 8 indices (S&P 500, NASDAQ, DOW, Russell 2000, BTC, ETH, Gold, Crude Oil)
+- MarketMovers shows top gainers/losers
+- InlineStockChart shows 30-day price history
+- LiveMarketWidget shows relevant stocks for articles
+
+## Plan
+
+### Phase 1: Yahoo Finance API Integration
+- [x] Install `yahoo-finance2` npm package
+- [x] Create Yahoo Finance service (`src/lib/yahoo-finance.ts`)
+  - Functions for: quotes, historical data, market movers
+
+### Phase 2: API Endpoints
+- [x] Create `/api/market/quotes` - Get real-time quotes for multiple symbols
+- [x] Create `/api/market/movers` - Get top gainers and losers
+- [x] Create `/api/market/chart/[symbol]` - Get historical chart data
+
+### Phase 3: Update Components
+- [x] Update MarketTicker to fetch live data with auto-refresh (every 30 seconds)
+- [x] Update MarketMovers to fetch live gainers/losers
+- [x] Update InlineStockChart to fetch live historical data
+- [x] Update LiveMarketWidget to use live data
+
+### Phase 4: Testing & Polish
+- [x] Test all components with live data
+- [x] Add loading states and error handling
+- [x] Verify prices match Yahoo Finance website
+
+## Symbol Mapping (Yahoo Finance format)
+| Display | Yahoo Symbol |
+|---------|-------------|
+| S&P 500 | ^GSPC |
+| NASDAQ | ^IXIC |
+| DOW | ^DJI |
+| Russell 2000 | ^RUT |
+| Bitcoin | BTC-USD |
+| Ethereum | ETH-USD |
+| Gold | GC=F |
+| Crude Oil | CL=F |
+
+## Current Status: ✅ Complete
+
+## Review
+
+### Summary
+Successfully integrated live Yahoo Finance data to replace all static/mock stock prices. The application now displays real-time market data with automatic refresh intervals.
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/lib/yahoo-finance.ts` | Core Yahoo Finance service with all API functions |
+| `src/app/api/market/quotes/route.ts` | API endpoint for real-time quotes |
+| `src/app/api/market/movers/route.ts` | API endpoint for top gainers/losers |
+| `src/app/api/market/chart/route.ts` | API endpoint for historical chart data |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/layout/MarketTicker.tsx` | Client-side fetching with 30-second auto-refresh |
+| `src/components/home/MarketMovers.tsx` | Client-side fetching with 60-second auto-refresh |
+| `src/components/article/InlineStockChart.tsx` | Fetches live chart data based on symbol |
+| `src/components/sidebar/LiveMarketWidget.tsx` | Fetches live quotes for article tickers |
+| `src/components/article/ArticleBody.tsx` | Removed static data prop from InlineStockChart |
+| `src/app/page.tsx` | Removed server-side market data fetching |
+| `src/app/article/[slug]/page.tsx` | Removed server-side market data fetching |
+
+### Key Features
+
+- **Real-time quotes**: Market indices, crypto, and commodities update every 30 seconds
+- **Top movers**: Live top gainers and losers from US market
+- **Historical charts**: Intraday and multi-period chart data (1d, 5d, 1mo, 3mo, 6mo, 1y)
+- **Symbol mapping**: Internal display symbols mapped to Yahoo Finance API symbols
+- **Error handling**: Loading states and graceful error handling in all components
+- **Dynamic data**: No caching - always fresh data from Yahoo Finance
+
+### Technical Notes
+
+- Using `yahoo-finance2` npm package v3 (requires `new YahooFinance()` instantiation)
+- API routes use `force-dynamic` and `revalidate: 0` to prevent caching
+- Client components fetch data on mount and auto-refresh on intervals

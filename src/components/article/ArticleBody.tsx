@@ -58,12 +58,11 @@ function renderContentBlock(block: ArticleContentBlock, index: number) {
       return <InlineCallout key={index} content={block.content || ""} />;
 
     case "chart":
-      if (block.chartData && block.chartSymbol) {
+      if (block.chartSymbol) {
         return (
           <InlineStockChart
             key={index}
             symbol={block.chartSymbol}
-            data={block.chartData}
           />
         );
       }

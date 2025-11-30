@@ -1,7 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import type { MarketIndex } from "@/lib/data";
+
+interface MarketIndex {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+}
 
 interface TickerItemProps {
   symbol: string;
@@ -43,12 +51,55 @@ function TickerItem({ symbol, name, price, change, changePercent }: TickerItemPr
 }
 
 interface MarketTickerProps {
-  indices: MarketIndex[];
+  initialIndices?: MarketIndex[];
 }
 
-export function MarketTicker({ indices }: MarketTickerProps) {
+export function MarketTicker({ initialIndices = [] }: MarketTickerProps) {
+  const [indices, setIndices] = useState<MarketIndex[]>(initialIndices);
+  const [isLoading, setIsLoading] = useState(initialIndices.length === 0);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Fetch live data
+  const fetchQuotes = async () => {
+    try {
+      const response = await fetch("/api/market/quotes");
+      if (response.ok) {
+        const data = await response.json();
+        setIndices(data);
+        setLastUpdated(new Date());
+      }
+    } catch (error) {
+      console.error("Error fetching market quotes:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch immediately
+    fetchQuotes();
+
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(fetchQuotes, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Use initial indices while loading, then switch to live data
+  const displayIndices = indices.length > 0 ? indices : initialIndices;
+
   // Duplicate items for seamless scrolling
-  const allItems = [...indices, ...indices];
+  const allItems = [...displayIndices, ...displayIndices];
+
+  if (displayIndices.length === 0 && isLoading) {
+    return (
+      <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+        <div className="h-12 flex items-center justify-center">
+          <span className="text-sm text-muted-foreground">Loading market data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
