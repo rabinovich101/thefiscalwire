@@ -27,7 +27,8 @@
       "Bash(find:*)",
       "mcp__playwright__browser_fill_form",
       "mcp__playwright__browser_wait_for",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "mcp__playwright__browser_snapshot"
     ],
     "deny": [],
     "ask": []

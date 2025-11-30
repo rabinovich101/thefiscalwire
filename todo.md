@@ -234,3 +234,83 @@ Successfully implemented user authentication with sign up and login functionalit
 Created test user during development:
 - Email: test@example.com
 - Password: password123
+
+---
+
+# Admin Panel Implementation Plan
+
+## Overview
+Create an admin panel for managing articles with full CRUD operations and image upload capabilities.
+
+## Current State
+- Article model exists with rich JSON content blocks (paragraph, heading, image, chart, quote, callout, list)
+- Basic user authentication via NextAuth.js (no roles)
+- No file upload infrastructure
+- No admin panel
+
+---
+
+## Implementation Checklist
+
+### Phase 1: Admin Role & Protection
+- [ ] Add `role` field to User model (USER, ADMIN)
+- [ ] Run Prisma migration
+- [ ] Create admin middleware/protection helper
+- [ ] Update existing test user to ADMIN role
+
+### Phase 2: Image Upload Setup
+- [ ] Create `/api/upload` endpoint for image uploads
+- [ ] Store images in `/public/uploads/` directory
+- [ ] Return uploaded image URL
+
+### Phase 3: Admin Layout & Dashboard
+- [ ] Create `/admin` route group with layout
+- [ ] Build admin sidebar navigation
+- [ ] Create admin dashboard page with article stats
+- [ ] Add protected route check (redirect if not admin)
+
+### Phase 4: Article Management Pages
+- [ ] Create articles list page (`/admin/articles`)
+- [ ] Create new article page (`/admin/articles/new`)
+- [ ] Create edit article page (`/admin/articles/[id]/edit`)
+
+### Phase 5: Article Editor
+- [ ] Build article form with basic fields (title, slug, excerpt, category, author)
+- [ ] Build content block editor (add/remove/reorder blocks)
+- [ ] Support block types: paragraph, heading, image, quote, list, callout
+- [ ] Image upload within content blocks
+- [ ] Featured image upload
+- [ ] Tags selection/creation
+- [ ] Preview functionality
+
+### Phase 6: API Routes
+- [ ] POST `/api/admin/articles` - Create article
+- [ ] PUT `/api/admin/articles/[id]` - Update article
+- [ ] DELETE `/api/admin/articles/[id]` - Delete article
+- [ ] GET `/api/admin/categories` - List categories
+- [ ] GET `/api/admin/authors` - List authors
+- [ ] GET `/api/admin/tags` - List/create tags
+
+### Phase 7: Testing & Polish
+- [ ] Test full article creation flow
+- [ ] Test article editing
+- [ ] Test image uploads
+- [ ] Verify articles display correctly on frontend
+
+---
+
+## Technical Decisions
+
+### Image Storage
+Using local storage (`/public/uploads/`) for simplicity. Can migrate to Cloudinary/S3 later for production.
+
+### Rich Text vs Block Editor
+Using **block-based editor** to match existing ArticleContentBlock structure:
+- paragraph, heading, image, quote, list, callout
+- Each block editable individually
+- Drag to reorder blocks
+
+---
+
+## Review Section
+_(To be filled after implementation)_

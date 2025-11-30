@@ -105,6 +105,11 @@ model BreakingNews {
 
 // ============ Authentication Models ============
 
+enum Role {
+  USER
+  ADMIN
+}
+
 model User {
   id            String    @id @default(uuid())
   name          String?
@@ -112,6 +117,7 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
+  role          Role      @default(USER)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
