@@ -43,6 +43,40 @@ export interface Video {
   category: string;
 }
 
+// Article Detail Types for full article view
+export interface ChartDataPoint {
+  time: string;
+  value: number;
+  volume?: number;
+}
+
+export interface ArticleHeading {
+  id: string;
+  text: string;
+  level: 2 | 3;
+}
+
+export interface ArticleContentBlock {
+  type: 'paragraph' | 'heading' | 'image' | 'chart' | 'quote' | 'callout' | 'list';
+  content?: string;
+  level?: 2 | 3;
+  items?: string[];
+  chartData?: ChartDataPoint[];
+  chartSymbol?: string;
+  attribution?: string;
+  imageUrl?: string;
+  imageCaption?: string;
+}
+
+export interface ArticleDetail extends Article {
+  slug: string;
+  content: ArticleContentBlock[];
+  tags: string[];
+  relatedArticleIds: string[];
+  relevantTickers: string[];
+  headings: ArticleHeading[];
+}
+
 // Category colors
 export const categoryColors: Record<string, string> = {
   markets: "bg-blue-600",
@@ -260,3 +294,242 @@ export const navLinks = [
   { name: "Crypto", href: "/crypto" },
   { name: "Opinion", href: "/opinion" },
 ];
+
+// Mock Stock Chart Data
+export const stockChartData: Record<string, ChartDataPoint[]> = {
+  NVDA: [
+    { time: "Nov 1", value: 132.50, volume: 45000000 },
+    { time: "Nov 4", value: 135.20, volume: 52000000 },
+    { time: "Nov 5", value: 138.80, volume: 48000000 },
+    { time: "Nov 6", value: 136.40, volume: 41000000 },
+    { time: "Nov 7", value: 140.20, volume: 55000000 },
+    { time: "Nov 8", value: 139.50, volume: 47000000 },
+    { time: "Nov 11", value: 142.80, volume: 51000000 },
+    { time: "Nov 12", value: 145.60, volume: 62000000 },
+    { time: "Nov 13", value: 143.20, volume: 44000000 },
+    { time: "Nov 14", value: 147.90, volume: 58000000 },
+    { time: "Nov 15", value: 146.30, volume: 49000000 },
+    { time: "Nov 18", value: 149.80, volume: 53000000 },
+    { time: "Nov 19", value: 152.40, volume: 67000000 },
+    { time: "Nov 20", value: 148.90, volume: 71000000 },
+    { time: "Nov 21", value: 145.20, volume: 68000000 },
+    { time: "Nov 22", value: 142.62, volume: 54000000 },
+  ],
+  BTC: [
+    { time: "Nov 1", value: 69500, volume: 28000000000 },
+    { time: "Nov 4", value: 71200, volume: 32000000000 },
+    { time: "Nov 5", value: 74800, volume: 35000000000 },
+    { time: "Nov 6", value: 76200, volume: 38000000000 },
+    { time: "Nov 7", value: 78500, volume: 42000000000 },
+    { time: "Nov 8", value: 77100, volume: 36000000000 },
+    { time: "Nov 11", value: 82300, volume: 45000000000 },
+    { time: "Nov 12", value: 87600, volume: 52000000000 },
+    { time: "Nov 13", value: 89200, volume: 48000000000 },
+    { time: "Nov 14", value: 91800, volume: 55000000000 },
+    { time: "Nov 15", value: 90400, volume: 47000000000 },
+    { time: "Nov 18", value: 93200, volume: 51000000000 },
+    { time: "Nov 19", value: 95800, volume: 58000000000 },
+    { time: "Nov 20", value: 94200, volume: 49000000000 },
+    { time: "Nov 21", value: 96500, volume: 53000000000 },
+    { time: "Nov 22", value: 97245, volume: 56000000000 },
+  ],
+};
+
+// Mock Article Details
+export const articleDetails: Record<string, ArticleDetail> = {
+  "tech-giants-lead-market-rally": {
+    id: "1",
+    slug: "tech-giants-lead-market-rally",
+    title: "Tech Giants Lead Market Rally as AI Investments Surge to Record Highs",
+    excerpt: "Major technology companies posted significant gains on Wednesday as investors pile into artificial intelligence stocks, with semiconductor makers leading the charge.",
+    category: "markets",
+    imageUrl: "https://picsum.photos/seed/tech-rally/1920/1080",
+    author: "Sarah Chen",
+    publishedAt: "2h ago",
+    readTime: 5,
+    isFeatured: true,
+    tags: ["AI", "Technology", "S&P 500", "NVIDIA", "Semiconductors"],
+    relevantTickers: ["NVDA", "AMD", "MSFT", "GOOGL"],
+    relatedArticleIds: ["2", "4", "6"],
+    headings: [
+      { id: "ai-boom", text: "The AI Investment Boom", level: 2 },
+      { id: "key-players", text: "Key Players Leading the Charge", level: 2 },
+      { id: "nvidia-analysis", text: "NVIDIA Performance Analysis", level: 3 },
+      { id: "market-outlook", text: "Market Outlook for 2025", level: 2 },
+    ],
+    content: [
+      {
+        type: "paragraph",
+        content: "The technology sector delivered its strongest performance in months on Wednesday, with the S&P 500 tech sector surging 2.3% as investors doubled down on artificial intelligence plays. The rally, led by semiconductor giants, signals renewed confidence in the AI narrative despite recent market volatility.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        content: "The AI Investment Boom",
+      },
+      {
+        type: "paragraph",
+        content: "Artificial intelligence investments have reached unprecedented levels, with corporations worldwide committing over $200 billion to AI infrastructure in 2024 alone. This spending spree shows no signs of slowing down, as companies race to integrate generative AI capabilities into their products and services.",
+      },
+      {
+        type: "callout",
+        content: "Global AI spending reached $200B+ in 2024, with projections of $500B by 2027",
+      },
+      {
+        type: "paragraph",
+        content: "The demand for AI computing power has created a supply crunch for high-end GPUs, benefiting manufacturers like NVIDIA and AMD. Data center operators are scrambling to secure capacity, leading to extended wait times for the latest AI accelerators.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        content: "Key Players Leading the Charge",
+      },
+      {
+        type: "paragraph",
+        content: "NVIDIA remains the undisputed leader in AI computing, with its data center revenue growing 279% year-over-year. The company's H100 and upcoming B100 chips have become essential components for training large language models and running AI inference workloads.",
+      },
+      {
+        type: "quote",
+        content: "We're seeing demand that exceeds anything we've experienced in our history. The AI revolution is just beginning, and we're positioned at the center of it.",
+        attribution: "Jensen Huang, CEO of NVIDIA",
+      },
+      {
+        type: "heading",
+        level: 3,
+        content: "NVIDIA Performance Analysis",
+      },
+      {
+        type: "paragraph",
+        content: "NVIDIA shares have gained over 200% in the past year, making it one of the best-performing large-cap stocks. The company's market capitalization briefly exceeded $1.5 trillion, placing it among the world's most valuable companies.",
+      },
+      {
+        type: "chart",
+        chartSymbol: "NVDA",
+        chartData: stockChartData.NVDA,
+      },
+      {
+        type: "paragraph",
+        content: "Technical analysts note strong support at the 50-day moving average, with resistance near the recent all-time highs. The stock's relative strength index (RSI) suggests momentum remains favorable despite elevated valuations.",
+      },
+      {
+        type: "list",
+        items: [
+          "NVIDIA: +6.29% ($142.62)",
+          "AMD: +3.91% ($138.91)",
+          "Microsoft: +1.8% ($378.50)",
+          "Google: +2.1% ($152.80)",
+        ],
+      },
+      {
+        type: "heading",
+        level: 2,
+        content: "Market Outlook for 2025",
+      },
+      {
+        type: "paragraph",
+        content: "Wall Street analysts remain broadly bullish on the AI trade, though valuations have become a concern for some. The sector trades at roughly 30 times forward earnings, compared to 18 times for the broader S&P 500.",
+      },
+      {
+        type: "paragraph",
+        content: "However, bulls argue that the growth trajectory justifies premium multiples. With AI adoption still in early stages across most industries, the addressable market continues to expand. Enterprise software companies are racing to embed AI features, creating sustained demand for the underlying infrastructure.",
+      },
+      {
+        type: "callout",
+        content: "Analyst consensus: 78% rate NVDA as 'Buy' with an average price target of $165",
+      },
+      {
+        type: "paragraph",
+        content: "Investors should monitor upcoming earnings reports from major tech companies for signals about AI spending trends. Any indication of slowing investment could trigger a sector-wide reassessment, though current evidence points to accelerating adoption.",
+      },
+    ],
+  },
+  "bitcoin-surges-past-97k": {
+    id: "2",
+    slug: "bitcoin-surges-past-97k",
+    title: "Bitcoin Surges Past $97K as Institutional Demand Accelerates",
+    excerpt: "Cryptocurrency markets continue their impressive rally as major financial institutions increase their Bitcoin holdings.",
+    category: "crypto",
+    imageUrl: "https://picsum.photos/seed/bitcoin-surge/1920/1080",
+    author: "Michael Torres",
+    publishedAt: "3h ago",
+    readTime: 4,
+    tags: ["Bitcoin", "Cryptocurrency", "Institutional Investment", "ETF"],
+    relevantTickers: ["BTC", "ETH", "COIN", "MSTR"],
+    relatedArticleIds: ["7", "3", "1"],
+    headings: [
+      { id: "institutional-wave", text: "The Institutional Wave", level: 2 },
+      { id: "etf-flows", text: "ETF Flows Drive Momentum", level: 2 },
+      { id: "price-analysis", text: "Price Analysis", level: 3 },
+      { id: "road-to-100k", text: "The Road to $100K", level: 2 },
+    ],
+    content: [
+      {
+        type: "paragraph",
+        content: "Bitcoin has surged past $97,000 for the first time in its history, extending a remarkable rally fueled by institutional adoption and the success of spot Bitcoin ETFs. The world's largest cryptocurrency is now within striking distance of the psychologically significant $100,000 level.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        content: "The Institutional Wave",
+      },
+      {
+        type: "paragraph",
+        content: "Major financial institutions have dramatically increased their exposure to Bitcoin over the past year. Asset managers now hold over 1 million BTC through various investment vehicles, representing approximately 5% of the total supply.",
+      },
+      {
+        type: "callout",
+        content: "Institutional investors now hold over 1 million BTC worth approximately $97 billion",
+      },
+      {
+        type: "quote",
+        content: "Bitcoin has proven itself as a legitimate asset class. We're allocating a portion of our portfolio to digital assets as part of our diversification strategy.",
+        attribution: "BlackRock CEO Larry Fink",
+      },
+      {
+        type: "heading",
+        level: 2,
+        content: "ETF Flows Drive Momentum",
+      },
+      {
+        type: "paragraph",
+        content: "The launch of spot Bitcoin ETFs in January 2024 marked a turning point for cryptocurrency adoption. These products have attracted over $50 billion in net inflows, with BlackRock's IBIT leading the pack.",
+      },
+      {
+        type: "heading",
+        level: 3,
+        content: "Price Analysis",
+      },
+      {
+        type: "chart",
+        chartSymbol: "BTC",
+        chartData: stockChartData.BTC,
+      },
+      {
+        type: "paragraph",
+        content: "Bitcoin's price action shows a clear uptrend with higher highs and higher lows. The cryptocurrency has successfully broken through multiple resistance levels, with strong buying pressure on any dips.",
+      },
+      {
+        type: "heading",
+        level: 2,
+        content: "The Road to $100K",
+      },
+      {
+        type: "paragraph",
+        content: "Market analysts are increasingly confident that Bitcoin will breach $100,000 before year-end. The combination of institutional demand, limited supply due to the April 2024 halving, and improving regulatory clarity creates a favorable backdrop.",
+      },
+      {
+        type: "list",
+        items: [
+          "Spot ETF inflows: $50B+ since January",
+          "Post-halving supply reduction: 50%",
+          "Active addresses: All-time high",
+          "Miner revenue: Stabilizing after halving",
+        ],
+      },
+      {
+        type: "paragraph",
+        content: "However, traders should remain cautious about potential volatility. Bitcoin has historically experienced sharp corrections even during bull markets, and leveraged positions remain elevated across major exchanges.",
+      },
+    ],
+  },
+};
