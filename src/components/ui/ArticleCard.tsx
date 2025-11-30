@@ -2,8 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { categoryColors } from "@/data/mockData";
-import type { Article } from "@/data/mockData";
+import { BookmarkButton } from "@/components/ui/BookmarkButton";
+import type { Article } from "@/lib/data";
 
 interface ArticleCardProps {
   article: Article;
@@ -14,7 +14,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
   if (variant === "compact") {
     return (
       <Link
-        href={`/article/${article.id}`}
+        href={`/article/${article.slug}`}
         className="group flex gap-4 py-3 border-b border-border/40 last:border-0"
       >
         <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
@@ -39,7 +39,7 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
 
   return (
     <Card className="group overflow-hidden bg-surface border-border/40 hover:border-primary/30 transition-all card-hover">
-      <Link href={`/article/${article.id}`}>
+      <Link href={`/article/${article.slug}`}>
         {/* Image */}
         <div className="relative aspect-video overflow-hidden bg-muted">
           <Image
@@ -51,10 +51,13 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
           <div className="absolute top-3 left-3">
             <Badge
               variant="secondary"
-              className={`text-[10px] font-semibold uppercase ${categoryColors[article.category]} text-white border-0`}
+              className={`text-[10px] font-semibold uppercase ${article.categoryColor} text-white border-0`}
             >
               {article.category}
             </Badge>
+          </div>
+          <div className="absolute top-3 right-3">
+            <BookmarkButton articleId={article.slug} variant="overlay" />
           </div>
         </div>
 

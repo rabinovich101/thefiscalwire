@@ -3,9 +3,14 @@ import Image from "next/image";
 import { Play, Video } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { latestVideos, categoryColors } from "@/data/mockData";
+import { categoryColors } from "@/lib/data";
+import type { Video as VideoType } from "@/lib/data";
 
-export function VideoCarousel() {
+interface VideoCarouselProps {
+  videos: VideoType[];
+}
+
+export function VideoCarousel({ videos }: VideoCarouselProps) {
   return (
     <section className="py-8 border-t border-border/40">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -18,7 +23,7 @@ export function VideoCarousel() {
         {/* Video Carousel */}
         <ScrollArea className="w-full">
           <div className="flex gap-4 pb-4">
-            {latestVideos.map((video) => (
+            {videos.map((video) => (
               <Link
                 key={video.id}
                 href={`/video/${video.id}`}

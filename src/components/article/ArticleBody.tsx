@@ -3,7 +3,7 @@ import { InlineQuote } from "./InlineQuote";
 import { InlineCallout } from "./InlineCallout";
 import { InlineStockChart } from "./InlineStockChart";
 import { ArticleTags } from "./ArticleTags";
-import type { ArticleContentBlock, ArticleDetail } from "@/data/mockData";
+import type { ArticleContentBlock, ArticleDetail } from "@/lib/data";
 
 interface ArticleBodyProps {
   article: ArticleDetail;

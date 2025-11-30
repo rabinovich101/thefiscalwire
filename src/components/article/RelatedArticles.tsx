@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { categoryColors, type Article } from "@/data/mockData";
+import type { Article } from "@/lib/data";
 
 interface RelatedArticlesProps {
   articles: Article[];
@@ -11,7 +11,7 @@ interface RelatedArticlesProps {
 function CompactArticleCard({ article }: { article: Article }) {
   return (
     <Link
-      href={`/article/${article.id}`}
+      href={`/article/${article.slug}`}
       className="group flex gap-3 p-2 rounded-lg hover:bg-surface-hover transition-colors"
     >
       {/* Thumbnail */}
@@ -40,7 +40,7 @@ function CompactArticleCard({ article }: { article: Article }) {
 function FullArticleCard({ article }: { article: Article }) {
   return (
     <Link
-      href={`/article/${article.id}`}
+      href={`/article/${article.slug}`}
       className="group block bg-surface rounded-xl overflow-hidden hover:bg-surface-hover transition-colors"
     >
       {/* Image */}
@@ -57,7 +57,7 @@ function FullArticleCard({ article }: { article: Article }) {
       <div className="p-4">
         <Badge
           variant="secondary"
-          className={`mb-2 text-[10px] font-semibold uppercase ${categoryColors[article.category]} text-white border-0`}
+          className={`mb-2 text-[10px] font-semibold uppercase ${article.categoryColor} text-white border-0`}
         >
           {article.category}
         </Badge>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { List } from "lucide-react";
-import type { ArticleHeading } from "@/data/mockData";
+import type { ArticleHeading } from "@/lib/data";
 
 interface ArticleTOCProps {
   headings: ArticleHeading[];

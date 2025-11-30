@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
+import { BookmarkButton } from "@/components/ui/BookmarkButton";
 import { ArticleMeta } from "./ArticleMeta";
-import { categoryColors, type ArticleDetail } from "@/data/mockData";
+import { categoryColors, type ArticleDetail } from "@/lib/data";
 
 interface ArticleHeroProps {
   article: ArticleDetail;
@@ -28,7 +29,7 @@ export function ArticleHero({ article }: ArticleHeroProps) {
           {/* Category Badge */}
           <Badge
             variant="secondary"
-            className={`mb-4 text-xs font-semibold uppercase ${categoryColors[article.category]} text-white border-0`}
+            className={`mb-4 text-xs font-semibold uppercase ${article.categoryColor || categoryColors[article.category]} text-white border-0`}
           >
             {article.category}
           </Badge>
@@ -44,11 +45,18 @@ export function ArticleHero({ article }: ArticleHeroProps) {
           </p>
 
           {/* Meta Info */}
-          <ArticleMeta
-            author={article.author}
-            publishedAt={article.publishedAt}
-            readTime={article.readTime}
-          />
+          <div className="flex items-center justify-between">
+            <ArticleMeta
+              author={article.author}
+              publishedAt={article.publishedAt}
+              readTime={article.readTime}
+            />
+            <BookmarkButton
+              articleId={article.slug}
+              variant="overlay"
+              className="ml-4"
+            />
+          </div>
         </div>
       </div>
     </section>

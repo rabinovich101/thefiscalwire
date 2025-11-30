@@ -1,10 +1,14 @@
 import { ArticleCard } from "@/components/ui/ArticleCard";
-import { topStories } from "@/data/mockData";
+import type { Article } from "@/lib/data";
 
-export function ArticleGrid() {
+interface ArticleGridProps {
+  articles: Article[];
+}
+
+export function ArticleGrid({ articles }: ArticleGridProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-      {topStories.map((article) => (
+      {articles.map((article) => (
         <ArticleCard key={article.id} article={article} />
       ))}
     </div>

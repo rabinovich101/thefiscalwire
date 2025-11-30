@@ -4,10 +4,10 @@ import Link from "next/link";
 import { Search, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { navLinks } from "@/data/mockData";
-import { useState } from "react";
+import { useUIStore } from "@/stores";
 
 export function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isMobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useUIStore();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -59,9 +59,9 @@ export function Header() {
             variant="ghost"
             size="icon"
             className="md:hidden text-muted-foreground hover:text-foreground"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            onClick={toggleMobileMenu}
           >
-            {mobileMenuOpen ? (
+            {isMobileMenuOpen ? (
               <X className="h-5 w-5" />
             ) : (
               <Menu className="h-5 w-5" />
@@ -72,7 +72,7 @@ export function Header() {
       </div>
 
       {/* Mobile Navigation */}
-      {mobileMenuOpen && (
+      {isMobileMenuOpen && (
         <div className="md:hidden border-t border-border/40 bg-background">
           <nav className="flex flex-col px-4 py-2">
             {navLinks.map((link) => (

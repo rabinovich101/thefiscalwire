@@ -1,16 +1,28 @@
 "use client";
 
 import { TrendingUp, TrendingDown, BarChart3 } from "lucide-react";
-import { topGainers, topLosers } from "@/data/mockData";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+interface MarketMover {
+  symbol: string;
+  name: string;
+  price: number;
+  change: number;
+  changePercent: number;
+}
+
+interface MarketMoversProps {
+  gainers: MarketMover[];
+  losers: MarketMover[];
+}
+
 type TabType = "gainers" | "losers";
 
-export function MarketMovers() {
+export function MarketMovers({ gainers, losers }: MarketMoversProps) {
   const [activeTab, setActiveTab] = useState<TabType>("gainers");
 
-  const data = activeTab === "gainers" ? topGainers : topLosers;
+  const data = activeTab === "gainers" ? gainers : losers;
 
   return (
     <div className="rounded-xl bg-surface border border-border/40 p-5 mt-6">
@@ -52,7 +64,7 @@ export function MarketMovers() {
 
       {/* Stock List */}
       <div className="space-y-0">
-        {data.map((stock, index) => (
+        {data.map((stock) => (
           <div
             key={stock.symbol}
             className="flex items-center justify-between py-2.5 border-b border-border/40 last:border-0"

@@ -1,8 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-import { featuredArticle, secondaryArticles, categoryColors } from "@/data/mockData";
-import type { Article } from "@/data/mockData";
+import type { Article } from "@/lib/data";
 
 interface SecondaryArticleCardProps {
   article: Article;
@@ -11,7 +10,7 @@ interface SecondaryArticleCardProps {
 function SecondaryArticleCard({ article }: SecondaryArticleCardProps) {
   return (
     <Link
-      href={`/article/${article.id}`}
+      href={`/article/${article.slug}`}
       className="group flex gap-4 p-4 rounded-lg bg-surface hover:bg-surface-hover transition-colors"
     >
       {/* Thumbnail */}
@@ -28,7 +27,7 @@ function SecondaryArticleCard({ article }: SecondaryArticleCardProps) {
       <div className="flex flex-col justify-center min-w-0">
         <Badge
           variant="secondary"
-          className={`w-fit mb-1.5 text-[10px] font-semibold uppercase ${categoryColors[article.category]} text-white border-0`}
+          className={`w-fit mb-1.5 text-[10px] font-semibold uppercase ${article.categoryColor} text-white border-0`}
         >
           {article.category}
         </Badge>
@@ -43,13 +42,18 @@ function SecondaryArticleCard({ article }: SecondaryArticleCardProps) {
   );
 }
 
-export function HeroSection() {
+interface HeroSectionProps {
+  featuredArticle: Article;
+  secondaryArticles: Article[];
+}
+
+export function HeroSection({ featuredArticle, secondaryArticles }: HeroSectionProps) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main Featured Article */}
         <Link
-          href={`/article/${featuredArticle.id}`}
+          href={`/article/${featuredArticle.slug}`}
           className="group relative col-span-1 lg:col-span-2 h-[300px] sm:h-[400px] lg:h-[500px] overflow-hidden rounded-xl bg-surface"
         >
           {/* Background Image */}
@@ -68,7 +72,7 @@ export function HeroSection() {
           <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
             <Badge
               variant="secondary"
-              className={`mb-3 text-xs font-semibold uppercase ${categoryColors[featuredArticle.category]} text-white border-0`}
+              className={`mb-3 text-xs font-semibold uppercase ${featuredArticle.categoryColor} text-white border-0`}
             >
               {featuredArticle.category}
             </Badge>

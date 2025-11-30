@@ -6,27 +6,32 @@ import { ArticleHero } from "@/components/article/ArticleHero";
 import { ArticleBody } from "@/components/article/ArticleBody";
 import { ArticleSidebar } from "@/components/sidebar/ArticleSidebar";
 import { RelatedArticles } from "@/components/article/RelatedArticles";
-import { articleDetails, topStories, secondaryArticles, featuredArticle } from "@/data/mockData";
+import {
+  getArticleBySlug,
+  getRelatedArticles,
+  getArticleSlugs,
+  getMarketIndices,
+} from "@/lib/data";
 
 interface ArticlePageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Get all articles for finding related
-const allArticles = [featuredArticle, ...secondaryArticles, ...topStories];
-
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const article = articleDetails[slug];
+
+  // Fetch article and market data in parallel
+  const [article, marketIndices] = await Promise.all([
+    getArticleBySlug(slug),
+    getMarketIndices(),
+  ]);
 
   if (!article) {
     notFound();
   }
 
-  // Get related articles
-  const relatedArticles = allArticles.filter((a) =>
-    article.relatedArticleIds.includes(a.id)
-  );
+  // Fetch related articles
+  const relatedArticles = await getRelatedArticles(article.id);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -34,7 +39,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <Header />
 
       {/* Market Ticker */}
-      <MarketTicker />
+      <MarketTicker indices={marketIndices} />
 
       {/* Main Content */}
       <main className="flex-1">
@@ -78,16 +83,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 }
 
 // Generate static params for known articles
-export function generateStaticParams() {
-  return Object.keys(articleDetails).map((slug) => ({
-    slug,
-  }));
+export async function generateStaticParams() {
+  const slugs = await getArticleSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 // Generate metadata
 export async function generateMetadata({ params }: ArticlePageProps) {
   const { slug } = await params;
-  const article = articleDetails[slug];
+  const article = await getArticleBySlug(slug);
 
   if (!article) {
     return {

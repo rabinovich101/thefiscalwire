@@ -21,7 +21,9 @@
       "Bash(docker-compose up:*)",
       "Bash(npx prisma migrate dev:*)",
       "Bash(npx prisma:*)",
-      "Bash(npm run db:seed:*)"
+      "Bash(npm run db:seed:*)",
+      "mcp__playwright__browser_click",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

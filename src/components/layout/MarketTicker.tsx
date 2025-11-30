@@ -1,7 +1,7 @@
 "use client";
 
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { marketIndices } from "@/data/mockData";
+import type { MarketIndex } from "@/lib/data";
 
 interface TickerItemProps {
   symbol: string;
@@ -42,9 +42,13 @@ function TickerItem({ symbol, name, price, change, changePercent }: TickerItemPr
   );
 }
 
-export function MarketTicker() {
+interface MarketTickerProps {
+  indices: MarketIndex[];
+}
+
+export function MarketTicker({ indices }: MarketTickerProps) {
   // Duplicate items for seamless scrolling
-  const allItems = [...marketIndices, ...marketIndices];
+  const allItems = [...indices, ...indices];
 
   return (
     <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">

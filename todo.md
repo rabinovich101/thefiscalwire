@@ -98,8 +98,39 @@ npm run db:generate
 - `Video` - Video content
 - `BreakingNews` - Breaking news banner
 
+### Phase 6: Data Layer & Component Updates (Completed)
+- [x] Create `src/lib/data.ts` with all data fetching functions
+- [x] Update `src/app/page.tsx` to fetch from database
+- [x] Update `src/app/article/[slug]/page.tsx` to fetch from database
+- [x] Update all components to accept props instead of importing mock data:
+  - [x] HeroSection
+  - [x] ArticleGrid
+  - [x] TrendingSidebar
+  - [x] MarketMovers
+  - [x] VideoCarousel
+  - [x] BreakingNewsBanner
+  - [x] MarketTicker
+  - [x] ArticleCard
+  - [x] ArticleHero
+  - [x] ArticleBody
+  - [x] ArticleSidebar
+  - [x] RelatedArticles
+  - [x] ArticleTOC
+
+---
+
+## Current Status: ✅ Complete
+
+All database integration tasks are finished. The application now:
+- Fetches all data from PostgreSQL via Prisma
+- Home page and article pages fully functional
+- Prisma Studio available for data management
+
+### Running Services
+- **Dev Server**: http://localhost:3000
+- **Prisma Studio**: http://localhost:5555
+- **PostgreSQL**: Docker container `newswebbyclaude-db`
+
 ### Next Steps (Optional)
-1. Create API routes to fetch data from database
-2. Update components to use Prisma instead of mock data
-3. Add admin panel for content management
-4. Set up Prisma Studio for data browsing (`npm run db:studio`)
+1. Add admin panel for content management
+2. Deploy database to production (Railway, Supabase, or VPS)

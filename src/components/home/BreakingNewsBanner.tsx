@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
-import { breakingNews } from "@/data/mockData";
+import type { BreakingNews } from "@/lib/data";
 
-export function BreakingNewsBanner() {
+interface BreakingNewsBannerProps {
+  news: BreakingNews | null;
+}
+
+export function BreakingNewsBanner({ news }: BreakingNewsBannerProps) {
   const [isVisible, setIsVisible] = useState(true);
 
-  if (!breakingNews.isActive || !isVisible) {
+  if (!news || !news.isActive || !isVisible) {
     return null;
   }
 
@@ -17,7 +21,7 @@ export function BreakingNewsBanner() {
       <div className="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <Link
-            href={breakingNews.url}
+            href={news.url}
             className="flex items-center gap-3 flex-1 min-w-0"
           >
             {/* Breaking Indicator */}
@@ -33,7 +37,7 @@ export function BreakingNewsBanner() {
 
             {/* Headline */}
             <p className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">
-              {breakingNews.headline}
+              {news.headline}
             </p>
           </Link>
 

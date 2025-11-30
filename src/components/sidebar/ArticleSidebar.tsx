@@ -1,7 +1,7 @@
 import { ArticleTOC } from "./ArticleTOC";
 import { LiveMarketWidget } from "./LiveMarketWidget";
 import { RelatedArticles } from "@/components/article/RelatedArticles";
-import type { ArticleHeading, Article } from "@/data/mockData";
+import type { ArticleHeading, Article } from "@/lib/data";
 
 interface ArticleSidebarProps {
   headings: ArticleHeading[];

@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { TrendingUp } from "lucide-react";
-import { trendingStories, categoryColors } from "@/data/mockData";
 import { Badge } from "@/components/ui/badge";
+import type { TrendingItem } from "@/lib/data";
 
-export function TrendingSidebar() {
+interface TrendingSidebarProps {
+  stories: TrendingItem[];
+}
+
+export function TrendingSidebar({ stories }: TrendingSidebarProps) {
   return (
     <div className="rounded-xl bg-surface border border-border/40 p-5">
       {/* Header */}
@@ -14,7 +18,7 @@ export function TrendingSidebar() {
 
       {/* Trending List */}
       <div className="space-y-0">
-        {trendingStories.map((story) => (
+        {stories.map((story) => (
           <Link
             key={story.rank}
             href={story.url}
