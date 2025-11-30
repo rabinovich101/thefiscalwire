@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Author {
+  id        String    @id @default(uuid())
+  name      String
+  avatar    String?
+  bio       String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  color     String    @default("bg-gray-600")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+}
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  articles  Article[]
+}
+
+model Article {
+  id               String    @id @default(uuid())
+  slug             String    @unique
+  title            String
+  excerpt          String
+  content          Json      // Stores ArticleContentBlock[]
+  imageUrl         String
+  publishedAt      DateTime  @default(now())
+  readTime         Int
+  isFeatured       Boolean   @default(false)
+  isBreaking       Boolean   @default(false)
+
+  // Table of contents headings
+  headings         Json?     // Stores ArticleHeading[]
+
+  // Related data
+  relevantTickers  String[]  @default([])
+
+  // Relations
+  authorId         String
+  author           Author    @relation(fields: [authorId], references: [id])
+
+  categoryId       String
+  category         Category  @relation(fields: [categoryId], references: [id])
+
+  tags             Tag[]
+
+  // Related articles (self-referential many-to-many)
+  relatedTo        Article[] @relation("RelatedArticles")
+  relatedFrom      Article[] @relation("RelatedArticles")
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([publishedAt])
+}
+
+model MarketIndex {
+  id            String   @id @default(uuid())
+  symbol        String   @unique
+  name          String
+  price         Float
+  change        Float
+  changePercent Float
+  updatedAt     DateTime @updatedAt
+}
+
+model Video {
+  id        String   @id @default(uuid())
+  title     String
+  thumbnail String
+  duration  String
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BreakingNews {
+  id       String  @id @default(uuid())
+  isActive Boolean @default(true)
+  headline String
+  url      String
+}

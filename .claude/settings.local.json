@@ -16,7 +16,12 @@
       "Bash(curl:*)",
       "mcp__playwright__browser_close",
       "mcp__playwright__browser_install",
-      "mcp__playwright__browser_press_key"
+      "mcp__playwright__browser_press_key",
+      "Bash(npm install:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run db:seed:*)"
     ],
     "deny": [],
     "ask": []
