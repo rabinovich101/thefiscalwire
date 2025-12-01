@@ -43,7 +43,7 @@ export default async function Home() {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
+        <main id="main-content" className="flex-1 flex items-center justify-center">
           <p className="text-muted-foreground">No articles found. Please seed the database.</p>
         </main>
         <Footer />
@@ -63,7 +63,7 @@ export default async function Home() {
       <BreakingNewsBanner news={breakingNews} />
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         {/* Hero Section */}
         <HeroSection
           featuredArticle={featuredArticle}
@@ -82,6 +82,7 @@ export default async function Home() {
               <a
                 href="/news"
                 className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                aria-label="View all top stories"
               >
                 View All
               </a>

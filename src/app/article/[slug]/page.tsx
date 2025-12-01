@@ -40,7 +40,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <MarketTicker />
 
       {/* Main Content */}
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         {/* Full-bleed Hero */}
         <ArticleHero article={article} />
 

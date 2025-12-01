@@ -14,7 +14,15 @@ export function Header() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <>
+      {/* Skip to main content link for accessibility */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:outline-none"
+      >
+        Skip to main content
+      </a>
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
@@ -114,6 +122,8 @@ export function Header() {
             size="icon"
             className="md:hidden text-muted-foreground hover:text-foreground"
             onClick={toggleMobileMenu}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-menu"
           >
             {isMobileMenuOpen ? (
               <X className="h-5 w-5" />
@@ -127,7 +137,7 @@ export function Header() {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-border/40 bg-background">
+        <div id="mobile-menu" className="md:hidden border-t border-border/40 bg-background">
           <nav className="flex flex-col px-4 py-2">
             {navLinks.map((link) => (
               <Link
@@ -180,5 +190,6 @@ export function Header() {
         </div>
       )}
     </header>
+    </>
   );
 }
