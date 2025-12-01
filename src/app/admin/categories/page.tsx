@@ -1,3 +1,6 @@
+// Force dynamic rendering - no static generation at build time
+export const dynamic = "force-dynamic";
+
 import prisma from "@/lib/prisma"
 import { CategoryManager } from "@/components/admin/CategoryManager"
 

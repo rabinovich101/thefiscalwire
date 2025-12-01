@@ -39,7 +39,15 @@
       "Bash(/opt/homebrew/bin/gh repo create thefiscalwire --public --description \"The Fiscal Wire - News Website\")",
       "Bash(git remote add:*)",
       "Bash(git branch:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(/opt/homebrew/bin/gh auth setup-git)",
+      "Bash(git count-objects:*)",
+      "Bash(git config:*)",
+      "Bash(/opt/homebrew/bin/gh repo edit rabinovich101/thefiscalwire --visibility private)",
+      "Bash(/opt/homebrew/bin/gh repo edit rabinovich101/thefiscalwire --visibility private --accept-visibility-change-consequences)"
     ],
     "deny": [],
     "ask": []

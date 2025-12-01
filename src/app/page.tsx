@@ -1,3 +1,6 @@
+// Force dynamic rendering - no static generation at build time
+export const dynamic = "force-dynamic";
+
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MarketTicker } from "@/components/layout/MarketTicker";

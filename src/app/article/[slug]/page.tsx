@@ -9,8 +9,10 @@ import { RelatedArticles } from "@/components/article/RelatedArticles";
 import {
   getArticleBySlug,
   getRelatedArticles,
-  getArticleSlugs,
 } from "@/lib/data";
+
+// Force dynamic rendering - no static generation at build time
+export const dynamic = "force-dynamic";
 
 interface ArticlePageProps {
   params: Promise<{ slug: string }>;
@@ -76,12 +78,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <Footer />
     </div>
   );
-}
-
-// Generate static params for known articles
-export async function generateStaticParams() {
-  const slugs = await getArticleSlugs();
-  return slugs.map((slug) => ({ slug }));
 }
 
 // Generate metadata

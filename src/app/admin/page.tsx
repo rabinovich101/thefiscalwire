@@ -1,3 +1,6 @@
+// Force dynamic rendering - no static generation at build time
+export const dynamic = "force-dynamic";
+
 import Link from "next/link"
 import prisma from "@/lib/prisma"
 import { FileText, FolderOpen, Users, Plus } from "lucide-react"
