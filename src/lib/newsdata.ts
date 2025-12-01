@@ -208,3 +208,73 @@ export function extractTickers(content: string | null, title: string): string[] 
 
   return tickers.filter(t => !commonWords.includes(t)).slice(0, 10);
 }
+
+/**
+ * Fetch news by specific category and search query
+ */
+export async function fetchNewsByCategory(
+  targetCategory: 'crypto' | 'economy' | 'opinion',
+  searchQuery: string
+): Promise<NewsDataArticle[]> {
+  if (!NEWSDATA_API_KEY) {
+    throw new Error('NEWSDATA_API_KEY is not configured');
+  }
+
+  // Map our categories to NewsData categories
+  const categoryMap: Record<string, string> = {
+    crypto: 'business', // crypto news often falls under business
+    economy: 'politics,business',
+    opinion: 'politics,business',
+  };
+
+  const params = new URLSearchParams({
+    apikey: NEWSDATA_API_KEY,
+    language: 'en',
+    q: searchQuery,
+  });
+
+  // Add category if mapped
+  if (categoryMap[targetCategory]) {
+    params.set('category', categoryMap[targetCategory]);
+  }
+
+  const url = `${NEWSDATA_BASE_URL}?${params.toString()}`;
+
+  console.log(`[NewsData] Fetching ${targetCategory} news:`, url.replace(NEWSDATA_API_KEY, '***'));
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`NewsData API error: ${response.status} - ${errorText}`);
+  }
+
+  const data: NewsDataResponse = await response.json();
+
+  if (data.status !== 'success') {
+    throw new Error(`NewsData API returned status: ${data.status}`);
+  }
+
+  console.log(`[NewsData] Fetched ${data.results?.length || 0} ${targetCategory} articles`);
+
+  // Filter out duplicates and articles without required fields
+  const validArticles = (data.results || []).filter(article => {
+    if (article.duplicate) return false;
+    if (!article.title || !article.description) return false;
+    return true;
+  });
+
+  return validArticles;
+}
+
+/**
+ * Force map to specific category (override default mapping)
+ */
+export function forceMapCategory(targetCategory: string): string {
+  return targetCategory;
+}
