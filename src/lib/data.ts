@@ -337,6 +337,16 @@ export async function getArticlesByCategory(categorySlug: string, limit?: number
   return articles.map(transformArticle)
 }
 
+export async function getArticleCountByCategory(categorySlug: string): Promise<number> {
+  return prisma.article.count({
+    where: {
+      category: {
+        slug: categorySlug,
+      },
+    },
+  })
+}
+
 export async function getCategoryBySlug(slug: string) {
   return prisma.category.findUnique({
     where: { slug },

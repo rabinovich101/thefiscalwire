@@ -1,0 +1,91 @@
+import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+
+// Category colors map
+const categoryColors: Record<string, string> = {
+  markets: 'bg-blue-600',
+  tech: 'bg-purple-600',
+  crypto: 'bg-orange-500',
+  economy: 'bg-green-600',
+  opinion: 'bg-gray-600',
+}
+
+// Helper to format relative time
+function formatRelativeTime(date: Date): string {
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffHours < 1) return 'Just now'
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString()
+}
+
+// Transform Prisma article to frontend Article
+function transformArticle(article: any) {
+  return {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    excerpt: article.excerpt,
+    category: article.category?.slug || 'markets',
+    categoryColor: article.category?.color || categoryColors[article.category?.slug] || 'bg-gray-600',
+    imageUrl: article.imageUrl,
+    author: article.author?.name || 'Unknown',
+    authorAvatar: article.author?.avatar,
+    publishedAt: formatRelativeTime(article.publishedAt),
+    readTime: article.readTime,
+    isFeatured: article.isFeatured,
+    isBreaking: article.isBreaking,
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const category = searchParams.get('category')
+    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = parseInt(searchParams.get('limit') || '8')
+
+    // Build where clause
+    const where: any = {}
+    if (category) {
+      where.category = { slug: category }
+    }
+
+    // Get total count for pagination info
+    const totalCount = await prisma.article.count({ where })
+
+    // Fetch articles with pagination
+    const articles = await prisma.article.findMany({
+      where,
+      include: {
+        author: true,
+        category: true,
+      },
+      orderBy: { publishedAt: 'desc' },
+      skip: offset,
+      take: limit,
+    })
+
+    const transformedArticles = articles.map(transformArticle)
+
+    return NextResponse.json({
+      articles: transformedArticles,
+      pagination: {
+        offset,
+        limit,
+        total: totalCount,
+        hasMore: offset + articles.length < totalCount,
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching articles:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch articles' },
+      { status: 500 }
+    )
+  }
+}

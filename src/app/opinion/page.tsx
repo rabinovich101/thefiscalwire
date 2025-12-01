@@ -2,11 +2,12 @@ import { Metadata } from "next";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MarketTicker } from "@/components/layout/MarketTicker";
-import { ArticleCard } from "@/components/ui/ArticleCard";
 import { TrendingSidebar } from "@/components/home/TrendingSidebar";
 import { MarketMovers } from "@/components/home/MarketMovers";
+import { LoadMoreArticles } from "@/components/home/LoadMoreArticles";
 import {
   getArticlesByCategory,
+  getArticleCountByCategory,
   getTrendingStories,
 } from "@/lib/data";
 import { MessageSquare } from "lucide-react";
@@ -16,9 +17,12 @@ export const metadata: Metadata = {
   description: "Expert opinions, market commentary, investment analysis, and thought leadership from industry experts.",
 };
 
+const PAGE_SIZE = 8;
+
 export default async function OpinionPage() {
-  const [articles, trendingStories] = await Promise.all([
-    getArticlesByCategory("opinion"),
+  const [articles, totalCount, trendingStories] = await Promise.all([
+    getArticlesByCategory("opinion", PAGE_SIZE),
+    getArticleCountByCategory("opinion"),
     getTrendingStories(8),
   ]);
 
@@ -49,17 +53,12 @@ export default async function OpinionPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Articles Grid */}
               <div className="lg:col-span-2">
-                {articles.length === 0 ? (
-                  <div className="text-center py-12">
-                    <p className="text-muted-foreground">No articles found in this category.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {articles.map((article) => (
-                      <ArticleCard key={article.id} article={article} />
-                    ))}
-                  </div>
-                )}
+                <LoadMoreArticles
+                  initialArticles={articles}
+                  category="opinion"
+                  initialTotal={totalCount}
+                  pageSize={PAGE_SIZE}
+                />
               </div>
 
               {/* Sidebar */}
