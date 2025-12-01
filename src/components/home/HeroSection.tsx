@@ -77,15 +77,15 @@ export function HeroSection({ featuredArticle, secondaryArticles }: HeroSectionP
               {featuredArticle.category}
             </Badge>
 
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white leading-tight mb-3 group-hover:text-primary transition-colors">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground leading-tight mb-3 group-hover:text-primary transition-colors">
               {featuredArticle.title}
             </h1>
 
-            <p className="text-sm sm:text-base text-gray-300 line-clamp-2 mb-4 max-w-2xl">
+            <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mb-4 max-w-2xl">
               {featuredArticle.excerpt}
             </p>
 
-            <div className="flex items-center gap-4 text-sm text-gray-400">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span>{featuredArticle.author}</span>
               <span>•</span>
               <span>{featuredArticle.publishedAt}</span>

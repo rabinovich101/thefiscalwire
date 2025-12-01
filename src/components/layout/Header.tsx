@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { Search, Menu, X, User, LogOut } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { navLinks } from "@/data/mockData";
 import { useUIStore } from "@/stores";
 import { useSession, signOut } from "next-auth/react";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 export function Header() {
   const { isMobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useUIStore();
   const { data: session, status } = useSession();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -17,7 +19,7 @@ export function Header() {
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <div className="flex items-center">
-            <span className="text-xl font-bold tracking-tight text-white">
+            <span className="text-xl font-bold tracking-tight text-foreground">
               Finance<span className="text-primary">News</span>
             </span>
           </div>
@@ -46,6 +48,22 @@ export function Header() {
           >
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
+          </Button>
+
+          {/* Theme Toggle Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+            <span className="sr-only">Toggle theme</span>
           </Button>
 
           {/* Auth Buttons */}

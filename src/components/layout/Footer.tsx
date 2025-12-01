@@ -37,7 +37,7 @@ export function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="inline-block">
-              <span className="text-xl font-bold tracking-tight text-white">
+              <span className="text-xl font-bold tracking-tight text-foreground">
                 Finance<span className="text-primary">News</span>
               </span>
             </Link>
