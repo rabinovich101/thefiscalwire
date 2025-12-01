@@ -134,7 +134,8 @@ function transformArticleDetail(article: any): ArticleDetail {
 // =========================
 
 export async function getFeaturedArticle(): Promise<Article | null> {
-  const article = await prisma.article.findFirst({
+  // First try to find a featured article
+  let article = await prisma.article.findFirst({
     where: { isFeatured: true },
     include: {
       author: true,
@@ -143,33 +144,57 @@ export async function getFeaturedArticle(): Promise<Article | null> {
     orderBy: { publishedAt: 'desc' },
   })
 
+  // If no featured article, fallback to the most recent article
+  if (!article) {
+    article = await prisma.article.findFirst({
+      include: {
+        author: true,
+        category: true,
+      },
+      orderBy: { publishedAt: 'desc' },
+    })
+  }
+
   return article ? transformArticle(article) : null
 }
 
 export async function getSecondaryArticles(limit = 3): Promise<Article[]> {
+  // Check if there's a featured article
+  const hasFeatured = await prisma.article.findFirst({
+    where: { isFeatured: true },
+    select: { id: true },
+  })
+
   const articles = await prisma.article.findMany({
-    where: { isFeatured: false },
+    where: hasFeatured ? { isFeatured: false } : undefined,
     include: {
       author: true,
       category: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
+    skip: hasFeatured ? 0 : 1, // Skip first article if it's being used as featured
   })
 
   return articles.map(transformArticle)
 }
 
 export async function getTopStories(limit = 6): Promise<Article[]> {
+  // Check if there's a featured article
+  const hasFeatured = await prisma.article.findFirst({
+    where: { isFeatured: true },
+    select: { id: true },
+  })
+
   const articles = await prisma.article.findMany({
-    where: { isFeatured: false },
+    where: hasFeatured ? { isFeatured: false } : undefined,
     include: {
       author: true,
       category: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
-    skip: 3, // Skip the secondary articles
+    skip: hasFeatured ? 3 : 4, // Skip featured + secondary articles
   })
 
   return articles.map(transformArticle)
