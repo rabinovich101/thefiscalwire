@@ -1,0 +1,262 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import {
+  fetchNewsFromNewsData,
+  generateSlug,
+  estimateReadTime,
+  convertToContentBlocks,
+  mapCategory,
+  extractTickers,
+  NewsDataArticle,
+} from '@/lib/newsdata';
+
+// Force dynamic - no caching for cron jobs
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+// Vercel Cron requires specific runtime
+export const runtime = 'nodejs';
+
+const CRON_SECRET = process.env.CRON_SECRET;
+
+/**
+ * Get or create the NewsData system author
+ */
+async function getOrCreateNewsDataAuthor() {
+  const existingAuthor = await prisma.author.findFirst({
+    where: { name: 'NewsData' },
+  });
+
+  if (existingAuthor) {
+    return existingAuthor;
+  }
+
+  return prisma.author.create({
+    data: {
+      name: 'NewsData',
+      bio: 'Automated news import from NewsData.io',
+      avatar: '/images/newsdata-avatar.png',
+    },
+  });
+}
+
+/**
+ * Get category ID by slug, fallback to creating if not exists
+ */
+async function getCategoryId(categorySlug: string): Promise<string> {
+  let category = await prisma.category.findUnique({
+    where: { slug: categorySlug },
+  });
+
+  if (!category) {
+    // Create the category if it doesn't exist
+    category = await prisma.category.create({
+      data: {
+        name: categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1),
+        slug: categorySlug,
+        color: 'bg-blue-600',
+      },
+    });
+  }
+
+  return category.id;
+}
+
+/**
+ * Get or create tags from keywords
+ */
+async function getOrCreateTags(keywords: string[] | null): Promise<string[]> {
+  if (!keywords || keywords.length === 0) {
+    return [];
+  }
+
+  // Limit to first 5 keywords
+  const limitedKeywords = keywords.slice(0, 5);
+  const tagIds: string[] = [];
+
+  for (const keyword of limitedKeywords) {
+    const slug = keyword.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+    if (!slug) continue;
+
+    let tag = await prisma.tag.findUnique({
+      where: { slug },
+    });
+
+    if (!tag) {
+      tag = await prisma.tag.create({
+        data: {
+          name: keyword,
+          slug,
+        },
+      });
+    }
+
+    tagIds.push(tag.id);
+  }
+
+  return tagIds;
+}
+
+/**
+ * Check if article already exists by externalId
+ */
+async function articleExists(externalId: string): Promise<boolean> {
+  const existing = await prisma.article.findUnique({
+    where: { externalId },
+    select: { id: true },
+  });
+  return !!existing;
+}
+
+/**
+ * Ensure slug is unique by appending counter if needed
+ */
+async function ensureUniqueSlug(baseSlug: string): Promise<string> {
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (await prisma.article.findUnique({ where: { slug }, select: { id: true } })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+}
+
+/**
+ * Import a single article from NewsData
+ */
+async function importArticle(
+  article: NewsDataArticle,
+  authorId: string
+): Promise<{ success: boolean; articleId?: string; error?: string }> {
+  try {
+    // Check if already imported
+    if (await articleExists(article.article_id)) {
+      return { success: false, error: 'Already imported' };
+    }
+
+    // Generate unique slug
+    const baseSlug = generateSlug(article.title);
+    const slug = await ensureUniqueSlug(baseSlug);
+
+    // Map category
+    const categorySlug = mapCategory(article.category);
+    const categoryId = await getCategoryId(categorySlug);
+
+    // Get or create tags
+    const tagIds = await getOrCreateTags(article.keywords);
+
+    // Convert content to blocks
+    const contentBlocks = convertToContentBlocks(article.content, article.description);
+
+    // Extract tickers
+    const tickers = extractTickers(article.content, article.title);
+
+    // Create article
+    const newArticle = await prisma.article.create({
+      data: {
+        title: article.title,
+        slug,
+        excerpt: article.description || article.title,
+        content: contentBlocks,
+        imageUrl: article.image_url || '/images/placeholder-news.jpg',
+        publishedAt: new Date(article.pubDate),
+        readTime: estimateReadTime(article.content),
+        isFeatured: false,
+        isBreaking: false,
+        externalId: article.article_id,
+        sourceUrl: article.link,
+        relevantTickers: tickers,
+        authorId,
+        categoryId,
+        tags: {
+          connect: tagIds.map(id => ({ id })),
+        },
+      },
+    });
+
+    return { success: true, articleId: newArticle.id };
+  } catch (error) {
+    console.error(`[Import] Failed to import article ${article.article_id}:`, error);
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
+ * Main import handler
+ */
+export async function GET(request: Request) {
+  // Verify cron secret (for Vercel Cron)
+  const authHeader = request.headers.get('authorization');
+  const url = new URL(request.url);
+  const secretParam = url.searchParams.get('secret');
+
+  // Allow either Authorization header or secret query param
+  const isAuthorized =
+    authHeader === `Bearer ${CRON_SECRET}` ||
+    secretParam === CRON_SECRET ||
+    // For local development without secret
+    (process.env.NODE_ENV === 'development' && !CRON_SECRET);
+
+  if (!isAuthorized && CRON_SECRET) {
+    console.log('[Cron] Unauthorized request');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  console.log('[Cron] Starting news import...');
+
+  try {
+    // Get or create the NewsData author
+    const author = await getOrCreateNewsDataAuthor();
+
+    // Fetch news from NewsData.io
+    const articles = await fetchNewsFromNewsData();
+
+    if (articles.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No new articles to import',
+        imported: 0,
+        skipped: 0,
+      });
+    }
+
+    // Import each article
+    const results = {
+      imported: 0,
+      skipped: 0,
+      errors: 0,
+      details: [] as { title: string; status: string }[],
+    };
+
+    for (const article of articles) {
+      const result = await importArticle(article, author.id);
+
+      if (result.success) {
+        results.imported++;
+        results.details.push({ title: article.title, status: 'imported' });
+      } else if (result.error === 'Already imported') {
+        results.skipped++;
+        results.details.push({ title: article.title, status: 'skipped (duplicate)' });
+      } else {
+        results.errors++;
+        results.details.push({ title: article.title, status: `error: ${result.error}` });
+      }
+    }
+
+    console.log(`[Cron] Import complete: ${results.imported} imported, ${results.skipped} skipped, ${results.errors} errors`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Import completed',
+      ...results,
+    });
+  } catch (error) {
+    console.error('[Cron] Import failed:', error);
+    return NextResponse.json(
+      { success: false, error: String(error) },
+      { status: 500 }
+    );
+  }
+}

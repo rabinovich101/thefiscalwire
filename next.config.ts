@@ -5,13 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "placehold.co",
-        pathname: "/**",
+        hostname: "**",
       },
       {
-        protocol: "https",
-        hostname: "picsum.photos",
-        pathname: "/**",
+        protocol: "http",
+        hostname: "**",
       },
     ],
     dangerouslyAllowSVG: true,

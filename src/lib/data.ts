@@ -294,5 +294,29 @@ export async function getCategories() {
   })
 }
 
+export async function getArticlesByCategory(categorySlug: string, limit?: number): Promise<Article[]> {
+  const articles = await prisma.article.findMany({
+    where: {
+      category: {
+        slug: categorySlug,
+      },
+    },
+    include: {
+      author: true,
+      category: true,
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+  })
+
+  return articles.map(transformArticle)
+}
+
+export async function getCategoryBySlug(slug: string) {
+  return prisma.category.findUnique({
+    where: { slug },
+  })
+}
+
 // Export category colors for use in components
 export { categoryColors }

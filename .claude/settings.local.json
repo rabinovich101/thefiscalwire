@@ -28,7 +28,8 @@
       "mcp__playwright__browser_fill_form",
       "mcp__playwright__browser_wait_for",
       "Bash(docker exec:*)",
-      "mcp__playwright__browser_snapshot"
+      "mcp__playwright__browser_snapshot",
+      "WebFetch(domain:newsdata.io)"
     ],
     "deny": [],
     "ask": []

@@ -406,3 +406,125 @@ Successfully integrated live Yahoo Finance data to replace all static/mock stock
 - Using `yahoo-finance2` npm package v3 (requires `new YahooFinance()` instantiation)
 - API routes use `force-dynamic` and `revalidate: 0` to prevent caching
 - Client components fetch data on mount and auto-refresh on intervals
+
+---
+
+# NewsData.io Auto-Import Integration
+
+## Overview
+Automatically import news articles from newsdata.io API related to US stock market, investing, Wall Street, and politics.
+
+## Configuration
+- **Categories**: Business, Politics, Technology
+- **Country**: USA (us)
+- **Language**: English (en)
+- **Keywords**: stocks, investing, "wall street", trading, market
+- **Mode**: Fully automated (cron job)
+
+---
+
+## Implementation Checklist
+
+### Phase 1: Setup & Configuration
+- [x] Add `NEWSDATA_API_KEY` to `.env`
+- [x] Create NewsData service (`src/lib/newsdata.ts`)
+- [x] Define TypeScript types for API response
+
+### Phase 2: Database Updates
+- [x] Add `sourceUrl` field to Article model (original article link)
+- [x] Add `externalId` field (newsdata article_id for deduplication)
+- [x] Run Prisma migration
+
+### Phase 3: Import Logic
+- [x] Create news fetching function with filters
+- [x] Create mapping function (newsdata → Article model)
+- [x] Create slug generator from title
+- [x] Create/get "NewsData" system author
+- [x] Map newsdata categories to existing categories
+- [x] Implement deduplication (check externalId)
+- [x] Convert content to JSON block format
+
+### Phase 4: Cron API Route
+- [x] Create `/api/cron/import-news` route
+- [x] Add CRON_SECRET for security
+- [x] Add logging for import results
+
+### Phase 5: Vercel Cron Setup
+- [x] Add `vercel.json` with cron configuration
+- [x] Configure hourly import schedule
+
+---
+
+## Field Mapping
+
+| newsdata.io | Article Model | Notes |
+|-------------|---------------|-------|
+| `article_id` | `externalId` | NEW - deduplication |
+| `title` | `title` | Direct |
+| `description` | `excerpt` | Direct |
+| `content` | `content` | → JSON blocks |
+| `image_url` | `imageUrl` | Direct |
+| `pubDate` | `publishedAt` | Parse DateTime |
+| `category[]` | `categoryId` | Map to existing |
+| `creator[]` | `authorId` | NewsData author |
+| `keywords[]` | `tags` | Create/map |
+| `link` | `sourceUrl` | NEW - original URL |
+
+## API Query
+
+```
+Endpoint: https://newsdata.io/api/1/latest
+Parameters:
+  apikey: NEWSDATA_API_KEY
+  country: us
+  category: business,politics,technology
+  q: stocks OR investing OR "wall street" OR trading
+  language: en
+```
+
+---
+
+## Review Section
+
+### Summary
+Successfully implemented automated news import from NewsData.io API. The system fetches US financial news related to stocks, investing, Wall Street, and politics.
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/lib/newsdata.ts` | NewsData API service with types and helper functions |
+| `src/app/api/cron/import-news/route.ts` | Cron job endpoint for automated imports |
+| `vercel.json` | Vercel cron configuration (hourly schedule) |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `prisma/schema.prisma` | Added `externalId` and `sourceUrl` fields to Article model |
+| `next.config.ts` | Allowed all external image hosts |
+| `.env` | Added `NEWSDATA_API_KEY` and `CRON_SECRET` |
+
+### Key Features
+
+- **Automated imports**: Runs hourly via Vercel Cron
+- **Deduplication**: Uses `externalId` to prevent duplicate imports
+- **Category mapping**: Maps newsdata categories to existing site categories
+- **Tag creation**: Auto-creates tags from article keywords
+- **Content conversion**: Converts plain text to JSON block format
+- **Ticker extraction**: Extracts stock tickers from article content
+- **Security**: Protected by `CRON_SECRET` token
+
+### Test Results
+
+- First import: **9 articles** successfully imported
+- Second run: **9 articles skipped** (deduplication working)
+- All articles display correctly on homepage with images
+
+### How to Trigger Manually
+
+```bash
+curl "http://localhost:3000/api/cron/import-news?secret=your-cron-secret-change-in-production"
+```
+
+### Current Status: ✅ Complete

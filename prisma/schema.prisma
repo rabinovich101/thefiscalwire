@@ -51,6 +51,10 @@ model Article {
   // Table of contents headings
   headings         Json?     // Stores ArticleHeading[]
 
+  // External source tracking (for imported articles)
+  externalId       String?   @unique  // newsdata.io article_id for deduplication
+  sourceUrl        String?            // Original article URL
+
   // Related data
   relevantTickers  String[]  @default([])
 
