@@ -96,7 +96,7 @@ export async function generateMetadata({ params }: ArticlePageProps) {
   }
 
   return {
-    title: `${article.title} | FinanceNews`,
+    title: `${article.title} | The Fiscal Wire`,
     description: article.excerpt,
     openGraph: {
       title: article.title,

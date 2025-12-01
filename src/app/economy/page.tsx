@@ -13,7 +13,7 @@ import {
 import { Building2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Economy | FinanceNews",
+  title: "Economy | The Fiscal Wire",
   description: "Economic news, Federal Reserve updates, GDP reports, and macroeconomic analysis.",
 };
 

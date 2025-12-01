@@ -30,7 +30,16 @@
       "Bash(docker exec:*)",
       "mcp__playwright__browser_snapshot",
       "WebFetch(domain:newsdata.io)",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "mcp__github__create_repository",
+      "Bash(gh auth:*)",
+      "Bash(brew install:*)",
+      "Bash(/opt/homebrew/bin/gh auth status)",
+      "Bash(/opt/homebrew/bin/gh auth login --web)",
+      "Bash(/opt/homebrew/bin/gh repo create thefiscalwire --public --description \"The Fiscal Wire - News Website\")",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

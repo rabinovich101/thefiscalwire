@@ -13,7 +13,7 @@ import {
 import { Cpu } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Tech | FinanceNews",
+  title: "Tech | The Fiscal Wire",
   description: "Technology news, AI developments, big tech earnings, and innovation in the tech sector.",
 };
 

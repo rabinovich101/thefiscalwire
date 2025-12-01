@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FinanceNews | Real-Time Markets, Breaking News & Analysis",
+  title: "The Fiscal Wire | Real-Time Markets, Breaking News & Analysis",
   description: "Professional finance news platform delivering real-time market data, breaking news, and expert analysis for traders and investors.",
   keywords: ["finance", "news", "stocks", "markets", "trading", "investing", "crypto", "economy"],
 };

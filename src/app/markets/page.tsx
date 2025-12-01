@@ -13,7 +13,7 @@ import {
 import { TrendingUp } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Markets | FinanceNews",
+  title: "Markets | The Fiscal Wire",
   description: "Latest stock market news, analysis, and insights. Track market movements, earnings reports, and investment opportunities.",
 };
 

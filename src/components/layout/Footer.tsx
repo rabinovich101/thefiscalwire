@@ -38,7 +38,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link href="/" className="inline-block">
               <span className="text-xl font-bold tracking-tight text-foreground">
-                Finance<span className="text-primary">News</span>
+                The Fiscal<span className="text-primary">Wire</span>
               </span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
@@ -124,7 +124,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            &copy; {new Date().getFullYear()} FinanceNews. All rights reserved.
+            &copy; {new Date().getFullYear()} The Fiscal Wire. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground">
             Market data provided for informational purposes only. Not investment advice.

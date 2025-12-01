@@ -13,7 +13,7 @@ import {
 import { Bitcoin } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Crypto | FinanceNews",
+  title: "Crypto | The Fiscal Wire",
   description: "Cryptocurrency news, Bitcoin analysis, blockchain technology, and digital asset market updates.",
 };
 

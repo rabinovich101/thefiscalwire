@@ -13,7 +13,7 @@ import {
 import { MessageSquare } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Opinion | FinanceNews",
+  title: "Opinion | The Fiscal Wire",
   description: "Expert opinions, market commentary, investment analysis, and thought leadership from industry experts.",
 };
 

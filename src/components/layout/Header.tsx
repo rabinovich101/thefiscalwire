@@ -20,7 +20,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2">
           <div className="flex items-center">
             <span className="text-xl font-bold tracking-tight text-foreground">
-              Finance<span className="text-primary">News</span>
+              The Fiscal<span className="text-primary">Wire</span>
             </span>
           </div>
         </Link>
