@@ -13,7 +13,7 @@ const contactInfo = [
     icon: Mail,
     title: "Email",
     description: "For general inquiries and feedback",
-    value: "contact@thefiscalwire.com",
+    value: "info@thefiscalwire.com",
   },
   {
     icon: MapPin,
@@ -67,8 +67,8 @@ export default function Contact() {
                 <p className="text-muted-foreground mb-2">
                   For general questions about The Fiscal Wire, our content, or services.
                 </p>
-                <a href="mailto:contact@thefiscalwire.com" className="text-primary hover:underline">
-                  contact@thefiscalwire.com
+                <a href="mailto:info@thefiscalwire.com" className="text-primary hover:underline">
+                  info@thefiscalwire.com
                 </a>
               </div>
 

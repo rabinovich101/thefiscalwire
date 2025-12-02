@@ -121,7 +121,7 @@ export default function PrivacyPolicy() {
                 If you have any questions about this Privacy Policy, please contact us at:
               </p>
               <p className="text-muted-foreground">
-                Email: contact@thefiscalwire.com
+                Email: info@thefiscalwire.com
               </p>
             </section>
           </div>
