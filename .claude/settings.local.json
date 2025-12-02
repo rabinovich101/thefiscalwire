@@ -51,7 +51,10 @@
       "Bash(echo \"Paste your Railway public DATABASE_URL and run: DATABASE_URL=\"\"your-url-here\"\" npx prisma db seed\")",
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma db seed:*)",
       "Bash(lsof:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(docker ps:*)",
+      "Bash(PGPASSWORD=FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS psql:*)",
+      "Bash(docker cp:*)"
     ],
     "deny": [],
     "ask": []
