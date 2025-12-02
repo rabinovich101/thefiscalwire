@@ -1,0 +1,21 @@
+name: Import News Daily
+
+  on:
+    schedule:
+      - cron: '0 11 * * *'
+    workflow_dispatch:
+
+  jobs:
+    import-news:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Trigger news import
+          run: |
+            response=$(curl -s -w "\n%{http_code}" "https://thefiscalwire.com/api/cron/import-news?secret=${{ secrets.CRON_SECRET }}")
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
+            echo "Response: $body"
+            echo "HTTP Code: $http_code"
+            if [ "$http_code" != "200" ]; then
+              exit 1
+            fi
