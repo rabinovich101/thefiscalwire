@@ -61,7 +61,11 @@
       "WebFetch(domain:thefiscalwire.com)",
       "Bash(cat:*)",
       "Bash(xargs cat:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(git pull:*)",
+      "mcp__github__get_file_contents",
+      "mcp__github__create_or_update_file",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []
