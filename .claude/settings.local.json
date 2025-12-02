@@ -66,7 +66,9 @@
       "mcp__github__get_file_contents",
       "mcp__github__create_or_update_file",
       "Bash(git fetch:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx ts-node:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

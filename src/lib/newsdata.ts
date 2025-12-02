@@ -42,8 +42,41 @@ export interface NewsDataResponse {
 const NEWSDATA_API_KEY = process.env.NEWSDATA_API_KEY;
 const NEWSDATA_BASE_URL = 'https://newsdata.io/api/1/latest';
 
-// Search query for financial news
-const SEARCH_QUERY = 'stocks OR investing OR "wall street" OR trading OR market';
+// Search query for financial news - more specific to avoid irrelevant articles
+const SEARCH_QUERY = '"stock market" OR "S&P 500" OR "Dow Jones" OR NASDAQ OR "Federal Reserve" OR "interest rates" OR "Wall Street" OR cryptocurrency OR bitcoin OR "tech stocks" OR earnings OR IPO';
+
+// Financial relevance keywords - articles must contain at least one
+const FINANCIAL_KEYWORDS = [
+  // Stock market terms
+  'stock', 'stocks', 'shares', 'equity', 'equities', 'nasdaq', 'nyse', 's&p', 'dow jones',
+  'wall street', 'trading', 'trader', 'investor', 'investment', 'investing',
+  // Economic terms
+  'federal reserve', 'fed', 'interest rate', 'inflation', 'gdp', 'economy', 'economic',
+  'treasury', 'bond', 'yield', 'recession', 'jobs report', 'unemployment',
+  // Crypto terms
+  'bitcoin', 'btc', 'ethereum', 'eth', 'crypto', 'cryptocurrency', 'blockchain',
+  // Company/market terms
+  'earnings', 'revenue', 'profit', 'ipo', 'merger', 'acquisition', 'dividend',
+  'market cap', 'valuation', 'quarterly', 'fiscal',
+  // Specific tickers/companies
+  'apple', 'microsoft', 'google', 'amazon', 'meta', 'nvidia', 'tesla',
+  'aapl', 'msft', 'googl', 'amzn', 'nvda', 'tsla',
+];
+
+/**
+ * Check if article content is relevant to financial news
+ */
+export function isFinanciallyRelevant(article: NewsDataArticle): boolean {
+  const text = `${article.title} ${article.description || ''} ${article.content || ''}`.toLowerCase();
+
+  // Check for financial keywords
+  const hasFinancialKeyword = FINANCIAL_KEYWORDS.some(keyword => text.includes(keyword));
+
+  // Check for stock ticker patterns ($AAPL, etc.)
+  const hasTickerPattern = /\$[A-Z]{1,5}\b/.test(text.toUpperCase());
+
+  return hasFinancialKeyword || hasTickerPattern;
+}
 
 /**
  * Fetch news from NewsData.io API
@@ -85,7 +118,7 @@ export async function fetchNewsFromNewsData(): Promise<NewsDataArticle[]> {
 
   console.log(`[NewsData] Fetched ${data.results?.length || 0} articles (total: ${data.totalResults})`);
 
-  // Filter out duplicates and articles without required fields
+  // Filter out duplicates, articles without required fields, and irrelevant articles
   const validArticles = (data.results || []).filter(article => {
     if (article.duplicate) {
       console.log(`[NewsData] Skipping duplicate: ${article.article_id}`);
@@ -95,10 +128,15 @@ export async function fetchNewsFromNewsData(): Promise<NewsDataArticle[]> {
       console.log(`[NewsData] Skipping article without title/description: ${article.article_id}`);
       return false;
     }
+    // Check financial relevance
+    if (!isFinanciallyRelevant(article)) {
+      console.log(`[NewsData] Skipping non-financial article: ${article.title.substring(0, 50)}...`);
+      return false;
+    }
     return true;
   });
 
-  console.log(`[NewsData] ${validArticles.length} valid articles after filtering`);
+  console.log(`[NewsData] ${validArticles.length} financially relevant articles after filtering`);
 
   return validArticles;
 }
@@ -262,12 +300,19 @@ export async function fetchNewsByCategory(
 
   console.log(`[NewsData] Fetched ${data.results?.length || 0} ${targetCategory} articles`);
 
-  // Filter out duplicates and articles without required fields
+  // Filter out duplicates, articles without required fields, and irrelevant articles
   const validArticles = (data.results || []).filter(article => {
     if (article.duplicate) return false;
     if (!article.title || !article.description) return false;
+    // Check financial relevance
+    if (!isFinanciallyRelevant(article)) {
+      console.log(`[NewsData] Skipping non-financial ${targetCategory} article: ${article.title.substring(0, 50)}...`);
+      return false;
+    }
     return true;
   });
+
+  console.log(`[NewsData] ${validArticles.length} financially relevant ${targetCategory} articles after filtering`);
 
   return validArticles;
 }
