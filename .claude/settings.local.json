@@ -49,7 +49,9 @@
       "Bash(/opt/homebrew/bin/gh repo edit rabinovich101/thefiscalwire --visibility private)",
       "Bash(/opt/homebrew/bin/gh repo edit rabinovich101/thefiscalwire --visibility private --accept-visibility-change-consequences)",
       "Bash(echo \"Paste your Railway public DATABASE_URL and run: DATABASE_URL=\"\"your-url-here\"\" npx prisma db seed\")",
-      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma db seed:*)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma db seed:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)"
     ],
     "deny": [],
     "ask": []
