@@ -10,14 +10,16 @@ interface ArticleHeroProps {
 
 export function ArticleHero({ article }: ArticleHeroProps) {
   return (
-    <section className="relative w-full min-h-[50vh] sm:min-h-[55vh] lg:min-h-[65vh]">
-      {/* Full-bleed background image */}
+    <section className="relative w-full aspect-[16/9] sm:aspect-[2/1] lg:aspect-[21/9] max-h-[70vh]">
+      {/* Full-bleed background image with optimized loading */}
       <Image
         src={article.imageUrl}
         alt={article.title}
         fill
-        className="object-cover"
+        className="object-cover object-center"
         priority
+        quality={85}
+        sizes="100vw"
       />
 
       {/* Gradient overlay - darker for text readability */}

@@ -84,17 +84,19 @@ function renderContentBlock(block: ArticleContentBlock, index: number) {
 
     case "image":
       return (
-        <figure key={index} className="my-8">
-          <div className="relative aspect-video overflow-hidden rounded-xl bg-surface">
+        <figure key={index} className="my-10">
+          <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-muted/30">
             <Image
               src={block.imageUrl || ""}
               alt={block.imageCaption || "Article image"}
               fill
-              className="object-cover"
+              className="object-cover object-center transition-opacity duration-300"
+              quality={80}
+              sizes="(max-width: 768px) 100vw, 800px"
             />
           </div>
           {block.imageCaption && (
-            <figcaption className="mt-3 text-sm text-muted-foreground text-center">
+            <figcaption className="mt-3 text-sm text-muted-foreground text-center italic">
               {block.imageCaption}
             </figcaption>
           )}

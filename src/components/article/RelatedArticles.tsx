@@ -15,12 +15,14 @@ function CompactArticleCard({ article }: { article: Article }) {
       className="group flex gap-3 p-2 rounded-lg hover:bg-surface-hover transition-colors"
     >
       {/* Thumbnail */}
-      <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
+      <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md bg-muted/50">
         <Image
           src={article.imageUrl}
           alt={article.title}
           fill
-          className="object-cover transition-transform group-hover:scale-105"
+          className="object-cover object-center transition-transform group-hover:scale-105"
+          sizes="96px"
+          quality={75}
         />
       </div>
 
@@ -44,12 +46,14 @@ function FullArticleCard({ article }: { article: Article }) {
       className="group block bg-surface rounded-xl overflow-hidden hover:bg-surface-hover transition-colors"
     >
       {/* Image */}
-      <div className="relative aspect-video overflow-hidden bg-muted">
+      <div className="relative aspect-[16/10] overflow-hidden bg-muted/50">
         <Image
           src={article.imageUrl}
           alt={article.title}
           fill
-          className="object-cover transition-transform duration-300 group-hover:scale-105"
+          className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          quality={75}
         />
       </div>
 
