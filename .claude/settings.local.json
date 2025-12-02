@@ -65,7 +65,8 @@
       "Bash(git pull:*)",
       "mcp__github__get_file_contents",
       "mcp__github__create_or_update_file",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
