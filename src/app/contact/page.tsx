@@ -77,8 +77,8 @@ export default function Contact() {
                 <p className="text-muted-foreground mb-2">
                   Have a news tip or story idea? We welcome tips from our readers.
                 </p>
-                <a href="mailto:tips@thefiscalwire.com" className="text-primary hover:underline">
-                  tips@thefiscalwire.com
+                <a href="mailto:info@thefiscalwire.com" className="text-primary hover:underline">
+                  info@thefiscalwire.com
                 </a>
               </div>
 
@@ -87,8 +87,8 @@ export default function Contact() {
                 <p className="text-muted-foreground mb-2">
                   Interested in advertising opportunities? Reach out to our advertising team.
                 </p>
-                <a href="mailto:ads@thefiscalwire.com" className="text-primary hover:underline">
-                  ads@thefiscalwire.com
+                <a href="mailto:info@thefiscalwire.com" className="text-primary hover:underline">
+                  info@thefiscalwire.com
                 </a>
               </div>
 
@@ -97,8 +97,8 @@ export default function Contact() {
                 <p className="text-muted-foreground mb-2">
                   Experiencing issues with our website? Let us know so we can help.
                 </p>
-                <a href="mailto:support@thefiscalwire.com" className="text-primary hover:underline">
-                  support@thefiscalwire.com
+                <a href="mailto:info@thefiscalwire.com" className="text-primary hover:underline">
+                  info@thefiscalwire.com
                 </a>
               </div>
             </div>
