@@ -48,7 +48,8 @@ export default function SignUpPage() {
       if (!response.ok) {
         setError(data.error || "Something went wrong")
       } else {
-        router.push("/login?registered=true")
+        // Redirect to verify-email page with email param
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`)
       }
     } catch {
       setError("Something went wrong. Please try again.")

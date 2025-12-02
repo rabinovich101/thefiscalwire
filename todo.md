@@ -528,3 +528,150 @@ curl "http://localhost:3000/api/cron/import-news?secret=your-cron-secret-change-
 ```
 
 ### Current Status: ✅ Complete
+
+---
+
+# Email Verification Implementation Plan
+
+## Overview
+Add email verification for user signup using Resend as the email service provider. Users will receive a verification email upon registration and must verify their email before they can sign in.
+
+## Prerequisites
+- Resend account (https://resend.com)
+- Verified domain in Resend OR use onboarding email (onboarding@resend.dev for testing)
+
+---
+
+## Implementation Checklist
+
+### Phase 1: Setup Resend
+- [x] Install `resend` npm package
+- [x] Add `RESEND_API_KEY` to `.env`
+- [x] Add `NEXT_PUBLIC_APP_URL` to `.env`
+- [x] Create email service (`src/lib/email.ts`)
+
+### Phase 2: Token Management
+- [x] Create token utility functions (`src/lib/tokens.ts`)
+  - Generate verification token
+  - Store token in VerificationToken table
+  - Verify/validate token
+
+### Phase 3: Email Templates
+- [x] Email template included inline in `src/lib/email.ts`
+
+### Phase 4: Update Signup Flow
+- [x] Modify signup API route to:
+  - Create user with `emailVerified: null`
+  - Generate verification token
+  - Send verification email
+  - Return success message about checking email
+- [x] Update signup page to redirect to verify-email page
+
+### Phase 5: Verification Endpoint
+- [x] Create `/api/auth/verify-email` route
+  - Validate token
+  - Update user's `emailVerified` field
+  - Delete used token
+  - Redirect to login with success message
+
+### Phase 6: Block Unverified Users
+- [x] Update NextAuth credentials provider to check `emailVerified`
+- [x] Show error if user tries to login without verified email
+- [x] Add "Resend verification email" option
+
+### Phase 7: Resend Verification Email
+- [x] Create `/api/auth/resend-verification` route
+- [x] Add resend button to login page for unverified users
+
+### Phase 8: Testing & Polish
+- [x] Test full signup → verify → login flow
+- [x] Test verification link
+- [x] Test resend verification email UI
+
+---
+
+## Technical Details
+
+### Token Generation
+- Use `crypto.randomUUID()` for secure tokens
+- Tokens expire in 24 hours
+- One-time use (deleted after verification)
+
+### Email Content
+- Subject: "Verify your email for The Fiscal Wire"
+- Contains verification link: `{APP_URL}/api/auth/verify-email?token={token}`
+- Clean, professional design
+
+### Error Handling
+- Invalid token → Show error, offer to resend
+- Expired token → Show error, offer to resend
+- Already verified → Redirect to login
+
+---
+
+## Files to Create
+
+| File | Description |
+|------|-------------|
+| `src/lib/email.ts` | Resend email service |
+| `src/lib/tokens.ts` | Token generation/validation |
+| `src/emails/verification-email.tsx` | Email template |
+| `src/app/api/auth/verify-email/route.ts` | Verification endpoint |
+| `src/app/api/auth/resend-verification/route.ts` | Resend email endpoint |
+| `src/app/verify-email/page.tsx` | Success/error UI page |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/app/api/auth/signup/route.ts` | Send verification email |
+| `src/app/signup/page.tsx` | Show "check email" message |
+| `src/lib/auth.ts` | Block unverified users |
+| `src/app/login/page.tsx` | Add resend verification option |
+| `.env` | Add RESEND_API_KEY, NEXT_PUBLIC_APP_URL |
+
+---
+
+## Review Section
+
+### Summary
+Successfully implemented email verification for user signup using Resend. Users must verify their email before they can sign in.
+
+### Flow
+1. User signs up → Account created (unverified)
+2. Verification email sent via Resend
+3. User clicks verification link in email
+4. Email verified → User redirected to login with success message
+5. User can now sign in
+
+### Files Created
+
+| File | Description |
+|------|-------------|
+| `src/lib/email.ts` | Resend email service with verification and password reset templates |
+| `src/lib/tokens.ts` | Token generation/validation utilities |
+| `src/app/api/auth/verify-email/route.ts` | Verification endpoint |
+| `src/app/api/auth/resend-verification/route.ts` | Resend verification email endpoint |
+| `src/app/verify-email/page.tsx` | Check your email / verification status page |
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/app/api/auth/signup/route.ts` | Send verification email on signup |
+| `src/app/signup/page.tsx` | Redirect to verify-email page after signup |
+| `src/lib/auth.ts` | Block unverified users from login |
+| `src/app/login/page.tsx` | Show verification status, resend option |
+| `.env` | Added RESEND_API_KEY, NEXT_PUBLIC_APP_URL |
+
+### Security Features
+- Secure token generation with `crypto.randomUUID()`
+- Tokens expire after 24 hours
+- One-time use tokens (deleted after verification)
+- Unverified users cannot login
+
+### Production Notes
+- **For testing**: Resend only allows sending to your verified email
+- **For production**: Verify a domain at resend.com/domains and update `FROM_EMAIL` in `src/lib/email.ts`
+
+### Current Status: ✅ Complete
