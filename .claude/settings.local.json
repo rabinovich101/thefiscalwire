@@ -55,7 +55,9 @@
       "Bash(docker ps:*)",
       "Bash(PGPASSWORD=FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS psql:*)",
       "Bash(docker cp:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma migrate resolve:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma migrate deploy:*)"
     ],
     "deny": [],
     "ask": []
