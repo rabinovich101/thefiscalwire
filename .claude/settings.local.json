@@ -54,7 +54,8 @@
       "Bash(kill:*)",
       "Bash(docker ps:*)",
       "Bash(PGPASSWORD=FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS psql:*)",
-      "Bash(docker cp:*)"
+      "Bash(docker cp:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
