@@ -42,8 +42,8 @@ export interface NewsDataResponse {
 const NEWSDATA_API_KEY = process.env.NEWSDATA_API_KEY;
 const NEWSDATA_BASE_URL = 'https://newsdata.io/api/1/latest';
 
-// Search query for financial news - more specific to avoid irrelevant articles
-const SEARCH_QUERY = '"stock market" OR "S&P 500" OR "Dow Jones" OR NASDAQ OR "Federal Reserve" OR "interest rates" OR "Wall Street" OR cryptocurrency OR bitcoin OR "tech stocks" OR earnings OR IPO';
+// Search query for financial news - shortened to fit 100 char limit
+const SEARCH_QUERY = 'stock market OR nasdaq OR bitcoin OR earnings OR investing';
 
 // Financial relevance keywords - articles must contain at least one
 const FINANCIAL_KEYWORDS = [

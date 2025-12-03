@@ -4,11 +4,15 @@ import {
   fetchNewsFromNewsData,
   generateSlug,
   estimateReadTime,
-  convertToContentBlocks,
   mapCategory,
   extractTickers,
   NewsDataArticle,
 } from '@/lib/newsdata';
+import {
+  rewriteArticleWithPerplexity,
+  convertRewrittenToBlocks,
+  delay,
+} from '@/lib/perplexity';
 
 // Force dynamic - no caching for cron jobs
 export const dynamic = 'force-dynamic';
@@ -124,41 +128,78 @@ async function ensureUniqueSlug(baseSlug: string): Promise<string> {
 }
 
 /**
- * Import a single article from NewsData
+ * Import a single article from NewsData with AI enhancement
  */
 async function importArticle(
   article: NewsDataArticle,
   authorId: string
-): Promise<{ success: boolean; articleId?: string; error?: string }> {
+): Promise<{ success: boolean; articleId?: string; error?: string; aiEnhanced?: boolean }> {
   try {
     // Check if already imported
     if (await articleExists(article.article_id)) {
       return { success: false, error: 'Already imported' };
     }
 
-    // Generate unique slug
-    const baseSlug = generateSlug(article.title);
+    // Try to rewrite with Perplexity AI
+    let title = article.title;
+    let excerpt = article.description || article.title;
+    let contentBlocks: object[];
+    let metaDescription: string | null = null;
+    let seoKeywords: string[] = [];
+    let isAiEnhanced = false;
+    let allTagKeywords = article.keywords || [];
+
+    console.log(`[Import] Processing article: "${article.title.substring(0, 50)}..."`);
+
+    const rewritten = await rewriteArticleWithPerplexity(article.title, article.content);
+
+    if (rewritten) {
+      // Use AI-enhanced content
+      title = rewritten.rewrittenTitle;
+      excerpt = rewritten.excerpt;
+      contentBlocks = convertRewrittenToBlocks(rewritten.rewrittenContent);
+      metaDescription = rewritten.metaDescription;
+      seoKeywords = rewritten.seoKeywords;
+      isAiEnhanced = true;
+
+      // Merge AI-suggested tags with original keywords
+      allTagKeywords = [...new Set([...allTagKeywords, ...rewritten.suggestedTags])];
+
+      console.log(`[Import] AI-enhanced article: "${title.substring(0, 50)}..."`);
+    } else {
+      // Fallback to original content
+      console.log(`[Import] Using original content (AI enhancement failed)`);
+      contentBlocks = [{ type: 'paragraph', content: article.description || article.title }];
+
+      if (article.content) {
+        const paragraphs = article.content.split(/\n\n+/);
+        contentBlocks = paragraphs
+          .map(p => p.trim())
+          .filter(p => p.length > 0 && !p.toUpperCase().includes('ONLY AVAILABLE IN PAID PLANS'))
+          .map(p => ({ type: 'paragraph', content: p }));
+      }
+    }
+
+    // Generate unique slug from the (possibly rewritten) title
+    const baseSlug = generateSlug(title);
     const slug = await ensureUniqueSlug(baseSlug);
 
     // Map category
     const categorySlug = mapCategory(article.category);
     const categoryId = await getCategoryId(categorySlug);
 
-    // Get or create tags
-    const tagIds = await getOrCreateTags(article.keywords);
+    // Get or create tags (including AI-suggested tags)
+    const tagIds = await getOrCreateTags(allTagKeywords);
 
-    // Convert content to blocks
-    const contentBlocks = convertToContentBlocks(article.content, article.description);
+    // Extract tickers from both original and rewritten content
+    const tickers = extractTickers(article.content, title);
 
-    // Extract tickers
-    const tickers = extractTickers(article.content, article.title);
-
-    // Create article
+    // Create article with AI-enhanced fields
     const newArticle = await prisma.article.create({
       data: {
-        title: article.title,
+        title,
         slug,
-        excerpt: article.description || article.title,
+        excerpt,
         content: contentBlocks,
         imageUrl: article.image_url || '/images/placeholder-news.jpg',
         publishedAt: new Date(article.pubDate),
@@ -168,6 +209,9 @@ async function importArticle(
         externalId: article.article_id,
         sourceUrl: article.link,
         relevantTickers: tickers,
+        metaDescription,
+        seoKeywords,
+        isAiEnhanced,
         authorId,
         categoryId,
         tags: {
@@ -176,7 +220,7 @@ async function importArticle(
       },
     });
 
-    return { success: true, articleId: newArticle.id };
+    return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced };
   } catch (error) {
     console.error(`[Import] Failed to import article ${article.article_id}:`, error);
     return { success: false, error: String(error) };
@@ -227,15 +271,23 @@ export async function GET(request: Request) {
       imported: 0,
       skipped: 0,
       errors: 0,
+      aiEnhanced: 0,
       details: [] as { title: string; status: string }[],
     };
 
-    for (const article of articles) {
+    for (let i = 0; i < articles.length; i++) {
+      const article = articles[i];
       const result = await importArticle(article, author.id);
 
       if (result.success) {
         results.imported++;
-        results.details.push({ title: article.title, status: 'imported' });
+        if (result.aiEnhanced) {
+          results.aiEnhanced++;
+        }
+        results.details.push({
+          title: article.title,
+          status: result.aiEnhanced ? 'imported (AI-enhanced)' : 'imported',
+        });
       } else if (result.error === 'Already imported') {
         results.skipped++;
         results.details.push({ title: article.title, status: 'skipped (duplicate)' });
@@ -243,9 +295,14 @@ export async function GET(request: Request) {
         results.errors++;
         results.details.push({ title: article.title, status: `error: ${result.error}` });
       }
+
+      // Add delay between articles to avoid rate limiting (except for last article)
+      if (i < articles.length - 1 && result.success) {
+        await delay(2000); // 2 second delay between AI calls
+      }
     }
 
-    console.log(`[Cron] Import complete: ${results.imported} imported, ${results.skipped} skipped, ${results.errors} errors`);
+    console.log(`[Cron] Import complete: ${results.imported} imported (${results.aiEnhanced} AI-enhanced), ${results.skipped} skipped, ${results.errors} errors`);
 
     return NextResponse.json({
       success: true,

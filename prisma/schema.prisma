@@ -55,6 +55,11 @@ model Article {
   externalId       String?   @unique  // newsdata.io article_id for deduplication
   sourceUrl        String?            // Original article URL
 
+  // AI-enhanced content fields
+  metaDescription  String?            // SEO meta description
+  seoKeywords      String[]  @default([])  // AI-generated keywords
+  isAiEnhanced     Boolean   @default(false) // Track if AI-processed
+
   // Related data
   relevantTickers  String[]  @default([])
 

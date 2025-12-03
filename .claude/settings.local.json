@@ -69,7 +69,11 @@
       "Bash(git checkout:*)",
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx ts-node:*)",
       "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx ts-node:*)",
-      "mcp__playwright__browser_type"
+      "mcp__playwright__browser_type",
+      "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes, you can import it back from my prodaction website\" npx prisma migrate reset --force)",
+      "Bash(PGPASSWORD=postgres psql:*)",
+      "Bash(npx ts-node:*)",
+      "WebFetch(domain:docs.perplexity.ai)"
     ],
     "deny": [],
     "ask": []
