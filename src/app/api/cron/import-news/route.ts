@@ -25,31 +25,27 @@ export const runtime = 'nodejs';
 const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
- * Get a random author from the database (excluding system authors like 'NewsData')
+ * Get author for an article - first try to match creator from NewsData,
+ * otherwise pick a random author from DB
  */
-async function getRandomAuthor() {
-  const authors = await prisma.author.findMany({
-    where: {
-      name: {
-        not: 'NewsData',
-      },
-    },
-  });
-
-  if (authors.length === 0) {
-    // Fallback: create a default author if none exist
-    return prisma.author.create({
-      data: {
-        name: 'Staff Writer',
-        bio: 'Financial news correspondent',
-        avatar: '/images/default-avatar.png',
-      },
-    });
+async function getAuthorForArticle(
+  creator: string[] | null,
+  allAuthors: { id: string; name: string }[]
+): Promise<string> {
+  // If creator exists, try to find matching author in DB
+  if (creator && creator.length > 0) {
+    const creatorName = creator[0];
+    const matchedAuthor = allAuthors.find(
+      (a) => a.name.toLowerCase() === creatorName.toLowerCase()
+    );
+    if (matchedAuthor) {
+      return matchedAuthor.id;
+    }
   }
 
-  // Return a random author from the list
-  const randomIndex = Math.floor(Math.random() * authors.length);
-  return authors[randomIndex];
+  // Pick a random author from DB
+  const randomIndex = Math.floor(Math.random() * allAuthors.length);
+  return allAuthors[randomIndex].id;
 }
 
 /**
@@ -304,9 +300,9 @@ export async function GET(request: Request) {
 
     for (let i = 0; i < articles.length; i++) {
       const article = articles[i];
-      // Assign a random author to each article
-      const randomAuthor = authors[Math.floor(Math.random() * authors.length)];
-      const result = await importArticle(article, randomAuthor.id);
+      // Get author - try to match creator from NewsData, otherwise random
+      const authorId = await getAuthorForArticle(article.creator, authors);
+      const result = await importArticle(article, authorId);
 
       if (result.success) {
         results.imported++;

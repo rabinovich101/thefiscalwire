@@ -32,8 +32,21 @@ async function getAuthors() {
   return authors;
 }
 
-function getRandomAuthor(authors: Awaited<ReturnType<typeof getAuthors>>) {
-  return authors[Math.floor(Math.random() * authors.length)];
+function getAuthorForArticle(
+  creator: string[] | null,
+  allAuthors: { id: string; name: string }[]
+): string {
+  if (creator && creator.length > 0) {
+    const creatorName = creator[0];
+    const matchedAuthor = allAuthors.find(
+      (a) => a.name.toLowerCase() === creatorName.toLowerCase()
+    );
+    if (matchedAuthor) {
+      return matchedAuthor.id;
+    }
+  }
+  const randomIndex = Math.floor(Math.random() * allAuthors.length);
+  return allAuthors[randomIndex].id;
 }
 
 async function getCategoryId(categorySlug: string): Promise<string> {
@@ -161,8 +174,8 @@ async function main() {
     let imported = 0, skipped = 0, errors = 0;
 
     for (let i = 0; i < articles.length; i++) {
-      const randomAuthor = getRandomAuthor(authors);
-      const result = await importArticle(articles[i], randomAuthor.id);
+      const authorId = getAuthorForArticle(articles[i].creator, authors);
+      const result = await importArticle(articles[i], authorId);
       if (result.success) {
         imported++;
         console.log(`  ✓ Imported (${result.aiEnhanced ? 'AI' : 'original'})`);

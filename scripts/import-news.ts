@@ -33,8 +33,24 @@ async function getAuthors() {
   return authors;
 }
 
-function getRandomAuthor(authors: Awaited<ReturnType<typeof getAuthors>>) {
-  return authors[Math.floor(Math.random() * authors.length)];
+function getAuthorForArticle(
+  creator: string[] | null,
+  allAuthors: { id: string; name: string }[]
+): string {
+  // If creator exists, try to find matching author in DB
+  if (creator && creator.length > 0) {
+    const creatorName = creator[0];
+    const matchedAuthor = allAuthors.find(
+      (a) => a.name.toLowerCase() === creatorName.toLowerCase()
+    );
+    if (matchedAuthor) {
+      return matchedAuthor.id;
+    }
+  }
+
+  // Pick a random author from DB
+  const randomIndex = Math.floor(Math.random() * allAuthors.length);
+  return allAuthors[randomIndex].id;
 }
 
 async function getCategoryId(categorySlug: string): Promise<string> {
@@ -219,10 +235,11 @@ async function main() {
 
     for (let i = 0; i < articles.length; i++) {
       const article = articles[i];
-      const randomAuthor = getRandomAuthor(authors);
-      console.log(`[${i + 1}/${articles.length}] (Author: ${randomAuthor.name})`);
+      const authorId = getAuthorForArticle(article.creator, authors);
+      const authorName = authors.find(a => a.id === authorId)?.name || 'Unknown';
+      console.log(`[${i + 1}/${articles.length}] (Author: ${authorName})`);
 
-      const result = await importArticle(article, randomAuthor.id);
+      const result = await importArticle(article, authorId);
 
       if (result.success) {
         results.imported++;
