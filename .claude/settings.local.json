@@ -73,7 +73,8 @@
       "Bash(PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION=\"yes, you can import it back from my prodaction website\" npx prisma migrate reset --force)",
       "Bash(PGPASSWORD=postgres psql:*)",
       "Bash(npx ts-node:*)",
-      "WebFetch(domain:docs.perplexity.ai)"
+      "WebFetch(domain:docs.perplexity.ai)",
+      "Bash(unzip:*)"
     ],
     "deny": [],
     "ask": []
