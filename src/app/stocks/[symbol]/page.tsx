@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Share2, Star, Bell } from "lucide-react";
-import { StockPriceHeader, StockChart, StockStatistics, StockNews } from "@/components/stocks";
+import { StockPriceHeader, StockChartSection, StockStatistics, StockNews } from "@/components/stocks";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -138,8 +138,7 @@ export default async function StockDetailPage({ params }: PageProps) {
 
             {/* Chart */}
             <section className="bg-surface rounded-2xl border border-border/50 p-6 sm:p-8">
-              <h2 className="text-lg font-semibold mb-4">Price Chart</h2>
-              <StockChart symbol={upperSymbol} />
+              <StockChartSection symbol={upperSymbol} />
             </section>
 
             {/* Company Description */}
