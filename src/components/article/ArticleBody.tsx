@@ -9,9 +9,18 @@ interface ArticleBodyProps {
   article: ArticleDetail;
 }
 
+// Filter out "ONLY AVAILABLE IN PAID PLANS" message from NewsData.io free tier
+function isPaidPlanMessage(text: string | undefined | null): boolean {
+  return !!text && text.toUpperCase().includes('ONLY AVAILABLE IN PAID PLANS');
+}
+
 function renderContentBlock(block: ArticleContentBlock, index: number) {
   switch (block.type) {
     case "paragraph":
+      // Skip paragraphs with paid plan message
+      if (isPaidPlanMessage(block.content)) {
+        return null;
+      }
       return (
         <p
           key={index}

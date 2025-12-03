@@ -170,8 +170,12 @@ export function estimateReadTime(content: string | null): number {
 export function convertToContentBlocks(content: string | null, description: string | null): object[] {
   const blocks: object[] = [];
 
-  // Use description as first paragraph if no content
-  if (!content && description) {
+  // Filter out "ONLY AVAILABLE IN PAID PLANS" message from NewsData.io free tier
+  const isPaidPlanMessage = (text: string | null) =>
+    text && text.toUpperCase().includes('ONLY AVAILABLE IN PAID PLANS');
+
+  // Use description as first paragraph if no content or content is paid plan message
+  if ((!content || isPaidPlanMessage(content)) && description) {
     blocks.push({
       type: 'paragraph',
       content: description,
@@ -184,7 +188,8 @@ export function convertToContentBlocks(content: string | null, description: stri
 
   paragraphs.forEach((paragraph) => {
     const trimmed = paragraph.trim();
-    if (trimmed.length > 0) {
+    // Skip empty paragraphs and paid plan messages
+    if (trimmed.length > 0 && !isPaidPlanMessage(trimmed)) {
       blocks.push({
         type: 'paragraph',
         content: trimmed,
