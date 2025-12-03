@@ -1,11 +1,11 @@
 /**
  * News Import Scheduler
- * Runs automatically at 13:00 Jerusalem time (Israel Standard Time) every day
+ * Runs automatically 4 times a day at Jerusalem time (Israel Standard Time)
+ * Times: 07:00, 12:00, 17:00, 22:00
  */
 
 const JERUSALEM_TIMEZONE = 'Asia/Jerusalem';
-const IMPORT_HOUR = 13; // 13:00 Jerusalem time
-const IMPORT_MINUTE = 0;
+const IMPORT_HOURS = [7, 12, 17, 22]; // 4 times a day
 
 let isSchedulerRunning = false;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -18,20 +18,27 @@ function getJerusalemTime(): Date {
 }
 
 /**
- * Calculate milliseconds until next 13:00 Jerusalem time
+ * Calculate milliseconds until next import time
  */
-function getMsUntilNextImport(): number {
+function getMsUntilNextImport(): { ms: number; hour: number } {
   const now = getJerusalemTime();
-  const next = new Date(now);
 
-  next.setHours(IMPORT_HOUR, IMPORT_MINUTE, 0, 0);
+  // Find the next scheduled hour
+  for (const hour of IMPORT_HOURS) {
+    const next = new Date(now);
+    next.setHours(hour, 0, 0, 0);
 
-  // If it's already past 13:00 today, schedule for tomorrow
-  if (now >= next) {
-    next.setDate(next.getDate() + 1);
+    if (now < next) {
+      return { ms: next.getTime() - now.getTime(), hour };
+    }
   }
 
-  return next.getTime() - now.getTime();
+  // All times passed today, schedule for first time tomorrow
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(IMPORT_HOURS[0], 0, 0, 0);
+
+  return { ms: tomorrow.getTime() - now.getTime(), hour: IMPORT_HOURS[0] };
 }
 
 /**
@@ -71,16 +78,16 @@ async function triggerImport(): Promise<void> {
  * Schedule the next import
  */
 function scheduleNextImport(): void {
-  const msUntilNext = getMsUntilNextImport();
-  const hoursUntilNext = (msUntilNext / 1000 / 60 / 60).toFixed(2);
+  const { ms, hour } = getMsUntilNextImport();
+  const hoursUntilNext = (ms / 1000 / 60 / 60).toFixed(2);
 
-  console.log(`[Scheduler] Next import in ${hoursUntilNext} hours`);
+  console.log(`[Scheduler] Next import at ${hour}:00 Jerusalem time (in ${hoursUntilNext} hours)`);
 
   setTimeout(async () => {
     await triggerImport();
-    // Schedule the next day's import
+    // Schedule the next import
     scheduleNextImport();
-  }, msUntilNext);
+  }, ms);
 }
 
 /**
@@ -95,7 +102,7 @@ export function startScheduler(): void {
   isSchedulerRunning = true;
   const jerusalemTime = getJerusalemTime();
   console.log(`[Scheduler] Started at ${jerusalemTime.toLocaleString()} Jerusalem time`);
-  console.log(`[Scheduler] Will import news daily at ${IMPORT_HOUR}:00 Jerusalem time`);
+  console.log(`[Scheduler] Will import news 4 times daily at: ${IMPORT_HOURS.map(h => `${h}:00`).join(', ')} Jerusalem time`);
 
   scheduleNextImport();
 }
