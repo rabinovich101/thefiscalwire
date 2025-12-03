@@ -8,6 +8,15 @@ export interface StockSymbol {
   type: "EQUITY" | "ETF" | "INDEX";
 }
 
+// LogoKit API key for stock logos
+const LOGOKIT_API_KEY = "pk_fraa6c845bb21a9e10b2b2";
+
+// Get logo URL for a stock symbol using LogoKit
+export function getStockLogoUrl(symbol: string): string {
+  // LogoKit provides logos for all stocks by ticker symbol
+  return `https://img.logokit.com/ticker/${encodeURIComponent(symbol.toUpperCase())}?token=${LOGOKIT_API_KEY}`;
+}
+
 export const stockSymbols: StockSymbol[] = [
   // A
   { symbol: "A", name: "Agilent Technologies", exchange: "NYSE", type: "EQUITY" },
