@@ -80,7 +80,10 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma db push:*)",
       "Bash(ls:*)",
       "Bash(identify:*)",
-      "WebFetch(domain:finance.yahoo.com)"
+      "WebFetch(domain:finance.yahoo.com)",
+      "mcp__playwright__browser_tabs",
+      "Bash(pkill:*)",
+      "mcp__playwright__browser_resize"
     ],
     "deny": [],
     "ask": []

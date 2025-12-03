@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowLeft, Share2, Star, Bell } from "lucide-react";
 import { StockPriceHeader, StockChart, StockStatistics, StockNews } from "@/components/stocks";
 import { Button } from "@/components/ui/button";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
 export const dynamic = "force-dynamic";
 
@@ -67,8 +69,10 @@ export default async function StockDetailPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen pb-16">
-      {/* Navigation Bar */}
+    <div className="min-h-screen flex flex-col bg-background">
+      <Header />
+      <main className="flex-1 pb-16">
+      {/* Sub Navigation Bar */}
       <div className="sticky top-16 z-40 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14">
@@ -163,6 +167,8 @@ export default async function StockDetailPage({ params }: PageProps) {
           </div>
         </div>
       </div>
-    </main>
+      </main>
+      <Footer />
+    </div>
   );
 }
