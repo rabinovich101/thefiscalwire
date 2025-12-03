@@ -1,11 +1,11 @@
 name: Import News Daily
 
-  on:
-    schedule:
-      - cron: '0 11 * * *'
-    workflow_dispatch:
+on:
+  schedule:
+    - cron: '0 11 * * *'
+  workflow_dispatch:
 
-  jobs:
+jobs:
     import-news:
       runs-on: ubuntu-latest
       steps:
