@@ -91,7 +91,11 @@
       "Bash(npm uninstall:*)",
       "WebFetch(domain:tradingview.github.io)",
       "mcp__playwright__browser_hover",
-      "mcp__playwright__browser_select_option"
+      "mcp__playwright__browser_select_option",
+      "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 10)",
+      "Bash(/opt/homebrew/bin/gh run view:*)",
+      "Bash(/opt/homebrew/bin/gh auth login --web --scopes workflow)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx:*)"
     ],
     "deny": [],
     "ask": []
