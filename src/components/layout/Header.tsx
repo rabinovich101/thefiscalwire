@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Search, Menu, X, User, LogOut, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,13 @@ import { navLinks } from "@/data/mockData";
 import { useUIStore } from "@/stores";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { SearchModal } from "./SearchModal";
 
 export function Header() {
   const { isMobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useUIStore();
   const { data: session, status } = useSession();
   const { theme, toggleTheme } = useTheme();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <>
@@ -53,6 +56,7 @@ export function Header() {
             variant="ghost"
             size="icon"
             className="text-muted-foreground hover:text-foreground"
+            onClick={() => setIsSearchOpen(true)}
           >
             <Search className="h-5 w-5" />
             <span className="sr-only">Search</span>
@@ -190,6 +194,7 @@ export function Header() {
         </div>
       )}
     </header>
+    <SearchModal open={isSearchOpen} onOpenChange={setIsSearchOpen} />
     </>
   );
 }
