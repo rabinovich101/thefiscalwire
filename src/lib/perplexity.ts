@@ -6,8 +6,8 @@
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
-// Use the Sonar model with web search capability
-const MODEL = 'sonar';
+// Use Sonar Pro for best quality article rewrites
+const MODEL = 'sonar-pro';
 
 export interface RewrittenArticle {
   rewrittenTitle: string;
