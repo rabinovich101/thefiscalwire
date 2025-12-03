@@ -98,7 +98,10 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx:*)",
       "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 5)",
       "Bash(/opt/homebrew/bin/gh workflow run:*)",
-      "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 3)"
+      "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 3)",
+      "Bash(grep:*)",
+      "WebFetch(domain:en.wikipedia.org)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
