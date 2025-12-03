@@ -95,7 +95,10 @@
       "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 10)",
       "Bash(/opt/homebrew/bin/gh run view:*)",
       "Bash(/opt/homebrew/bin/gh auth login --web --scopes workflow)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx:*)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx:*)",
+      "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 5)",
+      "Bash(/opt/homebrew/bin/gh workflow run:*)",
+      "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 3)"
     ],
     "deny": [],
     "ask": []
