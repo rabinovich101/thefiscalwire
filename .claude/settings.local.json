@@ -84,7 +84,8 @@
       "mcp__playwright__browser_tabs",
       "Bash(pkill:*)",
       "mcp__playwright__browser_resize",
-      "WebFetch(domain:logokit.com)"
+      "WebFetch(domain:logokit.com)",
+      "mcp__playwright__browser_console_messages"
     ],
     "deny": [],
     "ask": []

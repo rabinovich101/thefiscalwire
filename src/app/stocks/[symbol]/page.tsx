@@ -15,7 +15,16 @@ interface PageProps {
 
 async function getStockData(symbol: string) {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    // Use the correct base URL for server-side fetches
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl && process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (!baseUrl && process.env.RAILWAY_PUBLIC_DOMAIN) {
+      baseUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    } else if (!baseUrl) {
+      baseUrl = "http://localhost:3000";
+    }
+
     const res = await fetch(`${baseUrl}/api/stocks/${symbol}/quote`, {
       cache: "no-store",
     });
