@@ -11,6 +11,7 @@ import {
   ISeriesApi,
   CandlestickData,
   HistogramData,
+  LineData,
   Time,
   CandlestickSeries,
   LineSeries,
