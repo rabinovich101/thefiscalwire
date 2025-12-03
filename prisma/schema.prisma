@@ -172,3 +172,35 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// ============ Activity Logging Models ============
+
+enum ActivityType {
+  IMPORT          // Article import from NewsData.io
+  PERPLEXITY_API  // Perplexity AI API usage
+  NEWS_API        // NewsData.io API call
+  ERROR           // Any error in automation
+  SYSTEM          // System events
+}
+
+enum ActivityStatus {
+  SUCCESS
+  ERROR
+  WARNING
+  INFO
+}
+
+model ActivityLog {
+  id        String         @id @default(uuid())
+  type      ActivityType
+  action    String         // Short description of what happened
+  details   Json?          // Flexible JSON for additional data
+  count     Int?           // Number of items affected (e.g., articles imported)
+  status    ActivityStatus
+  errorMessage String?     // Error message if status is ERROR
+  createdAt DateTime       @default(now())
+
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+}

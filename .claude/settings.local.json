@@ -74,7 +74,12 @@
       "Bash(PGPASSWORD=postgres psql:*)",
       "Bash(npx ts-node:*)",
       "WebFetch(domain:docs.perplexity.ai)",
-      "Bash(unzip:*)"
+      "Bash(unzip:*)",
+      "Bash(wc:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma migrate:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma db push:*)",
+      "Bash(ls:*)",
+      "Bash(identify:*)"
     ],
     "deny": [],
     "ask": []

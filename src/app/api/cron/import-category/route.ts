@@ -12,6 +12,7 @@ import {
   convertRewrittenToBlocks,
   delay,
 } from '@/lib/perplexity';
+import { logImport, logNewsApiUsage, logPerplexityBatch, logError } from '@/lib/activityLogger';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -229,6 +230,14 @@ export async function GET(request: Request) {
     const author = await getOrCreateNewsDataAuthor();
     const articles = await fetchNewsByCategory(category, CATEGORY_QUERIES[category]);
 
+    // Log NewsData API usage
+    await logNewsApiUsage({
+      endpoint: 'category',
+      query: `${category}: ${CATEGORY_QUERIES[category]}`,
+      resultsCount: articles.length,
+      filteredCount: articles.length,
+    });
+
     if (articles.length === 0) {
       return NextResponse.json({
         success: true,
@@ -275,6 +284,26 @@ export async function GET(request: Request) {
 
     console.log(`[Cron] ${category} import complete: ${results.imported} imported (${results.aiEnhanced} AI-enhanced), ${results.skipped} skipped`);
 
+    // Log import completion
+    await logImport({
+      source: 'NewsData.io',
+      category,
+      imported: results.imported,
+      skipped: results.skipped,
+      errors: results.errors,
+      aiEnhanced: results.aiEnhanced,
+      articles: results.details,
+    });
+
+    // Log Perplexity batch usage
+    if (results.imported > 0) {
+      await logPerplexityBatch({
+        totalCalls: results.imported + results.errors,
+        successfulCalls: results.aiEnhanced,
+        failedCalls: results.imported - results.aiEnhanced + results.errors,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       message: `${category} import completed`,
@@ -283,6 +312,13 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error(`[Cron] ${category} import failed:`, error);
+
+    // Log error
+    await logError(
+      { source: 'import-category', operation: `${category} cron job execution` },
+      String(error)
+    );
+
     return NextResponse.json(
       { success: false, error: String(error) },
       { status: 500 }

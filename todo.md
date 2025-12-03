@@ -326,3 +326,85 @@ Create a world-class user profile dropdown and account settings page following d
 
 ## Review
 (To be filled after implementation)
+
+---
+
+# Activity Logger for Admin Panel
+
+## Overview
+Build a comprehensive activity logger to track all automation activities on the website:
+- Article imports from NewsData.io (count of imported articles)
+- Perplexity API usage (number of requests, articles translated/rewritten)
+- Error tracking (any failures in automation)
+- Sortable and filterable by date/time
+
+## To-Do Checklist
+
+### Phase 1: Database Schema
+- [x] Create `ActivityLog` model in Prisma schema with fields:
+  - id, type (IMPORT, PERPLEXITY_API, NEWS_API, ERROR, SYSTEM)
+  - action (description of what happened)
+  - details (JSON for flexible data storage)
+  - count (number of items affected)
+  - status (SUCCESS, ERROR, WARNING, INFO)
+  - createdAt
+
+### Phase 2: Logging Service
+- [x] Create `/src/lib/activityLogger.ts` with functions:
+  - `logActivity()` - General logging function
+  - `logImport()` - Log article imports
+  - `logPerplexityUsage()` - Log AI API calls
+  - `logNewsApiUsage()` - Log NewsData.io API calls
+  - `logError()` - Log errors
+  - `logPerplexityBatch()` - Log batch Perplexity API usage
+
+### Phase 3: Update Automation Scripts
+- [x] Update `/api/cron/import-news/route.ts` to log activities
+- [x] Update `/api/cron/import-category/route.ts` to log activities
+
+### Phase 4: Admin API
+- [x] Create `/api/admin/activity-logs/route.ts` with:
+  - GET: Fetch logs with pagination, filtering, sorting
+  - Query params: type, status, startDate, endDate, page, limit
+  - Statistics for today and week
+
+### Phase 5: Admin UI
+- [x] Add "Activity Logs" to admin sidebar
+- [x] Create `/admin/activity-logs/page.tsx` with:
+  - Table view of all activities
+  - Filters: type, status, date range
+  - Sorting by date/time
+  - Pagination
+  - Expandable rows to show JSON details
+  - Stats cards showing today's metrics
+
+## Review
+
+### Summary
+Successfully implemented a comprehensive activity logging system for tracking all automation activities.
+
+### Files Created
+| File | Description |
+|------|-------------|
+| `prisma/schema.prisma` | Added ActivityLog model with enums for ActivityType and ActivityStatus |
+| `src/lib/activityLogger.ts` | Logging service with helper functions |
+| `src/app/api/admin/activity-logs/route.ts` | Admin API endpoint with filtering, pagination, and stats |
+| `src/app/admin/activity-logs/page.tsx` | Admin UI page with table, filters, and stats cards |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/app/api/cron/import-news/route.ts` | Added activity logging for imports, API calls, and errors |
+| `src/app/api/cron/import-category/route.ts` | Added activity logging for category imports |
+| `src/components/admin/AdminSidebar.tsx` | Added Activity Logs link |
+
+### Features
+- **Activity Types**: IMPORT, PERPLEXITY_API, NEWS_API, ERROR, SYSTEM
+- **Status Tracking**: SUCCESS, ERROR, WARNING, INFO
+- **Dashboard Stats**: Today's imports, Perplexity calls, News API calls, errors
+- **Filtering**: By type, status, and date range
+- **Pagination**: Configurable page size with navigation
+- **Expandable Details**: Click rows to view full JSON details
+- **Color-coded UI**: Different colors for each activity type and status
+
+### Current Status: Complete

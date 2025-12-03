@@ -7,7 +7,8 @@ import {
   FileText,
   FolderOpen,
   Users,
-  ArrowLeft
+  ArrowLeft,
+  Activity
 } from "lucide-react"
 
 const navItems = [
@@ -15,6 +16,7 @@ const navItems = [
   { href: "/admin/articles", label: "Articles", icon: FileText },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/authors", label: "Authors", icon: Users },
+  { href: "/admin/activity-logs", label: "Activity Logs", icon: Activity },
 ]
 
 export function AdminSidebar() {
