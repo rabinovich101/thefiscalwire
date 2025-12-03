@@ -22,18 +22,18 @@ import {
 
 const prisma = new PrismaClient();
 
-async function getOrCreateNewsDataAuthor() {
-  const existingAuthor = await prisma.author.findFirst({
-    where: { name: 'NewsData' },
+async function getAuthors() {
+  const authors = await prisma.author.findMany({
+    where: { name: { not: 'NewsData' } },
   });
-  if (existingAuthor) return existingAuthor;
-  return prisma.author.create({
-    data: {
-      name: 'NewsData',
-      bio: 'Automated news import from NewsData.io',
-      avatar: '/images/newsdata-avatar.png',
-    },
-  });
+  if (authors.length === 0) {
+    throw new Error('No authors found in database');
+  }
+  return authors;
+}
+
+function getRandomAuthor(authors: Awaited<ReturnType<typeof getAuthors>>) {
+  return authors[Math.floor(Math.random() * authors.length)];
 }
 
 async function getCategoryId(categorySlug: string): Promise<string> {
@@ -152,14 +152,17 @@ async function main() {
   console.log(`[Cron] News import started at ${new Date().toISOString()}`);
 
   try {
-    const author = await getOrCreateNewsDataAuthor();
+    const authors = await getAuthors();
+    console.log(`[Cron] Found ${authors.length} authors for random assignment`);
+
     const articles = await fetchNewsFromNewsData();
     console.log(`[Cron] Found ${articles.length} articles`);
 
     let imported = 0, skipped = 0, errors = 0;
 
     for (let i = 0; i < articles.length; i++) {
-      const result = await importArticle(articles[i], author.id);
+      const randomAuthor = getRandomAuthor(authors);
+      const result = await importArticle(articles[i], randomAuthor.id);
       if (result.success) {
         imported++;
         console.log(`  ✓ Imported (${result.aiEnhanced ? 'AI' : 'original'})`);

@@ -25,24 +25,31 @@ export const runtime = 'nodejs';
 const CRON_SECRET = process.env.CRON_SECRET;
 
 /**
- * Get or create the NewsData system author
+ * Get a random author from the database (excluding system authors like 'NewsData')
  */
-async function getOrCreateNewsDataAuthor() {
-  const existingAuthor = await prisma.author.findFirst({
-    where: { name: 'NewsData' },
-  });
-
-  if (existingAuthor) {
-    return existingAuthor;
-  }
-
-  return prisma.author.create({
-    data: {
-      name: 'NewsData',
-      bio: 'Automated news import from NewsData.io',
-      avatar: '/images/newsdata-avatar.png',
+async function getRandomAuthor() {
+  const authors = await prisma.author.findMany({
+    where: {
+      name: {
+        not: 'NewsData',
+      },
     },
   });
+
+  if (authors.length === 0) {
+    // Fallback: create a default author if none exist
+    return prisma.author.create({
+      data: {
+        name: 'Staff Writer',
+        bio: 'Financial news correspondent',
+        avatar: '/images/default-avatar.png',
+      },
+    });
+  }
+
+  // Return a random author from the list
+  const randomIndex = Math.floor(Math.random() * authors.length);
+  return authors[randomIndex];
 }
 
 /**
@@ -254,8 +261,17 @@ export async function GET(request: Request) {
   console.log('[Cron] Starting news import...');
 
   try {
-    // Get or create the NewsData author
-    const author = await getOrCreateNewsDataAuthor();
+    // Get all authors for random assignment
+    const authors = await prisma.author.findMany({
+      where: { name: { not: 'NewsData' } },
+    });
+
+    if (authors.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'No authors found in database' },
+        { status: 500 }
+      );
+    }
 
     // Fetch news from NewsData.io
     const articles = await fetchNewsFromNewsData();
@@ -288,7 +304,9 @@ export async function GET(request: Request) {
 
     for (let i = 0; i < articles.length; i++) {
       const article = articles[i];
-      const result = await importArticle(article, author.id);
+      // Assign a random author to each article
+      const randomAuthor = authors[Math.floor(Math.random() * authors.length)];
+      const result = await importArticle(article, randomAuthor.id);
 
       if (result.success) {
         results.imported++;

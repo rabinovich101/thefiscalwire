@@ -21,22 +21,20 @@ import {
 
 const prisma = new PrismaClient();
 
-async function getOrCreateNewsDataAuthor() {
-  const existingAuthor = await prisma.author.findFirst({
-    where: { name: 'NewsData' },
+async function getAuthors() {
+  const authors = await prisma.author.findMany({
+    where: { name: { not: 'NewsData' } },
   });
 
-  if (existingAuthor) {
-    return existingAuthor;
+  if (authors.length === 0) {
+    throw new Error('No authors found in database. Please seed authors first.');
   }
 
-  return prisma.author.create({
-    data: {
-      name: 'NewsData',
-      bio: 'Automated news import from NewsData.io',
-      avatar: '/images/newsdata-avatar.png',
-    },
-  });
+  return authors;
+}
+
+function getRandomAuthor(authors: Awaited<ReturnType<typeof getAuthors>>) {
+  return authors[Math.floor(Math.random() * authors.length)];
 }
 
 async function getCategoryId(categorySlug: string): Promise<string> {
@@ -198,8 +196,8 @@ async function main() {
   console.log('');
 
   try {
-    const author = await getOrCreateNewsDataAuthor();
-    console.log(`Using author: ${author.name} (${author.id})`);
+    const authors = await getAuthors();
+    console.log(`Found ${authors.length} authors for random assignment`);
     console.log('');
 
     console.log('Fetching news from NewsData.io...');
@@ -221,9 +219,10 @@ async function main() {
 
     for (let i = 0; i < articles.length; i++) {
       const article = articles[i];
-      console.log(`[${i + 1}/${articles.length}]`);
+      const randomAuthor = getRandomAuthor(authors);
+      console.log(`[${i + 1}/${articles.length}] (Author: ${randomAuthor.name})`);
 
-      const result = await importArticle(article, author.id);
+      const result = await importArticle(article, randomAuthor.id);
 
       if (result.success) {
         results.imported++;
