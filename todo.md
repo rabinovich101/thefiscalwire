@@ -408,3 +408,108 @@ Successfully implemented a comprehensive activity logging system for tracking al
 - **Color-coded UI**: Different colors for each activity type and status
 
 ### Current Status: Complete
+
+---
+
+# Stock Feature Implementation Plan
+
+## Overview
+Create a comprehensive stock feature similar to Yahoo Finance where users can:
+- Search for stocks by symbol or company name
+- View detailed stock pages with charts, statistics, and news
+- See real-time price data and historical performance
+
+## Reference
+- Target UI: https://finance.yahoo.com/quote/MRVL/
+
+---
+
+## To-Do Checklist
+
+### Phase 1: API Infrastructure
+- [ ] **1.1** Create stock search API endpoint (`/api/stocks/search`)
+  - Use yahoo-finance2 `search()` function
+  - Return stock symbols, names, exchange info
+
+- [ ] **1.2** Create stock quote API endpoint (`/api/stocks/[symbol]/quote`)
+  - Use yahoo-finance2 `quoteSummary()` for detailed data
+  - Include: price, change, market cap, P/E, volume, 52-week range, etc.
+
+- [ ] **1.3** Create stock chart API endpoint (`/api/stocks/[symbol]/chart`)
+  - Use yahoo-finance2 chart functionality
+  - Support multiple timeframes: 1D, 5D, 1M, 6M, YTD, 1Y, 5Y, MAX
+
+- [ ] **1.4** Create stock news API endpoint (`/api/stocks/[symbol]/news`)
+  - Fetch news related to specific stock ticker
+
+### Phase 2: UI Components
+- [ ] **2.1** Create `StockSearchBar` component
+  - Autocomplete dropdown with stock suggestions
+  - Debounced search input
+  - Navigate to stock page on selection
+
+- [ ] **2.2** Create `StockPriceHeader` component
+  - Large price display with change indicator (+/- percentage)
+  - Company name, symbol, and exchange info
+  - Real-time price updates
+
+- [ ] **2.3** Create `StockChart` component
+  - Interactive chart with recharts (AreaChart)
+  - Timeframe selector (1D, 5D, 1M, 6M, YTD, 1Y, 5Y, MAX)
+  - Hover tooltips with price/date
+
+- [ ] **2.4** Create `StockStatistics` component
+  - Key statistics grid layout
+  - Market cap, P/E ratio, EPS, dividend yield
+  - 52-week high/low, volume, avg volume
+
+- [ ] **2.5** Create `StockNews` component
+  - Related news articles list
+  - Link to full articles or external sources
+
+- [ ] **2.6** Create `StockSidebar` component
+  - Key data summary
+  - Related/similar stocks
+
+### Phase 3: Pages
+- [ ] **3.1** Create stock listing page (`/stocks`)
+  - Search bar prominently displayed
+  - Popular stocks / Market overview
+
+- [ ] **3.2** Create individual stock page (`/stocks/[symbol]`)
+  - Full stock detail page similar to Yahoo Finance
+  - Sections: Summary, Chart, Statistics, News
+
+### Phase 4: Integration
+- [ ] **4.1** Add stock search to header/navigation
+- [ ] **4.2** Link relevant tickers in articles to stock pages
+- [ ] **4.3** Add "View Stock" links in MarketMovers widget
+
+### Phase 5: Polish & Testing
+- [ ] **5.1** Add loading states and error handling
+- [ ] **5.2** Mobile responsive design
+- [ ] **5.3** Test with various stock symbols
+- [ ] **5.4** Compare UI with Yahoo Finance reference
+
+---
+
+## Technical Notes
+
+### Yahoo Finance Data Available (yahoo-finance2):
+- `quoteSummary()` - Comprehensive stock data with modules
+- `search()` - Stock symbol search
+- `chart()` - Historical price data
+
+### Existing Infrastructure to Leverage:
+- `/lib/yahoo-finance.ts` - Already has Yahoo Finance integration
+- `/api/market/chart` - Chart data endpoint exists
+- `/api/market/quotes` - Quote endpoint exists
+- `recharts` - Already installed for charts
+- shadcn components for UI
+
+---
+
+## Review Section
+*(To be filled after implementation)*
+
+### Current Status: Pending Approval

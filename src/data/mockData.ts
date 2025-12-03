@@ -288,6 +288,7 @@ export const categories = [
 
 // Navigation Links
 export const navLinks = [
+  { name: "Stocks", href: "/stocks" },
   { name: "Markets", href: "/markets" },
   { name: "Economy", href: "/economy" },
   { name: "Tech", href: "/tech" },

@@ -79,7 +79,8 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma migrate:*)",
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx prisma db push:*)",
       "Bash(ls:*)",
-      "Bash(identify:*)"
+      "Bash(identify:*)",
+      "WebFetch(domain:finance.yahoo.com)"
     ],
     "deny": [],
     "ask": []
