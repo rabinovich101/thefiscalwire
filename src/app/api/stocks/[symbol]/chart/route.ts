@@ -88,8 +88,10 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
 
     const searchParams = request.nextUrl.searchParams;
     const period = (searchParams.get("period") || "1mo") as Period;
+    const customInterval = searchParams.get("interval") as Interval | null;
 
-    const { startDate, interval } = getPeriodConfig(period);
+    const { startDate, interval: defaultInterval } = getPeriodConfig(period);
+    const interval = customInterval || defaultInterval;
 
     const result = await yahooFinance.chart(upperSymbol, {
       period1: startDate,

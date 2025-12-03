@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   createChart,
@@ -48,6 +48,89 @@ const PERIODS: { value: Period; label: string }[] = [
 
 type ChartType = "candlestick" | "line" | "area";
 type IndicatorType = "volume" | "sma" | "ema" | "none";
+type Interval = "1m" | "5m" | "15m" | "30m" | "1h" | "1d" | "1wk" | "1mo";
+
+const CHART_TYPES: { value: ChartType; label: string }[] = [
+  { value: "candlestick", label: "Candle" },
+  { value: "line", label: "Line" },
+  { value: "area", label: "Area" },
+];
+
+const INDICATORS: { value: IndicatorType; label: string }[] = [
+  { value: "volume", label: "Volume" },
+  { value: "sma", label: "SMA (20/50)" },
+  { value: "ema", label: "EMA (12/26)" },
+  { value: "none", label: "None" },
+];
+
+const INTERVALS: { value: Interval; label: string }[] = [
+  { value: "1m", label: "1m" },
+  { value: "5m", label: "5m" },
+  { value: "15m", label: "15m" },
+  { value: "30m", label: "30m" },
+  { value: "1h", label: "1H" },
+  { value: "1d", label: "1D" },
+  { value: "1wk", label: "1W" },
+  { value: "1mo", label: "1M" },
+];
+
+// Get valid intervals based on selected period
+// Yahoo Finance API limitations:
+// - 1m/5m/15m/30m: only available for last 7 days
+// - 1h: only available for last 730 days (~2 years)
+// - 1d/1wk/1mo: available for all time
+function getValidIntervals(period: Period): Interval[] {
+  switch (period) {
+    case "1d":
+      // 1 day: all intraday intervals work
+      return ["1m", "5m", "15m", "30m", "1h"];
+    case "5d":
+      // 5 days: all intraday intervals work
+      return ["1m", "5m", "15m", "30m", "1h"];
+    case "1mo":
+      // 1 month: only 1h and daily work (minute data not available beyond 7 days)
+      return ["1h", "1d"];
+    case "6mo":
+      // 6 months: only daily and weekly work
+      return ["1d", "1wk"];
+    case "ytd":
+      // YTD: only daily and weekly work
+      return ["1d", "1wk"];
+    case "1y":
+      // 1 year: only daily, weekly, monthly work
+      return ["1d", "1wk", "1mo"];
+    case "5y":
+      // 5 years: daily and larger intervals
+      return ["1d", "1wk", "1mo"];
+    case "max":
+      // Max history: daily, weekly and monthly
+      return ["1d", "1wk", "1mo"];
+    default:
+      return ["1d"];
+  }
+}
+
+// Get default interval for period
+function getDefaultInterval(period: Period): Interval {
+  switch (period) {
+    case "1d":
+      return "5m";
+    case "5d":
+      return "15m";
+    case "1mo":
+      return "1h";
+    case "6mo":
+    case "ytd":
+    case "1y":
+      return "1d";
+    case "5y":
+      return "1wk";
+    case "max":
+      return "1mo";
+    default:
+      return "1d";
+  }
+}
 
 // Simple Moving Average calculation
 function calculateSMA(data: OHLCData[], period: number): LineData[] {
@@ -88,10 +171,19 @@ function calculateEMA(data: OHLCData[], period: number): LineData[] {
 
 export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProps) {
   const [period, setPeriod] = useState<Period>("6mo");
+  const [interval, setInterval] = useState<Interval>("1d");
   const [chartType, setChartType] = useState<ChartType>("candlestick");
   const [indicator, setIndicator] = useState<IndicatorType>("volume");
   const [rawData, setRawData] = useState<OHLCData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Update interval when period changes
+  useEffect(() => {
+    const validIntervals = getValidIntervals(period);
+    if (!validIntervals.includes(interval)) {
+      setInterval(getDefaultInterval(period));
+    }
+  }, [period, interval]);
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -102,10 +194,17 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
 
   // Fetch data
   useEffect(() => {
+    // Only fetch if interval is valid for the period
+    const validIntervals = getValidIntervals(period);
+    if (!validIntervals.includes(interval)) {
+      // Skip fetch - the interval sync effect will update the interval
+      return;
+    }
+
     const fetchChart = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/stocks/${symbol}/chart?period=${period}`);
+        const res = await fetch(`/api/stocks/${symbol}/chart?period=${period}&interval=${interval}`);
         const result = await res.json();
 
         const ohlcData: OHLCData[] = (result.data || [])
@@ -131,7 +230,7 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
     };
 
     fetchChart();
-  }, [symbol, period]);
+  }, [symbol, period, interval]);
 
 
   // Create and update chart
@@ -354,9 +453,65 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
         </div>
       )}
 
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
-        {/* Period Selector */}
+      {/* Chart Type, Interval & Indicator Controls - TOP */}
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Chart Type Dropdown */}
+        <div className="relative">
+          <select
+            value={chartType}
+            onChange={(e) => setChartType(e.target.value as ChartType)}
+            className="appearance-none bg-muted/50 border border-border/50 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-foreground cursor-pointer hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          >
+            {CHART_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
+
+        {/* Interval/Timeframe Dropdown */}
+        <div className="relative">
+          <select
+            value={interval}
+            onChange={(e) => setInterval(e.target.value as Interval)}
+            className="appearance-none bg-muted/50 border border-border/50 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-foreground cursor-pointer hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          >
+            {INTERVALS.filter(i => getValidIntervals(period).includes(i.value)).map((i) => (
+              <option key={i.value} value={i.value}>
+                {i.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
+
+        {/* Indicators Dropdown */}
+        <div className="relative">
+          <select
+            value={indicator}
+            onChange={(e) => setIndicator(e.target.value as IndicatorType)}
+            className="appearance-none bg-muted/50 border border-border/50 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-foreground cursor-pointer hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          >
+            {INDICATORS.map((ind) => (
+              <option key={ind.value} value={ind.value}>
+                {ind.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Chart Container */}
+      <div
+        ref={chartContainerRef}
+        className="h-[400px] w-full"
+      />
+
+      {/* Period Selector - BOTTOM */}
+      <div className="flex justify-center">
         <div className="flex p-1 bg-muted/50 rounded-xl">
           {PERIODS.map((p) => (
             <button
@@ -373,101 +528,7 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
             </button>
           ))}
         </div>
-
-        {/* Chart Type & Indicator Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Chart Type */}
-          <div className="flex p-0.5 bg-muted/50 rounded-lg">
-            <button
-              onClick={() => setChartType("candlestick")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                chartType === "candlestick"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Candle
-            </button>
-            <button
-              onClick={() => setChartType("line")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                chartType === "line"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Line
-            </button>
-            <button
-              onClick={() => setChartType("area")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                chartType === "area"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Area
-            </button>
-          </div>
-
-          {/* Indicators */}
-          <div className="flex p-0.5 bg-muted/50 rounded-lg">
-            <button
-              onClick={() => setIndicator("volume")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                indicator === "volume"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              Volume
-            </button>
-            <button
-              onClick={() => setIndicator("sma")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                indicator === "sma"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              SMA
-            </button>
-            <button
-              onClick={() => setIndicator("ema")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                indicator === "ema"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              EMA
-            </button>
-            <button
-              onClick={() => setIndicator("none")}
-              className={cn(
-                "px-2 py-1 text-xs font-medium rounded transition-all",
-                indicator === "none"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              None
-            </button>
-          </div>
-        </div>
       </div>
-
-      {/* Chart Container */}
-      <div
-        ref={chartContainerRef}
-        className="h-[400px] w-full"
-      />
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2 border-t border-border/50">

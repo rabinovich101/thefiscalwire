@@ -90,7 +90,8 @@
       "Bash(npm search:*)",
       "Bash(npm uninstall:*)",
       "WebFetch(domain:tradingview.github.io)",
-      "mcp__playwright__browser_hover"
+      "mcp__playwright__browser_hover",
+      "mcp__playwright__browser_select_option"
     ],
     "deny": [],
     "ask": []
