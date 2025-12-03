@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import {
   Trash2,
   GripVertical,
@@ -273,11 +272,14 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
             </label>
             {formData.imageUrl ? (
               <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
-                <Image
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={formData.imageUrl}
                   alt="Featured"
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect fill='%23374151' width='100' height='100'/%3E%3Ctext fill='%239CA3AF' x='50' y='50' text-anchor='middle' dy='.3em' font-size='12'%3EImage failed to load%3C/text%3E%3C/svg%3E"
+                  }}
                 />
                 <button
                   type="button"
@@ -401,11 +403,14 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
                     <div className="space-y-3">
                       {block.imageUrl ? (
                         <div className="relative aspect-video rounded-lg overflow-hidden">
-                          <Image
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
                             src={block.imageUrl}
                             alt=""
-                            fill
-                            className="object-cover"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect fill='%23374151' width='100' height='100'/%3E%3Ctext fill='%239CA3AF' x='50' y='50' text-anchor='middle' dy='.3em' font-size='12'%3EImage failed to load%3C/text%3E%3C/svg%3E"
+                            }}
                           />
                           <button
                             type="button"
