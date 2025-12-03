@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Menu, X, User, LogOut, Sun, Moon } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Sun, Moon, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { navLinks } from "@/data/mockData";
 import { useUIStore } from "@/stores";
 import { useSession, signOut } from "next-auth/react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { SearchModal } from "./SearchModal";
+import { UserProfileDropdown } from "./UserProfileDropdown";
 
 export function Header() {
   const { isMobileMenuOpen, setMobileMenuOpen, toggleMobileMenu } = useUIStore();
@@ -81,25 +82,11 @@ export function Header() {
           {/* Auth Buttons */}
           {status === "loading" ? (
             <div className="hidden sm:flex items-center gap-2">
-              <div className="h-9 w-16 bg-muted animate-pulse rounded-md" />
+              <div className="h-8 w-8 bg-muted animate-pulse rounded-full" />
             </div>
           ) : session ? (
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/50">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">
-                  {session.user?.name || session.user?.email?.split("@")[0]}
-                </span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => signOut()}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="h-4 w-4 mr-1" />
-                Sign out
-              </Button>
+            <div className="hidden sm:flex items-center">
+              <UserProfileDropdown user={session.user} />
             </div>
           ) : (
             <div className="hidden sm:flex items-center gap-2">
@@ -155,12 +142,32 @@ export function Header() {
             ))}
             {session ? (
               <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-2 px-2 py-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">
-                    {session.user?.name || session.user?.email?.split("@")[0]}
-                  </span>
+                <div className="flex items-center gap-3 px-2 py-3 bg-muted/50 rounded-lg">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-primary text-sm font-medium">
+                      {session.user?.name?.substring(0, 2).toUpperCase() ||
+                       session.user?.email?.substring(0, 2).toUpperCase() || "U"}
+                    </span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium text-foreground">
+                      {session.user?.name || session.user?.email?.split("@")[0]}
+                    </span>
+                    {session.user?.email && (
+                      <span className="text-xs text-muted-foreground">
+                        {session.user.email}
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <Link
+                  href="/account/settings"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-foreground rounded-md hover:bg-muted transition-colors"
+                >
+                  <Settings className="h-4 w-4" />
+                  Account Settings
+                </Link>
                 <Button
                   variant="outline"
                   className="w-full"

@@ -237,441 +237,92 @@ Created test user during development:
 
 ---
 
-# Admin Panel Implementation Plan
+# User Profile Dropdown & Account Settings Feature
 
 ## Overview
-Create an admin panel for managing articles with full CRUD operations and image upload capabilities.
+Create a world-class user profile dropdown and account settings page following design patterns from Google, Apple, LinkedIn, and other top companies.
 
-## Current State
-- Article model exists with rich JSON content blocks (paragraph, heading, image, chart, quote, callout, list)
-- Basic user authentication via NextAuth.js (no roles)
-- No file upload infrastructure
-- No admin panel
+## Design Principles (Based on Research)
+- **Clean dropdown menu** with clear visual hierarchy (primary vs secondary actions)
+- **Section-level editing** for profile settings (not inline field editing)
+- **One-column form layout** for all edit forms
+- **8px spacing grid system** for consistency
+- **Smooth animations** (150-200ms transitions)
+- **Full keyboard accessibility**
 
----
+## To-Do Checklist
 
-## Implementation Checklist
-
-### Phase 1: Admin Role & Protection
-- [ ] Add `role` field to User model (USER, ADMIN)
-- [ ] Run Prisma migration
-- [ ] Create admin middleware/protection helper
-- [ ] Update existing test user to ADMIN role
-
-### Phase 2: Image Upload Setup
-- [ ] Create `/api/upload` endpoint for image uploads
-- [ ] Store images in `/public/uploads/` directory
-- [ ] Return uploaded image URL
-
-### Phase 3: Admin Layout & Dashboard
-- [ ] Create `/admin` route group with layout
-- [ ] Build admin sidebar navigation
-- [ ] Create admin dashboard page with article stats
-- [ ] Add protected route check (redirect if not admin)
-
-### Phase 4: Article Management Pages
-- [ ] Create articles list page (`/admin/articles`)
-- [ ] Create new article page (`/admin/articles/new`)
-- [ ] Create edit article page (`/admin/articles/[id]/edit`)
-
-### Phase 5: Article Editor
-- [ ] Build article form with basic fields (title, slug, excerpt, category, author)
-- [ ] Build content block editor (add/remove/reorder blocks)
-- [ ] Support block types: paragraph, heading, image, quote, list, callout
-- [ ] Image upload within content blocks
-- [ ] Featured image upload
-- [ ] Tags selection/creation
-- [ ] Preview functionality
-
-### Phase 6: API Routes
-- [ ] POST `/api/admin/articles` - Create article
-- [ ] PUT `/api/admin/articles/[id]` - Update article
-- [ ] DELETE `/api/admin/articles/[id]` - Delete article
-- [ ] GET `/api/admin/categories` - List categories
-- [ ] GET `/api/admin/authors` - List authors
-- [ ] GET `/api/admin/tags` - List/create tags
-
-### Phase 7: Testing & Polish
-- [ ] Test full article creation flow
-- [ ] Test article editing
-- [ ] Test image uploads
-- [ ] Verify articles display correctly on frontend
-
----
-
-## Technical Decisions
-
-### Image Storage
-Using local storage (`/public/uploads/`) for simplicity. Can migrate to Cloudinary/S3 later for production.
-
-### Rich Text vs Block Editor
-Using **block-based editor** to match existing ArticleContentBlock structure:
-- paragraph, heading, image, quote, list, callout
-- Each block editable individually
-- Drag to reorder blocks
-
----
-
-## Review Section
-_(To be filled after implementation)_
-
----
-
-# Live Yahoo Finance Stock Prices Implementation
-
-## Overview
-Replace static/mock stock price data with live data from Yahoo Finance API.
-
-## Current State
-- Mock data in `src/data/mockData.ts`
-- MarketTicker shows 8 indices (S&P 500, NASDAQ, DOW, Russell 2000, BTC, ETH, Gold, Crude Oil)
-- MarketMovers shows top gainers/losers
-- InlineStockChart shows 30-day price history
-- LiveMarketWidget shows relevant stocks for articles
-
-## Plan
-
-### Phase 1: Yahoo Finance API Integration
-- [x] Install `yahoo-finance2` npm package
-- [x] Create Yahoo Finance service (`src/lib/yahoo-finance.ts`)
-  - Functions for: quotes, historical data, market movers
-
-### Phase 2: API Endpoints
-- [x] Create `/api/market/quotes` - Get real-time quotes for multiple symbols
-- [x] Create `/api/market/movers` - Get top gainers and losers
-- [x] Create `/api/market/chart/[symbol]` - Get historical chart data
-
-### Phase 3: Update Components
-- [x] Update MarketTicker to fetch live data with auto-refresh (every 30 seconds)
-- [x] Update MarketMovers to fetch live gainers/losers
-- [x] Update InlineStockChart to fetch live historical data
-- [x] Update LiveMarketWidget to use live data
-
-### Phase 4: Testing & Polish
-- [x] Test all components with live data
-- [x] Add loading states and error handling
-- [x] Verify prices match Yahoo Finance website
-
-## Symbol Mapping (Yahoo Finance format)
-| Display | Yahoo Symbol |
-|---------|-------------|
-| S&P 500 | ^GSPC |
-| NASDAQ | ^IXIC |
-| DOW | ^DJI |
-| Russell 2000 | ^RUT |
-| Bitcoin | BTC-USD |
-| Ethereum | ETH-USD |
-| Gold | GC=F |
-| Crude Oil | CL=F |
-
-## Current Status: ✅ Complete
-
-## Review
-
-### Summary
-Successfully integrated live Yahoo Finance data to replace all static/mock stock prices. The application now displays real-time market data with automatic refresh intervals.
-
-### Files Created
-
-| File | Description |
-|------|-------------|
-| `src/lib/yahoo-finance.ts` | Core Yahoo Finance service with all API functions |
-| `src/app/api/market/quotes/route.ts` | API endpoint for real-time quotes |
-| `src/app/api/market/movers/route.ts` | API endpoint for top gainers/losers |
-| `src/app/api/market/chart/route.ts` | API endpoint for historical chart data |
-
-### Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/components/layout/MarketTicker.tsx` | Client-side fetching with 30-second auto-refresh |
-| `src/components/home/MarketMovers.tsx` | Client-side fetching with 60-second auto-refresh |
-| `src/components/article/InlineStockChart.tsx` | Fetches live chart data based on symbol |
-| `src/components/sidebar/LiveMarketWidget.tsx` | Fetches live quotes for article tickers |
-| `src/components/article/ArticleBody.tsx` | Removed static data prop from InlineStockChart |
-| `src/app/page.tsx` | Removed server-side market data fetching |
-| `src/app/article/[slug]/page.tsx` | Removed server-side market data fetching |
-
-### Key Features
-
-- **Real-time quotes**: Market indices, crypto, and commodities update every 30 seconds
-- **Top movers**: Live top gainers and losers from US market
-- **Historical charts**: Intraday and multi-period chart data (1d, 5d, 1mo, 3mo, 6mo, 1y)
-- **Symbol mapping**: Internal display symbols mapped to Yahoo Finance API symbols
-- **Error handling**: Loading states and graceful error handling in all components
-- **Dynamic data**: No caching - always fresh data from Yahoo Finance
-
-### Technical Notes
-
-- Using `yahoo-finance2` npm package v3 (requires `new YahooFinance()` instantiation)
-- API routes use `force-dynamic` and `revalidate: 0` to prevent caching
-- Client components fetch data on mount and auto-refresh on intervals
-
----
-
-# NewsData.io Auto-Import Integration
-
-## Overview
-Automatically import news articles from newsdata.io API related to US stock market, investing, Wall Street, and politics.
-
-## Configuration
-- **Categories**: Business, Politics, Technology
-- **Country**: USA (us)
-- **Language**: English (en)
-- **Keywords**: stocks, investing, "wall street", trading, market
-- **Mode**: Fully automated (cron job)
-
----
-
-## Implementation Checklist
-
-### Phase 1: Setup & Configuration
-- [x] Add `NEWSDATA_API_KEY` to `.env`
-- [x] Create NewsData service (`src/lib/newsdata.ts`)
-- [x] Define TypeScript types for API response
-
-### Phase 2: Database Updates
-- [x] Add `sourceUrl` field to Article model (original article link)
-- [x] Add `externalId` field (newsdata article_id for deduplication)
+### Phase 1: Database Schema Update
+- [x] Add new fields to User model: `firstName`, `lastName`, `dateOfBirth`, `phoneNumber`, `username`
 - [x] Run Prisma migration
 
-### Phase 3: Import Logic
-- [x] Create news fetching function with filters
-- [x] Create mapping function (newsdata → Article model)
-- [x] Create slug generator from title
-- [x] Create/get "NewsData" system author
-- [x] Map newsdata categories to existing categories
-- [x] Implement deduplication (check externalId)
-- [x] Convert content to JSON block format
+### Phase 2: Create UI Components
+- [x] Install shadcn dropdown-menu and avatar components
+- [x] Create `Avatar` component with initials fallback
+- [x] Create `UserProfileDropdown` component
 
-### Phase 4: Cron API Route
-- [x] Create `/api/cron/import-news` route
-- [x] Add CRON_SECRET for security
-- [x] Add logging for import results
+### Phase 3: Create Account Settings Page
+- [x] Create `/account/settings` page layout
+- [x] Create sections: Personal Info, Password Change
+- [x] Create edit forms for each section
 
-### Phase 5: Vercel Cron Setup
-- [x] Add `vercel.json` with cron configuration
-- [x] Configure hourly import schedule
+### Phase 4: Create API Endpoints
+- [x] GET `/api/user/profile` - Fetch user profile
+- [x] POST `/api/user/update-profile` - Update name, DOB, phone, username
+- [x] POST `/api/user/change-password` - Change password
 
----
+### Phase 5: Integration
+- [x] Replace current user display in Header with UserProfileDropdown
+- [x] Add mobile support for dropdown
+- [x] Test all functionality
 
-## Field Mapping
-
-| newsdata.io | Article Model | Notes |
-|-------------|---------------|-------|
-| `article_id` | `externalId` | NEW - deduplication |
-| `title` | `title` | Direct |
-| `description` | `excerpt` | Direct |
-| `content` | `content` | → JSON blocks |
-| `image_url` | `imageUrl` | Direct |
-| `pubDate` | `publishedAt` | Parse DateTime |
-| `category[]` | `categoryId` | Map to existing |
-| `creator[]` | `authorId` | NewsData author |
-| `keywords[]` | `tags` | Create/map |
-| `link` | `sourceUrl` | NEW - original URL |
-
-## API Query
-
-```
-Endpoint: https://newsdata.io/api/1/latest
-Parameters:
-  apikey: NEWSDATA_API_KEY
-  country: us
-  category: business,politics,technology
-  q: stocks OR investing OR "wall street" OR trading
-  language: en
-```
-
----
-
-## Review Section
-
-### Summary
-Successfully implemented automated news import from NewsData.io API. The system fetches US financial news related to stocks, investing, Wall Street, and politics.
-
-### Files Created
-
-| File | Description |
-|------|-------------|
-| `src/lib/newsdata.ts` | NewsData API service with types and helper functions |
-| `src/app/api/cron/import-news/route.ts` | Cron job endpoint for automated imports |
-| `vercel.json` | Vercel cron configuration (hourly schedule) |
-
-### Files Modified
-
-| File | Changes |
-|------|---------|
-| `prisma/schema.prisma` | Added `externalId` and `sourceUrl` fields to Article model |
-| `next.config.ts` | Allowed all external image hosts |
-| `.env` | Added `NEWSDATA_API_KEY` and `CRON_SECRET` |
-
-### Key Features
-
-- **Automated imports**: Runs hourly via Vercel Cron
-- **Deduplication**: Uses `externalId` to prevent duplicate imports
-- **Category mapping**: Maps newsdata categories to existing site categories
-- **Tag creation**: Auto-creates tags from article keywords
-- **Content conversion**: Converts plain text to JSON block format
-- **Ticker extraction**: Extracts stock tickers from article content
-- **Security**: Protected by `CRON_SECRET` token
-
-### Test Results
-
-- First import: **9 articles** successfully imported
-- Second run: **9 articles skipped** (deduplication working)
-- All articles display correctly on homepage with images
-
-### How to Trigger Manually
-
-```bash
-curl "http://localhost:3000/api/cron/import-news?secret=your-cron-secret-change-in-production"
-```
-
-### Current Status: ✅ Complete
-
----
-
-# Email Verification Implementation Plan
-
-## Overview
-Add email verification for user signup using Resend as the email service provider. Users will receive a verification email upon registration and must verify their email before they can sign in.
-
-## Prerequisites
-- Resend account (https://resend.com)
-- Verified domain in Resend OR use onboarding email (onboarding@resend.dev for testing)
-
----
-
-## Implementation Checklist
-
-### Phase 1: Setup Resend
-- [x] Install `resend` npm package
-- [x] Add `RESEND_API_KEY` to `.env`
-- [x] Add `NEXT_PUBLIC_APP_URL` to `.env`
-- [x] Create email service (`src/lib/email.ts`)
-
-### Phase 2: Token Management
-- [x] Create token utility functions (`src/lib/tokens.ts`)
-  - Generate verification token
-  - Store token in VerificationToken table
-  - Verify/validate token
-
-### Phase 3: Email Templates
-- [x] Email template included inline in `src/lib/email.ts`
-
-### Phase 4: Update Signup Flow
-- [x] Modify signup API route to:
-  - Create user with `emailVerified: null`
-  - Generate verification token
-  - Send verification email
-  - Return success message about checking email
-- [x] Update signup page to redirect to verify-email page
-
-### Phase 5: Verification Endpoint
-- [x] Create `/api/auth/verify-email` route
-  - Validate token
-  - Update user's `emailVerified` field
-  - Delete used token
-  - Redirect to login with success message
-
-### Phase 6: Block Unverified Users
-- [x] Update NextAuth credentials provider to check `emailVerified`
-- [x] Show error if user tries to login without verified email
-- [x] Add "Resend verification email" option
-
-### Phase 7: Resend Verification Email
-- [x] Create `/api/auth/resend-verification` route
-- [x] Add resend button to login page for unverified users
-
-### Phase 8: Testing & Polish
-- [x] Test full signup → verify → login flow
-- [x] Test verification link
-- [x] Test resend verification email UI
+### Phase 6: Polish
+- [x] Add animations and transitions (via shadcn/radix)
+- [x] Keyboard accessibility (built into radix components)
+- [x] Visual comparison with reference designs
 
 ---
 
 ## Technical Details
 
-### Token Generation
-- Use `crypto.randomUUID()` for secure tokens
-- Tokens expire in 24 hours
-- One-time use (deleted after verification)
+### Dropdown Menu Structure:
+```
+┌─────────────────────────────┐
+│  [Avatar] User Name         │
+│  email@example.com          │
+├─────────────────────────────┤
+│  ⚙️  Account Settings       │
+├─────────────────────────────┤
+│  🌙  Dark Mode Toggle       │
+├─────────────────────────────┤
+│  🚪  Sign Out               │
+└─────────────────────────────┘
+```
 
-### Email Content
-- Subject: "Verify your email for The Fiscal Wire"
-- Contains verification link: `{APP_URL}/api/auth/verify-email?token={token}`
-- Clean, professional design
+### Account Settings Page Structure:
+```
+┌─────────────────────────────────────────┐
+│  Account Settings                       │
+├─────────────────────────────────────────┤
+│                                         │
+│  Personal Information          [Edit]   │
+│  ─────────────────────────────────────  │
+│  First Name: John                       │
+│  Last Name: Doe                         │
+│  Username: johndoe                      │
+│  Email: john@example.com                │
+│  Phone: +1 (555) 123-4567              │
+│  Date of Birth: January 15, 1990        │
+│                                         │
+├─────────────────────────────────────────┤
+│                                         │
+│  Password & Security           [Edit]   │
+│  ─────────────────────────────────────  │
+│  Password: ••••••••••                   │
+│  Last changed: 30 days ago              │
+│                                         │
+└─────────────────────────────────────────┘
+```
 
-### Error Handling
-- Invalid token → Show error, offer to resend
-- Expired token → Show error, offer to resend
-- Already verified → Redirect to login
-
----
-
-## Files to Create
-
-| File | Description |
-|------|-------------|
-| `src/lib/email.ts` | Resend email service |
-| `src/lib/tokens.ts` | Token generation/validation |
-| `src/emails/verification-email.tsx` | Email template |
-| `src/app/api/auth/verify-email/route.ts` | Verification endpoint |
-| `src/app/api/auth/resend-verification/route.ts` | Resend email endpoint |
-| `src/app/verify-email/page.tsx` | Success/error UI page |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/app/api/auth/signup/route.ts` | Send verification email |
-| `src/app/signup/page.tsx` | Show "check email" message |
-| `src/lib/auth.ts` | Block unverified users |
-| `src/app/login/page.tsx` | Add resend verification option |
-| `.env` | Add RESEND_API_KEY, NEXT_PUBLIC_APP_URL |
-
----
-
-## Review Section
-
-### Summary
-Successfully implemented email verification for user signup using Resend. Users must verify their email before they can sign in.
-
-### Flow
-1. User signs up → Account created (unverified)
-2. Verification email sent via Resend
-3. User clicks verification link in email
-4. Email verified → User redirected to login with success message
-5. User can now sign in
-
-### Files Created
-
-| File | Description |
-|------|-------------|
-| `src/lib/email.ts` | Resend email service with verification and password reset templates |
-| `src/lib/tokens.ts` | Token generation/validation utilities |
-| `src/app/api/auth/verify-email/route.ts` | Verification endpoint |
-| `src/app/api/auth/resend-verification/route.ts` | Resend verification email endpoint |
-| `src/app/verify-email/page.tsx` | Check your email / verification status page |
-
-### Files Modified
-
-| File | Changes |
-|------|---------|
-| `src/app/api/auth/signup/route.ts` | Send verification email on signup |
-| `src/app/signup/page.tsx` | Redirect to verify-email page after signup |
-| `src/lib/auth.ts` | Block unverified users from login |
-| `src/app/login/page.tsx` | Show verification status, resend option |
-| `.env` | Added RESEND_API_KEY, NEXT_PUBLIC_APP_URL |
-
-### Security Features
-- Secure token generation with `crypto.randomUUID()`
-- Tokens expire after 24 hours
-- One-time use tokens (deleted after verification)
-- Unverified users cannot login
-
-### Production Notes
-- **For testing**: Resend only allows sending to your verified email
-- **For production**: Verify a domain at resend.com/domains and update `FROM_EMAIL` in `src/lib/email.ts`
-
-### Current Status: ✅ Complete
+## Review
+(To be filled after implementation)
