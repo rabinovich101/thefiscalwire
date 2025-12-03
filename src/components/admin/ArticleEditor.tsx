@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import {
-  Plus,
   Trash2,
   GripVertical,
   Image as ImageIcon,
@@ -17,7 +16,9 @@ import {
   Eye,
   ChevronUp,
   ChevronDown,
+  Loader2,
 } from "lucide-react"
+import { UploadButton } from "@/lib/uploadthing"
 
 type BlockType = "paragraph" | "heading" | "image" | "quote" | "list" | "callout"
 
@@ -129,30 +130,7 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
     setBlocks(newBlocks)
   }
 
-  const handleImageUpload = async (blockId: string | "featured", file: File) => {
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (response.ok) {
-        const { url } = await response.json()
-        if (blockId === "featured") {
-          setFormData((prev) => ({ ...prev, imageUrl: url }))
-        } else {
-          updateBlock(blockId, { imageUrl: url })
-        }
-      } else {
-        alert("Failed to upload image")
-      }
-    } catch (error) {
-      alert("Failed to upload image")
-    }
-  }
+  const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -310,19 +288,21 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center aspect-video bg-zinc-800 border-2 border-dashed border-zinc-600 rounded-lg cursor-pointer hover:border-zinc-500 transition-colors">
+              <div className="flex flex-col items-center justify-center aspect-video bg-zinc-800 border-2 border-dashed border-zinc-600 rounded-lg">
                 <ImageIcon className="w-8 h-8 text-zinc-500 mb-2" />
-                <span className="text-sm text-zinc-500">Click to upload image</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (file) handleImageUpload("featured", file)
+                <span className="text-sm text-zinc-500 mb-4">Upload featured image</span>
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res?.[0]?.ufsUrl) {
+                      setFormData((prev) => ({ ...prev, imageUrl: res[0].ufsUrl }))
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    alert(`Upload failed: ${error.message}`)
                   }}
                 />
-              </label>
+              </div>
             )}
             <input
               type="text"
@@ -436,19 +416,30 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
                           </button>
                         </div>
                       ) : (
-                        <label className="flex flex-col items-center justify-center h-48 bg-zinc-900 border-2 border-dashed border-zinc-600 rounded-lg cursor-pointer hover:border-zinc-500">
-                          <ImageIcon className="w-8 h-8 text-zinc-500 mb-2" />
-                          <span className="text-sm text-zinc-500">Click to upload</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0]
-                              if (file) handleImageUpload(block.id, file)
-                            }}
-                          />
-                        </label>
+                        <div className="flex flex-col items-center justify-center h-48 bg-zinc-900 border-2 border-dashed border-zinc-600 rounded-lg">
+                          {uploadingBlockId === block.id ? (
+                            <Loader2 className="w-8 h-8 text-zinc-500 animate-spin" />
+                          ) : (
+                            <>
+                              <ImageIcon className="w-8 h-8 text-zinc-500 mb-2" />
+                              <span className="text-sm text-zinc-500 mb-3">Upload image</span>
+                              <UploadButton
+                                endpoint="imageUploader"
+                                onUploadBegin={() => setUploadingBlockId(block.id)}
+                                onClientUploadComplete={(res) => {
+                                  if (res?.[0]?.ufsUrl) {
+                                    updateBlock(block.id, { imageUrl: res[0].ufsUrl })
+                                  }
+                                  setUploadingBlockId(null)
+                                }}
+                                onUploadError={(error: Error) => {
+                                  alert(`Upload failed: ${error.message}`)
+                                  setUploadingBlockId(null)
+                                }}
+                              />
+                            </>
+                          )}
+                        </div>
                       )}
                       <input
                         type="text"

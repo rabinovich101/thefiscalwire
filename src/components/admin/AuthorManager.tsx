@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Plus, Edit, Trash2, X, Check, Image as ImageIcon } from "lucide-react"
+import { UploadButton } from "@/lib/uploadthing"
 
 interface Author {
   id: string
@@ -21,28 +22,6 @@ export function AuthorManager({ authors: initialAuthors }: { authors: Author[] }
   const [newAuthor, setNewAuthor] = useState({ name: "", avatar: "", bio: "" })
   const [editAuthor, setEditAuthor] = useState({ name: "", avatar: "", bio: "" })
 
-  const handleImageUpload = async (target: "new" | "edit", file: File) => {
-    const formData = new FormData()
-    formData.append("file", file)
-
-    try {
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-
-      if (response.ok) {
-        const { url } = await response.json()
-        if (target === "new") {
-          setNewAuthor((prev) => ({ ...prev, avatar: url }))
-        } else {
-          setEditAuthor((prev) => ({ ...prev, avatar: url }))
-        }
-      }
-    } catch (error) {
-      alert("Failed to upload image")
-    }
-  }
 
   const handleAdd = async () => {
     try {
@@ -155,18 +134,21 @@ export function AuthorManager({ authors: initialAuthors }: { authors: Author[] }
                     <ImageIcon className="w-5 h-5 text-zinc-500" />
                   </div>
                 )}
-                <label className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-300 cursor-pointer hover:bg-zinc-700">
-                  Upload
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handleImageUpload("new", file)
-                    }}
-                  />
-                </label>
+                <UploadButton
+                  endpoint="imageUploader"
+                  onClientUploadComplete={(res) => {
+                    if (res?.[0]?.ufsUrl) {
+                      setNewAuthor((prev) => ({ ...prev, avatar: res[0].ufsUrl }))
+                    }
+                  }}
+                  onUploadError={(error: Error) => {
+                    alert(`Upload failed: ${error.message}`)
+                  }}
+                  appearance={{
+                    button: "ut-ready:bg-zinc-800 ut-ready:text-zinc-300 ut-ready:hover:bg-zinc-700 text-sm px-3 py-2",
+                    allowedContent: "hidden",
+                  }}
+                />
                 <input
                   type="text"
                   value={newAuthor.avatar}
@@ -238,18 +220,21 @@ export function AuthorManager({ authors: initialAuthors }: { authors: Author[] }
                           <ImageIcon className="w-5 h-5 text-zinc-500" />
                         </div>
                       )}
-                      <label className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-sm text-zinc-300 cursor-pointer hover:bg-zinc-700">
-                        Upload
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0]
-                            if (file) handleImageUpload("edit", file)
-                          }}
-                        />
-                      </label>
+                      <UploadButton
+                        endpoint="imageUploader"
+                        onClientUploadComplete={(res) => {
+                          if (res?.[0]?.ufsUrl) {
+                            setEditAuthor((prev) => ({ ...prev, avatar: res[0].ufsUrl }))
+                          }
+                        }}
+                        onUploadError={(error: Error) => {
+                          alert(`Upload failed: ${error.message}`)
+                        }}
+                        appearance={{
+                          button: "ut-ready:bg-zinc-800 ut-ready:text-zinc-300 ut-ready:hover:bg-zinc-700 text-sm px-3 py-2",
+                          allowedContent: "hidden",
+                        }}
+                      />
                       <input
                         type="text"
                         value={editAuthor.avatar}
