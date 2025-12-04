@@ -1,11 +1,11 @@
 /**
  * News Import Scheduler
- * Runs automatically 4 times a day at Jerusalem time (Israel Standard Time)
- * Times: 07:00, 12:00, 17:00, 22:00
+ * Runs automatically once a day at Jerusalem time (Israel Standard Time)
+ * Time: 07:00
  */
 
 const JERUSALEM_TIMEZONE = 'Asia/Jerusalem';
-const IMPORT_HOURS = [7, 12, 17, 22]; // 4 times a day
+const IMPORT_HOURS = [7]; // 1 time a day at 7:00 AM
 
 let isSchedulerRunning = false;
 let schedulerInterval: NodeJS.Timeout | null = null;
@@ -102,7 +102,7 @@ export function startScheduler(): void {
   isSchedulerRunning = true;
   const jerusalemTime = getJerusalemTime();
   console.log(`[Scheduler] Started at ${jerusalemTime.toLocaleString()} Jerusalem time`);
-  console.log(`[Scheduler] Will import news 4 times daily at: ${IMPORT_HOURS.map(h => `${h}:00`).join(', ')} Jerusalem time`);
+  console.log(`[Scheduler] Will import news once daily at: ${IMPORT_HOURS.map(h => `${h}:00`).join(', ')} Jerusalem time`);
 
   scheduleNextImport();
 }
