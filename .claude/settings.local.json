@@ -106,7 +106,9 @@
       "Bash(node:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "WebFetch(domain:jsr.io)"
+      "WebFetch(domain:jsr.io)",
+      "WebFetch(domain:www.alphavantage.co)",
+      "Bash(bash -c 'for sector in technology telecommunications health_care finance real_estate consumer_discretionary consumer_staples industrials basic_materials energy utilities; do\n  count=$(curl -s \"\"https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=1&offset=0&sector=$sector\"\" -H \"\"User-Agent: Mozilla/5.0\"\" | python3 -c \"\"import sys, json; data = json.load(sys.stdin); print(data.get(\\\"\"data\\\"\", {}).get(\\\"\"totalrecords\\\"\", 0))\"\")\n  echo \"\"$sector: $count\"\"\ndone')"
     ],
     "deny": [],
     "ask": []

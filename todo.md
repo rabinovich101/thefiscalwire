@@ -3,18 +3,20 @@
 ## Overview
 Create a sectors page that organizes all stocks by their sector, allowing users to browse all available sectors and view stocks within each sector.
 
-## Sector Categories (from existing SECTOR_MAP)
-- Technology (40 stocks)
-- Healthcare (30 stocks)
-- Financial (15 stocks)
-- Consumer (20 stocks)
-- Consumer Staples (12 stocks)
-- Industrial (19 stocks)
-- Energy (7 stocks)
-- Utilities (7 stocks)
-- Real Estate (3 stocks)
-- Materials (3 stocks)
-- Communication (9 stocks)
+## Sector Categories (from NASDAQ API - 7,000+ stocks)
+- Financial (1,534 stocks)
+- Healthcare (1,125 stocks)
+- Consumer Discretionary (1,047 stocks)
+- Technology (779 stocks)
+- Industrial (622 stocks)
+- Real Estate (410 stocks)
+- Energy (197 stocks)
+- Utilities (173 stocks)
+- Consumer Staples (150 stocks)
+- Materials (137 stocks)
+- Communication (108 stocks)
+
+**Total: ~7,000 stocks** (vs ~1,200 previously hardcoded)
 
 ---
 
@@ -38,12 +40,52 @@ Create a sectors page that organizes all stocks by their sector, allowing users 
 ### Phase 5: Navigation
 - [x] 8. Add "Sectors" link to stocks navigation (already existed at `/stocks/sectors`)
 
+### Phase 6: NASDAQ API Integration (NEW - December 2024)
+- [x] 9. Replace hardcoded SECTOR_MAP with dynamic NASDAQ API
+- [x] 10. Create `fetchNasdaqSectorStocks()` function
+- [x] 11. Create `fetchAllNasdaqSectorSymbols()` function
+- [x] 12. Create `getNasdaqSectorCounts()` function
+- [x] 13. Update `getSectorStocks()` to use NASDAQ API
+- [x] 14. Update `getAllSectorsPerformance()` to use NASDAQ API
+- [x] 15. Update `getSectorStocksPaginated()` to use NASDAQ API
+- [x] 16. Fix duplicate keys in SECTOR_MAP (for heatmap fallback)
+
 ---
 
 ## Review
 
 ### Summary
-Successfully implemented a world-class stock sectors feature with premium design inspired by Google/Apple design principles.
+Successfully implemented a world-class stock sectors feature with premium design inspired by Google/Apple design principles. **Updated December 2024 to use NASDAQ API for 7,000+ stocks instead of ~1,200 hardcoded.**
+
+### NASDAQ API Integration (December 2024)
+
+**Problem Solved:**
+User wanted the same amount of stocks as Yahoo Finance (~10,000). The previous implementation used a hardcoded SECTOR_MAP with only ~1,200 stocks.
+
+**Solution:**
+Integrated NASDAQ's free screener API (`api.nasdaq.com/api/screener/stocks`) which provides:
+- 7,030 total US stocks with sector classification
+- NYSE: 2,727 stocks
+- NASDAQ: 4,011 stocks
+- AMEX: 288 stocks
+- No rate limits
+- Built-in pagination support
+
+**Stock Count Increase:**
+| Sector | Before | After | Increase |
+|--------|--------|-------|----------|
+| Financial | 124 | 1,534 | 12x |
+| Healthcare | 128 | 1,125 | 9x |
+| Consumer | 158 | 1,047 | 7x |
+| Technology | 178 | 779 | 4x |
+| Industrial | 134 | 622 | 5x |
+| Real Estate | 79 | 410 | 5x |
+| Energy | 88 | 197 | 2x |
+| Utilities | 74 | 173 | 2x |
+| Consumer Staples | 74 | 150 | 2x |
+| Materials | 91 | 137 | 1.5x |
+| Communication | 63 | 108 | 2x |
+| **TOTAL** | **~1,200** | **~7,000** | **5.3x** |
 
 ### Features Implemented
 
@@ -77,7 +119,7 @@ Successfully implemented a world-class stock sectors feature with premium design
 
 | File | Description |
 |------|-------------|
-| `src/lib/yahoo-finance.ts` | Added SECTORS constant, SectorInfo interface, getSectorStocks(), getAllSectorsPerformance() |
+| `src/lib/yahoo-finance.ts` | Added SECTORS constant, SectorInfo interface, getSectorStocks(), getAllSectorsPerformance(), NASDAQ API functions |
 | `src/app/api/stocks/sectors/route.ts` | API endpoint for all sectors with performance data |
 | `src/app/api/stocks/sectors/[sector]/route.ts` | API endpoint for stocks in a specific sector |
 | `src/components/stocks/SectorCard.tsx` | Premium sector card component with compact variant |
@@ -92,10 +134,18 @@ Successfully implemented a world-class stock sectors feature with premium design
 - **Spacing**: Consistent 8px grid system
 - **Accessibility**: Proper ARIA labels, keyboard navigation support
 
-### Sector Data
-- 11 sectors with 163 total stocks
-- Real-time data from Yahoo Finance API
-- Sorted by daily performance (best to worst)
+### Technical Notes
+
+**NASDAQ API Integration:**
+- Endpoint: `https://api.nasdaq.com/api/screener/stocks`
+- Parameters: `sector`, `limit`, `offset`, `tableonly`
+- Sector mapping added to `SectorInfo` interface (`nasdaqApiValue`)
+- Returns stock data sorted by market cap by default
+
+**Performance Optimization:**
+- `getAllSectorsPerformance()` fetches top 50 stocks per sector (vs all 7000+)
+- Paginated API supports lazy loading for individual sector pages
+- NASDAQ API provides total count without fetching all records
 
 ### Current Status: ✅ Complete
 

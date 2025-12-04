@@ -364,6 +364,7 @@ export interface SectorInfo {
   color: string; // Tailwind color class
   gradient: string; // Gradient for cards
   icon: string; // Lucide icon name
+  nasdaqApiValue: string; // NASDAQ API sector filter value
 }
 
 export const SECTORS: SectorInfo[] = [
@@ -374,6 +375,7 @@ export const SECTORS: SectorInfo[] = [
     color: "blue",
     gradient: "from-blue-500/20 via-blue-600/10 to-cyan-500/20",
     icon: "Cpu",
+    nasdaqApiValue: "technology",
   },
   {
     id: "healthcare",
@@ -382,6 +384,7 @@ export const SECTORS: SectorInfo[] = [
     color: "emerald",
     gradient: "from-emerald-500/20 via-emerald-600/10 to-teal-500/20",
     icon: "Heart",
+    nasdaqApiValue: "health_care",
   },
   {
     id: "financial",
@@ -390,6 +393,7 @@ export const SECTORS: SectorInfo[] = [
     color: "amber",
     gradient: "from-amber-500/20 via-amber-600/10 to-yellow-500/20",
     icon: "Landmark",
+    nasdaqApiValue: "finance",
   },
   {
     id: "consumer",
@@ -398,6 +402,7 @@ export const SECTORS: SectorInfo[] = [
     color: "pink",
     gradient: "from-pink-500/20 via-pink-600/10 to-rose-500/20",
     icon: "ShoppingBag",
+    nasdaqApiValue: "consumer_discretionary",
   },
   {
     id: "consumer-staples",
@@ -406,6 +411,7 @@ export const SECTORS: SectorInfo[] = [
     color: "orange",
     gradient: "from-orange-500/20 via-orange-600/10 to-amber-500/20",
     icon: "Coffee",
+    nasdaqApiValue: "consumer_staples",
   },
   {
     id: "industrial",
@@ -414,6 +420,7 @@ export const SECTORS: SectorInfo[] = [
     color: "slate",
     gradient: "from-slate-500/20 via-slate-600/10 to-zinc-500/20",
     icon: "Factory",
+    nasdaqApiValue: "industrials",
   },
   {
     id: "energy",
@@ -422,6 +429,7 @@ export const SECTORS: SectorInfo[] = [
     color: "red",
     gradient: "from-red-500/20 via-red-600/10 to-orange-500/20",
     icon: "Flame",
+    nasdaqApiValue: "energy",
   },
   {
     id: "utilities",
@@ -430,6 +438,7 @@ export const SECTORS: SectorInfo[] = [
     color: "yellow",
     gradient: "from-yellow-500/20 via-yellow-600/10 to-lime-500/20",
     icon: "Zap",
+    nasdaqApiValue: "utilities",
   },
   {
     id: "real-estate",
@@ -438,6 +447,7 @@ export const SECTORS: SectorInfo[] = [
     color: "violet",
     gradient: "from-violet-500/20 via-violet-600/10 to-purple-500/20",
     icon: "Building2",
+    nasdaqApiValue: "real_estate",
   },
   {
     id: "materials",
@@ -446,6 +456,7 @@ export const SECTORS: SectorInfo[] = [
     color: "stone",
     gradient: "from-stone-500/20 via-stone-600/10 to-neutral-500/20",
     icon: "Gem",
+    nasdaqApiValue: "basic_materials",
   },
   {
     id: "communication",
@@ -454,8 +465,107 @@ export const SECTORS: SectorInfo[] = [
     color: "indigo",
     gradient: "from-indigo-500/20 via-indigo-600/10 to-blue-500/20",
     icon: "Radio",
+    nasdaqApiValue: "telecommunications",
   },
 ];
+
+// =============================================================================
+// NASDAQ API Integration - 7,000+ stocks with sector data
+// =============================================================================
+
+interface NasdaqApiResponse {
+  data: {
+    table: {
+      rows: NasdaqStockRow[];
+    };
+    totalrecords: number;
+  };
+}
+
+interface NasdaqStockRow {
+  symbol: string;
+  name: string;
+  lastsale: string;
+  netchange: string;
+  pctchange: string;
+  marketCap: string;
+  url: string;
+}
+
+/**
+ * Fetch stocks from NASDAQ API for a specific sector
+ * Supports pagination for large datasets
+ */
+export async function fetchNasdaqSectorStocks(
+  sector: string,
+  limit: number = 100,
+  offset: number = 0
+): Promise<{ stocks: NasdaqStockRow[]; total: number }> {
+  try {
+    const url = `https://api.nasdaq.com/api/screener/stocks?tableonly=true&limit=${limit}&offset=${offset}&sector=${sector}`;
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`NASDAQ API error: ${response.status}`);
+    }
+
+    const data: NasdaqApiResponse = await response.json();
+    return {
+      stocks: data.data?.table?.rows || [],
+      total: data.data?.totalrecords || 0,
+    };
+  } catch (error) {
+    console.error(`Error fetching NASDAQ sector ${sector}:`, error);
+    return { stocks: [], total: 0 };
+  }
+}
+
+/**
+ * Fetch all stocks from a sector (handles pagination automatically)
+ * Returns all stock symbols for a given sector
+ */
+export async function fetchAllNasdaqSectorSymbols(sectorApiValue: string): Promise<string[]> {
+  const symbols: string[] = [];
+  const batchSize = 200;
+  let offset = 0;
+  let total = 0;
+
+  do {
+    const { stocks, total: totalRecords } = await fetchNasdaqSectorStocks(sectorApiValue, batchSize, offset);
+    total = totalRecords;
+
+    for (const stock of stocks) {
+      symbols.push(stock.symbol);
+    }
+
+    offset += batchSize;
+  } while (offset < total);
+
+  return symbols;
+}
+
+/**
+ * Get sector stock counts from NASDAQ API
+ */
+export async function getNasdaqSectorCounts(): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+
+  for (const sector of SECTORS) {
+    try {
+      const { total } = await fetchNasdaqSectorStocks(sector.nasdaqApiValue, 1, 0);
+      counts[sector.id] = total;
+    } catch (error) {
+      console.error(`Error getting count for sector ${sector.id}:`, error);
+      counts[sector.id] = 0;
+    }
+  }
+
+  return counts;
+}
 
 // Map sector display name to sector ID
 export const SECTOR_NAME_TO_ID: Record<string, string> = {
@@ -473,473 +583,330 @@ export const SECTOR_NAME_TO_ID: Record<string, string> = {
   "Other": "other",
 };
 
-// Comprehensive sector mapping - 100+ stocks per major sector
+// Comprehensive sector mapping - deduped for heatmap use (NASDAQ API is primary source)
 const SECTOR_MAP: Record<string, string> = {
-  // ============================================
-  // TECHNOLOGY - 150+ stocks
-  // ============================================
-  // Mega-cap Tech
-  "AAPL": "Technology", "MSFT": "Technology", "GOOGL": "Technology", "GOOG": "Technology",
-  "META": "Technology", "NVDA": "Technology", "TSLA": "Technology",
+  // Technology
+  "AAPL": "Technology", "ABNB": "Technology", "ACLS": "Technology", "ACN": "Technology",
+  "ADBE": "Technology", "ADI": "Technology", "ADSK": "Technology", "AFRM": "Technology",
+  "AI": "Technology", "ALGM": "Technology", "AMAT": "Technology", "AMBA": "Technology",
+  "AMD": "Technology", "AMPL": "Technology", "ANET": "Technology", "ANGI": "Technology",
+  "ANSS": "Technology", "AOSL": "Technology", "APP": "Technology", "APPF": "Technology",
+  "ARM": "Technology", "ASAN": "Technology", "ASML": "Technology", "AVGO": "Technology",
+  "BABA": "Technology", "BAH": "Technology", "BIDU": "Technology", "BILI": "Technology",
+  "BILL": "Technology", "BKNG": "Technology", "BMBL": "Technology", "BRZE": "Technology",
+  "CACI": "Technology", "CDNS": "Technology", "CDW": "Technology", "CEVA": "Technology",
+  "CFLT": "Technology", "COHR": "Technology", "COIN": "Technology", "CRM": "Technology",
+  "CRSR": "Technology", "CRUS": "Technology", "CRWD": "Technology", "CSCO": "Technology",
+  "CTSH": "Technology", "DASH": "Technology", "DDOG": "Technology", "DELL": "Technology",
+  "DIOD": "Technology", "DOCN": "Technology", "DOCU": "Technology", "DT": "Technology",
+  "DUOL": "Technology", "EBAY": "Technology", "ENTG": "Technology", "EPAM": "Technology",
+  "ESTC": "Technology", "ETSY": "Technology", "EXLS": "Technology", "EXPE": "Technology",
+  "FFIV": "Technology", "FITB": "Technology", "FORM": "Technology", "FROG": "Technology",
+  "FRSH": "Technology", "FTNT": "Technology", "GFS": "Technology", "GLOB": "Technology",
+  "GOOG": "Technology", "GOOGL": "Technology", "GPRO": "Technology", "GRMN": "Technology",
+  "GRUB": "Technology", "GTLB": "Technology", "HCP": "Technology", "HEAR": "Technology",
+  "HOOD": "Technology", "HPE": "Technology", "HPQ": "Technology", "HUBS": "Technology",
+  "IAC": "Technology", "IBM": "Technology", "INFY": "Technology", "INTC": "Technology",
+  "INTU": "Technology", "IT": "Technology", "JAMF": "Technology", "JD": "Technology",
+  "JNPR": "Technology", "KEYS": "Technology", "KLAC": "Technology", "KOSS": "Technology",
+  "LC": "Technology", "LDOS": "Technology", "LOGI": "Technology", "LRCX": "Technology",
+  "LYFT": "Technology", "MCHP": "Technology", "MDB": "Technology", "MELI": "Technology",
+  "META": "Technology", "MKSI": "Technology", "MNDY": "Technology", "MPWR": "Technology",
+  "MRVL": "Technology", "MSFT": "Technology", "MTCH": "Technology", "MU": "Technology",
+  "NCNO": "Technology", "NET": "Technology", "NOW": "Technology", "NSIT": "Technology",
+  "NTAP": "Technology", "NTES": "Technology", "NU": "Technology", "NVDA": "Technology",
+  "NVMI": "Technology", "NXPI": "Technology", "OKTA": "Technology", "ON": "Technology",
+  "ORCL": "Technology", "PANW": "Technology", "PATH": "Technology", "PDD": "Technology",
+  "PINS": "Technology", "PLTR": "Technology", "POWI": "Technology", "PSTG": "Technology",
+  "QCOM": "Technology", "QRVO": "Technology", "RBLX": "Technology", "RMBS": "Technology",
+  "SAIC": "Technology", "SAMSARA": "Technology", "SAP": "Technology", "SCSC": "Technology",
+  "SE": "Technology", "SGMO": "Technology", "SHOP": "Technology", "SITM": "Technology",
+  "SLAB": "Technology", "SMCI": "Technology", "SMTC": "Technology", "SNAP": "Technology",
+  "SNOW": "Technology", "SNPS": "Technology", "SOFI": "Technology", "SONO": "Technology",
+  "SPLK": "Technology", "SPOT": "Technology", "SQ": "Technology", "STX": "Technology",
+  "SUMO": "Technology", "SWKS": "Technology", "SYNA": "Technology", "TCOM": "Technology",
+  "TEAM": "Technology", "TER": "Technology", "TME": "Technology", "TRIP": "Technology",
+  "TSLA": "Technology", "TSM": "Technology", "TWLO": "Technology", "TXN": "Technology",
+  "U": "Technology", "UBER": "Technology", "UPST": "Technology", "VEEV": "Technology",
+  "VIAV": "Technology", "WDAY": "Technology", "WDC": "Technology", "WIT": "Technology",
+  "WOLF": "Technology", "YELP": "Technology", "ZBRA": "Technology", "ZI": "Technology",
+  "ZM": "Technology", "ZS": "Technology",
 
-  // Semiconductors
-  "AVGO": "Technology", "AMD": "Technology", "INTC": "Technology", "QCOM": "Technology",
-  "TXN": "Technology", "AMAT": "Technology", "MU": "Technology", "LRCX": "Technology",
-  "ADI": "Technology", "KLAC": "Technology", "MRVL": "Technology", "NXPI": "Technology",
-  "MCHP": "Technology", "ON": "Technology", "GFS": "Technology", "SWKS": "Technology",
-  "QRVO": "Technology", "MPWR": "Technology", "ENTG": "Technology", "MKSI": "Technology",
-  "CRUS": "Technology", "WOLF": "Technology", "SYNA": "Technology", "RMBS": "Technology",
-  "SMTC": "Technology", "ACLS": "Technology", "FORM": "Technology", "POWI": "Technology",
-  "DIOD": "Technology", "SLAB": "Technology", "ALGM": "Technology", "SITM": "Technology",
-  "NVMI": "Technology", "CEVA": "Technology", "AMBA": "Technology", "AOSL": "Technology",
-  "SGMO": "Technology", "TSM": "Technology", "ASML": "Technology", "SNPS": "Technology",
-  "CDNS": "Technology", "ARM": "Technology",
+  // Healthcare
+  "ABBV": "Healthcare", "ABT": "Healthcare", "ACHC": "Healthcare", "ALGN": "Healthcare",
+  "ALNY": "Healthcare", "AMED": "Healthcare", "AMGN": "Healthcare", "AMN": "Healthcare",
+  "AMWL": "Healthcare", "APLS": "Healthcare", "ARGX": "Healthcare", "ARWR": "Healthcare",
+  "ATRC": "Healthcare", "AXNX": "Healthcare", "AZN": "Healthcare", "BAX": "Healthcare",
+  "BDX": "Healthcare", "BIIB": "Healthcare", "BIO": "Healthcare", "BMRN": "Healthcare",
+  "BMY": "Healthcare", "BSX": "Healthcare", "CCRN": "Healthcare", "CHE": "Healthcare",
+  "CI": "Healthcare", "CLVR": "Healthcare", "CNC": "Healthcare", "COO": "Healthcare",
+  "CRNX": "Healthcare", "CVS": "Healthcare", "CYTK": "Healthcare", "DAWN": "Healthcare",
+  "DHR": "Healthcare", "DOCS": "Healthcare", "DVA": "Healthcare", "DXCM": "Healthcare",
+  "ELV": "Healthcare", "ENSG": "Healthcare", "EW": "Healthcare", "EXAS": "Healthcare",
+  "EXEL": "Healthcare", "FOLD": "Healthcare", "GDRX": "Healthcare", "GEHC": "Healthcare",
+  "GH": "Healthcare", "GILD": "Healthcare", "GMED": "Healthcare", "GSK": "Healthcare",
+  "HCA": "Healthcare", "HIMS": "Healthcare", "HOLX": "Healthcare", "HUM": "Healthcare",
+  "HZNP": "Healthcare", "IDXX": "Healthcare", "ILMN": "Healthcare", "IMVT": "Healthcare",
+  "INCY": "Healthcare", "INSP": "Healthcare", "IONS": "Healthcare", "IQV": "Healthcare",
+  "IRTC": "Healthcare", "ISRG": "Healthcare", "JNJ": "Healthcare", "KRTX": "Healthcare",
+  "KRYS": "Healthcare", "LHCG": "Healthcare", "LIVN": "Healthcare", "LLY": "Healthcare",
+  "MDT": "Healthcare", "MOH": "Healthcare", "MRK": "Healthcare", "MRNA": "Healthcare",
+  "MTD": "Healthcare", "NBIX": "Healthcare", "NHC": "Healthcare", "NTRA": "Healthcare",
+  "NVCR": "Healthcare", "NVO": "Healthcare", "NVS": "Healthcare", "NVTA": "Healthcare",
+  "ONEM": "Healthcare", "OPCH": "Healthcare", "OSCR": "Healthcare", "PACB": "Healthcare",
+  "PCVX": "Healthcare", "PEN": "Healthcare", "PFE": "Healthcare", "PHR": "Healthcare",
+  "PNTG": "Healthcare", "PODD": "Healthcare", "PRCT": "Healthcare", "PRTA": "Healthcare",
+  "PTCT": "Healthcare", "QGEN": "Healthcare", "RARE": "Healthcare", "RCKT": "Healthcare",
+  "RCUS": "Healthcare", "REGN": "Healthcare", "RVMD": "Healthcare", "RVTY": "Healthcare",
+  "RYTM": "Healthcare", "SGEN": "Healthcare", "SGRY": "Healthcare", "SHAK": "Healthcare",
+  "SHC": "Healthcare", "SNY": "Healthcare", "SRPT": "Healthcare", "SWAV": "Healthcare",
+  "SYK": "Healthcare", "TAK": "Healthcare", "TDOC": "Healthcare", "TECH": "Healthcare",
+  "TEVA": "Healthcare", "TFX": "Healthcare", "THC": "Healthcare", "TMO": "Healthcare",
+  "TWST": "Healthcare", "UHS": "Healthcare", "UNH": "Healthcare", "USPH": "Healthcare",
+  "UTHR": "Healthcare", "VERA": "Healthcare", "VKTX": "Healthcare", "VRTX": "Healthcare",
+  "VTRS": "Healthcare", "WAT": "Healthcare", "XENE": "Healthcare", "ZTS": "Healthcare",
 
-  // Software - Enterprise
-  "ORCL": "Technology", "CRM": "Technology", "SAP": "Technology", "ADBE": "Technology",
-  "IBM": "Technology", "INTU": "Technology", "NOW": "Technology", "WDAY": "Technology",
-  "ADSK": "Technology", "ANSS": "Technology", "TEAM": "Technology", "MDB": "Technology",
-  "DDOG": "Technology", "SNOW": "Technology", "PLTR": "Technology", "NET": "Technology",
-  "ZS": "Technology", "CRWD": "Technology", "PANW": "Technology", "FTNT": "Technology",
-  "OKTA": "Technology", "SPLK": "Technology", "VEEV": "Technology", "BILL": "Technology",
-  "HUBS": "Technology", "DOCU": "Technology", "ZM": "Technology", "TWLO": "Technology",
-  "U": "Technology", "RBLX": "Technology", "APP": "Technology", "CFLT": "Technology",
-  "PATH": "Technology", "SAMSARA": "Technology", "GTLB": "Technology", "ESTC": "Technology",
-  "DT": "Technology", "SUMO": "Technology", "AI": "Technology", "ASAN": "Technology",
-  "MNDY": "Technology", "DOCN": "Technology", "HCP": "Technology", "NCNO": "Technology",
-  "APPF": "Technology", "JAMF": "Technology", "BRZE": "Technology", "ZI": "Technology",
-  "AMPL": "Technology", "FROG": "Technology", "FRSH": "Technology",
+  // Financial
+  "AB": "Financial", "ABCB": "Financial", "ACGL": "Financial", "ACIW": "Financial",
+  "AEL": "Financial", "AFL": "Financial", "AIG": "Financial", "AIZ": "Financial",
+  "AJG": "Financial", "ALL": "Financial", "ALLY": "Financial", "AMG": "Financial",
+  "AON": "Financial", "APAM": "Financial", "ATH": "Financial", "AXP": "Financial",
+  "BAC": "Financial", "BEN": "Financial", "BK": "Financial", "BLK": "Financial",
+  "BOKF": "Financial", "BRK-A": "Financial", "BRK-B": "Financial", "C": "Financial",
+  "CATY": "Financial", "CB": "Financial", "CBOE": "Financial", "CFG": "Financial",
+  "CINF": "Financial", "CMA": "Financial", "CME": "Financial", "CNO": "Financial",
+  "COF": "Financial", "DFS": "Financial", "EQH": "Financial", "ERIE": "Financial",
+  "EVR": "Financial", "EVTC": "Financial", "EWBC": "Financial", "FCNCA": "Financial",
+  "FHN": "Financial", "FIS": "Financial", "FISV": "Financial", "FLT": "Financial",
+  "FNB": "Financial", "FOUR": "Financial", "FRC": "Financial", "FULT": "Financial",
+  "GBCI": "Financial", "GL": "Financial", "GPN": "Financial", "GS": "Financial",
+  "HBAN": "Financial", "HIG": "Financial", "HLNE": "Financial", "IBKR": "Financial",
+  "ICE": "Financial", "IVZ": "Financial", "JHG": "Financial", "JPM": "Financial",
+  "KEY": "Financial", "KMPR": "Financial", "KNSL": "Financial", "L": "Financial",
+  "LNC": "Financial", "LPLA": "Financial", "MA": "Financial", "MCO": "Financial",
+  "MET": "Financial", "MKTX": "Financial", "MMC": "Financial", "MS": "Financial",
+  "MSCI": "Financial", "MTB": "Financial", "NDAQ": "Financial", "NTRS": "Financial",
+  "NYCB": "Financial", "ONB": "Financial", "ORI": "Financial", "OZK": "Financial",
+  "PACW": "Financial", "PAYO": "Financial", "PFG": "Financial", "PGR": "Financial",
+  "PJT": "Financial", "PNC": "Financial", "PNFP": "Financial", "PRU": "Financial",
+  "PYPL": "Financial", "RELY": "Financial", "RF": "Financial", "RGA": "Financial",
+  "RJF": "Financial", "RLI": "Financial", "RPAY": "Financial", "SBCF": "Financial",
+  "SCHW": "Financial", "SEIC": "Financial", "SF": "Financial", "SIGI": "Financial",
+  "SIVB": "Financial", "SNV": "Financial", "SPGI": "Financial", "STT": "Financial",
+  "SYF": "Financial", "TFC": "Financial", "TOWN": "Financial", "TROW": "Financial",
+  "TRV": "Financial", "UMPQ": "Financial", "UNM": "Financial", "USB": "Financial",
+  "V": "Financial", "VCTR": "Financial", "VIRT": "Financial", "VOYA": "Financial",
+  "WAL": "Financial", "WBS": "Financial", "WFC": "Financial", "WRB": "Financial",
+  "WTFC": "Financial", "WTW": "Financial", "WU": "Financial", "ZION": "Financial",
 
-  // Software - Consumer/Internet
-  "UBER": "Technology", "LYFT": "Technology", "DASH": "Technology", "SNAP": "Technology",
-  "PINS": "Technology", "SPOT": "Technology", "SQ": "Technology", "SHOP": "Technology",
-  "ETSY": "Technology", "EBAY": "Technology", "MELI": "Technology", "SE": "Technology",
-  "BABA": "Technology", "JD": "Technology", "PDD": "Technology", "BIDU": "Technology",
-  "NTES": "Technology", "BILI": "Technology", "TME": "Technology", "COIN": "Technology",
-  "HOOD": "Technology", "AFRM": "Technology", "UPST": "Technology", "SOFI": "Technology",
-  "LC": "Technology", "NU": "Technology", "DUOL": "Technology", "ABNB": "Technology",
-  "MTCH": "Technology", "BMBL": "Technology", "GRUB": "Technology", "YELP": "Technology",
-  "IAC": "Technology", "ANGI": "Technology", "TRIP": "Technology", "EXPE": "Technology",
-  "BKNG": "Technology", "TCOM": "Technology",
+  // Consumer
+  "AAL": "Consumer", "ABG": "Consumer", "AEO": "Consumer", "ALK": "Consumer",
+  "ALV": "Consumer", "AMZN": "Consumer", "AN": "Consumer", "ANF": "Consumer",
+  "APTV": "Consumer", "ARCO": "Consumer", "ASO": "Consumer", "ATVI": "Consumer",
+  "BARK": "Consumer", "BGFV": "Consumer", "BIG": "Consumer", "BJ": "Consumer",
+  "BJRI": "Consumer", "BLMN": "Consumer", "BOOT": "Consumer", "BROS": "Consumer",
+  "BURL": "Consumer", "BWA": "Consumer", "BYD": "Consumer", "CAKE": "Consumer",
+  "CAL": "Consumer", "CARS": "Consumer", "CATO": "Consumer", "CCL": "Consumer",
+  "CHH": "Consumer", "CHRS": "Consumer", "CHS": "Consumer", "CHUY": "Consumer",
+  "CHWY": "Consumer", "CMG": "Consumer", "COMP": "Consumer", "COST": "Consumer",
+  "CPNG": "Consumer", "CPRI": "Consumer", "CROX": "Consumer", "CVNA": "Consumer",
+  "CZR": "Consumer", "DAL": "Consumer", "DECK": "Consumer", "DENN": "Consumer",
+  "DG": "Consumer", "DIN": "Consumer", "DKNG": "Consumer", "DKS": "Consumer",
+  "DLTR": "Consumer", "DNUT": "Consumer", "DPZ": "Consumer", "DRI": "Consumer",
+  "EA": "Consumer", "EAT": "Consumer", "EXPR": "Consumer", "F": "Consumer",
+  "FIVE": "Consumer", "FL": "Consumer", "FNKO": "Consumer", "FSR": "Consumer",
+  "FVRR": "Consumer", "GDEN": "Consumer", "GIII": "Consumer", "GM": "Consumer",
+  "GNTX": "Consumer", "GOOS": "Consumer", "GPI": "Consumer", "GPS": "Consumer",
+  "H": "Consumer", "HAS": "Consumer", "HBI": "Consumer", "HD": "Consumer",
+  "HIBB": "Consumer", "HLT": "Consumer", "HMC": "Consumer", "IHG": "Consumer",
+  "JACK": "Consumer", "JAKK": "Consumer", "JBLU": "Consumer", "LAD": "Consumer",
+  "LCID": "Consumer", "LEA": "Consumer", "LEVI": "Consumer", "LI": "Consumer",
+  "LKQ": "Consumer", "LOCO": "Consumer", "LOW": "Consumer", "LULU": "Consumer",
+  "LUV": "Consumer", "LVS": "Consumer", "MAR": "Consumer", "MAT": "Consumer",
+  "MCD": "Consumer", "MGM": "Consumer", "MTOR": "Consumer", "NCLH": "Consumer",
+  "NIO": "Consumer", "NKE": "Consumer", "OLLI": "Consumer", "OPEN": "Consumer",
+  "OXM": "Consumer", "PAG": "Consumer", "PENN": "Consumer", "PLAY": "Consumer",
+  "PLBY": "Consumer", "PLCE": "Consumer", "PLTK": "Consumer", "PTLO": "Consumer",
+  "PVH": "Consumer", "PZZA": "Consumer", "QSR": "Consumer", "RACE": "Consumer",
+  "RCL": "Consumer", "RDFN": "Consumer", "REAL": "Consumer", "RIVN": "Consumer",
+  "RL": "Consumer", "ROST": "Consumer", "RRGB": "Consumer", "RRR": "Consumer",
+  "RUTH": "Consumer", "RVLV": "Consumer", "SAH": "Consumer", "SAVE": "Consumer",
+  "SBUX": "Consumer", "SCVL": "Consumer", "SHOO": "Consumer", "SKLZ": "Consumer",
+  "SKX": "Consumer", "SN": "Consumer", "STAY": "Consumer", "STLA": "Consumer",
+  "TGT": "Consumer", "TJX": "Consumer", "TM": "Consumer", "TNL": "Consumer",
+  "TPR": "Consumer", "TTWO": "Consumer", "TXRH": "Consumer", "UAL": "Consumer",
+  "UPWK": "Consumer", "URBN": "Consumer", "VAC": "Consumer", "VC": "Consumer",
+  "VFC": "Consumer", "VNE": "Consumer", "VROOM": "Consumer", "WEN": "Consumer",
+  "WH": "Consumer", "WING": "Consumer", "WMT": "Consumer", "WOOF": "Consumer",
+  "WWW": "Consumer", "WYNN": "Consumer", "XPEV": "Consumer", "YUM": "Consumer",
+  "ZG": "Consumer", "ZNGA": "Consumer",
 
-  // IT Services & Consulting
-  "ACN": "Technology", "CSCO": "Technology", "HPQ": "Technology", "HPE": "Technology",
-  "DELL": "Technology", "CTSH": "Technology", "IT": "Technology", "LDOS": "Technology",
-  "SAIC": "Technology", "CACI": "Technology", "BAH": "Technology", "GRMN": "Technology",
-  "EPAM": "Technology", "GLOB": "Technology", "EXLS": "Technology", "WIT": "Technology",
-  "INFY": "Technology", "CDW": "Technology", "NSIT": "Technology", "SCSC": "Technology",
+  // Consumer Staples
+  "ACI": "Consumer Staples", "BF-A": "Consumer Staples", "BF-B": "Consumer Staples", "BGS": "Consumer Staples",
+  "BRFS": "Consumer Staples", "BTI": "Consumer Staples", "BUD": "Consumer Staples", "BYND": "Consumer Staples",
+  "CAG": "Consumer Staples", "CELH": "Consumer Staples", "CHD": "Consumer Staples", "CHEF": "Consumer Staples",
+  "CL": "Consumer Staples", "CLX": "Consumer Staples", "COKE": "Consumer Staples", "COTY": "Consumer Staples",
+  "CPB": "Consumer Staples", "DEO": "Consumer Staples", "EL": "Consumer Staples", "ELF": "Consumer Staples",
+  "ENR": "Consumer Staples", "FIZZ": "Consumer Staples", "GIS": "Consumer Staples", "GO": "Consumer Staples",
+  "HELE": "Consumer Staples", "HLF": "Consumer Staples", "HNST": "Consumer Staples", "HRL": "Consumer Staples",
+  "HSY": "Consumer Staples", "IMBBY": "Consumer Staples", "IMKTA": "Consumer Staples", "INGR": "Consumer Staples",
+  "IPAR": "Consumer Staples", "K": "Consumer Staples", "KDP": "Consumer Staples", "KHC": "Consumer Staples",
+  "KMB": "Consumer Staples", "KO": "Consumer Staples", "KR": "Consumer Staples", "LANC": "Consumer Staples",
+  "LNDC": "Consumer Staples", "MDLZ": "Consumer Staples", "MKC": "Consumer Staples", "MNST": "Consumer Staples",
+  "MO": "Consumer Staples", "NBEV": "Consumer Staples", "NOMD": "Consumer Staples", "NWL": "Consumer Staples",
+  "PEP": "Consumer Staples", "PFGC": "Consumer Staples", "PG": "Consumer Staples", "PM": "Consumer Staples",
+  "POST": "Consumer Staples", "PPC": "Consumer Staples", "REV": "Consumer Staples", "SAM": "Consumer Staples",
+  "SFM": "Consumer Staples", "SJM": "Consumer Staples", "SKIN": "Consumer Staples", "SMPL": "Consumer Staples",
+  "SPB": "Consumer Staples", "SPTN": "Consumer Staples", "STZ": "Consumer Staples", "SYY": "Consumer Staples",
+  "TAP": "Consumer Staples", "THS": "Consumer Staples", "TPB": "Consumer Staples", "TSN": "Consumer Staples",
+  "TTCF": "Consumer Staples", "UNFI": "Consumer Staples", "USFD": "Consumer Staples", "VGR": "Consumer Staples",
+  "VLGEA": "Consumer Staples", "WBA": "Consumer Staples",
 
-  // Hardware & Equipment
-  "ANET": "Technology", "JNPR": "Technology", "FFIV": "Technology", "NTAP": "Technology",
-  "PSTG": "Technology", "STX": "Technology", "WDC": "Technology", "SMCI": "Technology",
-  "LOGI": "Technology", "CRSR": "Technology", "HEAR": "Technology", "KOSS": "Technology",
-  "SONO": "Technology", "GPRO": "Technology", "FITB": "Technology", "ZBRA": "Technology",
-  "KEYS": "Technology", "TER": "Technology", "COHR": "Technology", "VIAV": "Technology",
+  // Industrial
+  "ACM": "Industrial", "ADP": "Industrial", "AGCO": "Industrial", "ALGT": "Industrial",
+  "AME": "Industrial", "AOS": "Industrial", "ARCB": "Industrial", "ASGN": "Industrial",
+  "ATRO": "Industrial", "AVAV": "Industrial", "AWI": "Industrial", "AXON": "Industrial",
+  "AZEK": "Industrial", "BA": "Industrial", "BLD": "Industrial", "BLDR": "Industrial",
+  "BR": "Industrial", "CAT": "Industrial", "CFX": "Industrial", "CHRW": "Industrial",
+  "CLH": "Industrial", "CMI": "Industrial", "CNHI": "Industrial", "CNI": "Industrial",
+  "CP": "Industrial", "CSX": "Industrial", "CTAS": "Industrial", "CW": "Industrial",
+  "DE": "Industrial", "DNB": "Industrial", "DOOR": "Industrial", "DOV": "Industrial",
+  "DY": "Industrial", "ECHO": "Industrial", "EME": "Industrial", "EMR": "Industrial",
+  "ERJ": "Industrial", "ETN": "Industrial", "EXP": "Industrial", "EXPD": "Industrial",
+  "FAST": "Industrial", "FBHS": "Industrial", "FDX": "Industrial", "FLR": "Industrial",
+  "FTV": "Industrial", "FWRD": "Industrial", "G": "Industrial", "GD": "Industrial",
+  "GE": "Industrial", "GGG": "Industrial", "GNRC": "Industrial", "GVA": "Industrial",
+  "GWW": "Industrial", "GXO": "Industrial", "HA": "Industrial", "HEI": "Industrial",
+  "HII": "Industrial", "HON": "Industrial", "HSIC": "Industrial", "HTLD": "Industrial",
+  "HUBG": "Industrial", "HWM": "Industrial", "IEX": "Industrial", "INFO": "Industrial",
+  "IR": "Industrial", "ITW": "Industrial", "J": "Industrial", "JBHT": "Industrial",
+  "KNX": "Industrial", "KSU": "Industrial", "KTOS": "Industrial", "LECO": "Industrial",
+  "LHX": "Industrial", "LII": "Industrial", "LMT": "Industrial", "LSTR": "Industrial",
+  "MAS": "Industrial", "MATX": "Industrial", "MESA": "Industrial", "MIDD": "Industrial",
+  "MLM": "Industrial", "MMM": "Industrial", "MOG-A": "Industrial", "MRCY": "Industrial",
+  "MRTN": "Industrial", "MTW": "Industrial", "MTZ": "Industrial", "NDSN": "Industrial",
+  "NOC": "Industrial", "NSC": "Industrial", "ODFL": "Industrial", "OSK": "Industrial",
+  "PAYX": "Industrial", "PCAR": "Industrial", "PH": "Industrial", "PSN": "Industrial",
+  "PWR": "Industrial", "RBC": "Industrial", "RGR": "Industrial", "RHI": "Industrial",
+  "ROCK": "Industrial", "ROK": "Industrial", "ROP": "Industrial", "RSG": "Industrial",
+  "RTX": "Industrial", "RXO": "Industrial", "RYAAY": "Industrial", "SAIA": "Industrial",
+  "SITE": "Industrial", "SKYW": "Industrial", "SNA": "Industrial", "SNDR": "Industrial",
+  "SPR": "Industrial", "SWBI": "Industrial", "SWK": "Industrial", "TDG": "Industrial",
+  "TEX": "Industrial", "TREX": "Industrial", "TRI": "Industrial", "TTC": "Industrial",
+  "TXT": "Industrial", "UFPI": "Industrial", "UNP": "Industrial", "UPS": "Industrial",
+  "URI": "Industrial", "VMC": "Industrial", "VRSK": "Industrial", "WCN": "Industrial",
+  "WERN": "Industrial", "WM": "Industrial", "WSO": "Industrial", "XPO": "Industrial",
+  "XYL": "Industrial", "ZTO": "Industrial",
 
-  // ============================================
-  // HEALTHCARE - 120+ stocks
-  // ============================================
-  // Pharma - Large Cap
-  "UNH": "Healthcare", "JNJ": "Healthcare", "LLY": "Healthcare", "ABBV": "Healthcare",
-  "MRK": "Healthcare", "PFE": "Healthcare", "BMY": "Healthcare", "AMGN": "Healthcare",
-  "GILD": "Healthcare", "VRTX": "Healthcare", "REGN": "Healthcare", "BIIB": "Healthcare",
-  "AZN": "Healthcare", "GSK": "Healthcare", "NVO": "Healthcare", "SNY": "Healthcare",
-  "NVS": "Healthcare", "TAK": "Healthcare", "VTRS": "Healthcare", "TEVA": "Healthcare",
-  "ZTS": "Healthcare", "MRNA": "Healthcare",
+  // Energy
+  "ACDC": "Energy", "AM": "Energy", "APA": "Energy", "AR": "Energy",
+  "AROC": "Energy", "BATL": "Energy", "BKR": "Energy", "CEQP": "Energy",
+  "CHK": "Energy", "CHRD": "Energy", "CHX": "Energy", "CLMT": "Energy",
+  "CLR": "Energy", "CNX": "Energy", "COP": "Energy", "CPE": "Energy",
+  "CRK": "Energy", "CTRA": "Energy", "CVI": "Energy", "CVX": "Energy",
+  "DCP": "Energy", "DINO": "Energy", "DK": "Energy", "DO": "Energy",
+  "DTM": "Energy", "DVN": "Energy", "ENLC": "Energy", "EOG": "Energy",
+  "EPD": "Energy", "EQT": "Energy", "ESTE": "Energy", "ET": "Energy",
+  "FANG": "Energy", "FTI": "Energy", "GPOR": "Energy", "HAL": "Energy",
+  "HES": "Energy", "HESM": "Energy", "HFC": "Energy", "HLX": "Energy",
+  "HP": "Energy", "INT": "Energy", "KMI": "Energy", "LBRT": "Energy",
+  "LNG": "Energy", "MGY": "Energy", "MPC": "Energy", "MPLX": "Energy",
+  "MRO": "Energy", "MTDR": "Energy", "NBR": "Energy", "NE": "Energy",
+  "NINE": "Energy", "NOV": "Energy", "NS": "Energy", "OII": "Energy",
+  "OKE": "Energy", "OXY": "Energy", "PAA": "Energy", "PARR": "Energy",
+  "PBF": "Energy", "PDCE": "Energy", "PR": "Energy", "PSX": "Energy",
+  "PTEN": "Energy", "PXD": "Energy", "REI": "Energy", "RES": "Energy",
+  "RIG": "Energy", "ROCC": "Energy", "RRC": "Energy", "SBOW": "Energy",
+  "SD": "Energy", "SLB": "Energy", "SM": "Energy", "SWN": "Energy",
+  "TALO": "Energy", "TDW": "Energy", "TRGP": "Energy", "VAL": "Energy",
+  "VLO": "Energy", "VTLE": "Energy", "WES": "Energy", "WHD": "Energy",
+  "WMB": "Energy", "WTI": "Energy", "WTTR": "Energy", "XOM": "Energy",
 
-  // Biotech
-  "SGEN": "Healthcare", "ALNY": "Healthcare", "BMRN": "Healthcare", "INCY": "Healthcare",
-  "EXEL": "Healthcare", "HZNP": "Healthcare", "UTHR": "Healthcare", "SRPT": "Healthcare",
-  "RARE": "Healthcare", "IONS": "Healthcare", "NBIX": "Healthcare", "PTCT": "Healthcare",
-  "TECH": "Healthcare", "ARWR": "Healthcare", "FOLD": "Healthcare", "ARGX": "Healthcare",
-  "PCVX": "Healthcare", "KRTX": "Healthcare", "IMVT": "Healthcare", "RCUS": "Healthcare",
-  "RVMD": "Healthcare", "KRYS": "Healthcare", "RYTM": "Healthcare", "VKTX": "Healthcare",
-  "XENE": "Healthcare", "VERA": "Healthcare", "CYTK": "Healthcare", "CRNX": "Healthcare",
-  "DAWN": "Healthcare", "APLS": "Healthcare", "PRTA": "Healthcare", "RCKT": "Healthcare",
+  // Utilities
+  "AEE": "Utilities", "AEP": "Utilities", "AES": "Utilities", "ALE": "Utilities",
+  "AMRC": "Utilities", "ARRY": "Utilities", "ATO": "Utilities", "AVA": "Utilities",
+  "AWK": "Utilities", "AWR": "Utilities", "BE": "Utilities", "BKH": "Utilities",
+  "BLDP": "Utilities", "CEG": "Utilities", "CLNE": "Utilities", "CMS": "Utilities",
+  "CNP": "Utilities", "CPK": "Utilities", "CSIQ": "Utilities", "CWCO": "Utilities",
+  "CWEN": "Utilities", "CWT": "Utilities", "D": "Utilities", "DTE": "Utilities",
+  "DUK": "Utilities", "ED": "Utilities", "EIX": "Utilities", "ENPH": "Utilities",
+  "ENVX": "Utilities", "ES": "Utilities", "ETR": "Utilities", "EVRG": "Utilities",
+  "EXC": "Utilities", "FCEL": "Utilities", "FE": "Utilities", "FSLR": "Utilities",
+  "HE": "Utilities", "HYLN": "Utilities", "IDA": "Utilities", "JKS": "Utilities",
+  "MAXN": "Utilities", "MGEE": "Utilities", "NEE": "Utilities", "NFG": "Utilities",
+  "NI": "Utilities", "NJR": "Utilities", "NOVA": "Utilities", "NRG": "Utilities",
+  "NWE": "Utilities", "NWN": "Utilities", "OGE": "Utilities", "OGS": "Utilities",
+  "OTTR": "Utilities", "PEG": "Utilities", "PLUG": "Utilities", "PNM": "Utilities",
+  "PNW": "Utilities", "POR": "Utilities", "PPL": "Utilities", "RUN": "Utilities",
+  "SEDG": "Utilities", "SJW": "Utilities", "SO": "Utilities", "SPWR": "Utilities",
+  "SR": "Utilities", "SRE": "Utilities", "STEM": "Utilities", "SWX": "Utilities",
+  "UGI": "Utilities", "VST": "Utilities", "WEC": "Utilities", "WTRG": "Utilities",
+  "XEL": "Utilities", "YORW": "Utilities",
 
-  // Medical Devices
-  "ABT": "Healthcare", "TMO": "Healthcare", "DHR": "Healthcare", "MDT": "Healthcare",
-  "SYK": "Healthcare", "ISRG": "Healthcare", "BSX": "Healthcare", "BDX": "Healthcare",
-  "EW": "Healthcare", "IDXX": "Healthcare", "DXCM": "Healthcare", "HOLX": "Healthcare",
-  "BAX": "Healthcare", "COO": "Healthcare", "ALGN": "Healthcare", "TFX": "Healthcare",
-  "WAT": "Healthcare", "MTD": "Healthcare", "PODD": "Healthcare", "ILMN": "Healthcare",
-  "GEHC": "Healthcare", "RVTY": "Healthcare", "BIO": "Healthcare", "TECH": "Healthcare",
-  "IQV": "Healthcare", "QGEN": "Healthcare", "NTRA": "Healthcare", "EXAS": "Healthcare",
-  "GH": "Healthcare", "NVTA": "Healthcare", "TWST": "Healthcare", "PACB": "Healthcare",
-  "NVCR": "Healthcare", "SWAV": "Healthcare", "AXNX": "Healthcare", "SHAK": "Healthcare",
-  "INSP": "Healthcare", "PRCT": "Healthcare", "GMED": "Healthcare", "ATRC": "Healthcare",
-  "LIVN": "Healthcare", "PEN": "Healthcare", "IRTC": "Healthcare",
+  // Real Estate
+  "ADC": "Real Estate", "AIV": "Real Estate", "AKR": "Real Estate", "AMH": "Real Estate",
+  "AMT": "Real Estate", "APLE": "Real Estate", "ARE": "Real Estate", "AVB": "Real Estate",
+  "BRX": "Real Estate", "BXP": "Real Estate", "CCI": "Real Estate", "CLI": "Real Estate",
+  "CONE": "Real Estate", "CORZ": "Real Estate", "CPT": "Real Estate", "CTRE": "Real Estate",
+  "CUZ": "Real Estate", "DEA": "Real Estate", "DEI": "Real Estate", "DLR": "Real Estate",
+  "DOC": "Real Estate", "EGP": "Real Estate", "ELME": "Real Estate", "ELS": "Real Estate",
+  "EPRT": "Real Estate", "EQIX": "Real Estate", "EQR": "Real Estate", "ESRT": "Real Estate",
+  "ESS": "Real Estate", "FCPT": "Real Estate", "FR": "Real Estate", "FRT": "Real Estate",
+  "GMRE": "Real Estate", "GOOD": "Real Estate", "GTY": "Real Estate", "HIW": "Real Estate",
+  "HR": "Real Estate", "IIPR": "Real Estate", "INVH": "Real Estate", "IRT": "Real Estate",
+  "JBGS": "Real Estate", "KIM": "Real Estate", "KRC": "Real Estate", "KRG": "Real Estate",
+  "LTC": "Real Estate", "MAA": "Real Estate", "NHI": "Real Estate", "NNN": "Real Estate",
+  "NTST": "Real Estate", "NXRT": "Real Estate", "O": "Real Estate", "OFC": "Real Estate",
+  "OHI": "Real Estate", "PDM": "Real Estate", "PECO": "Real Estate", "PLD": "Real Estate",
+  "PLYM": "Real Estate", "QTS": "Real Estate", "REG": "Real Estate", "REXR": "Real Estate",
+  "RHP": "Real Estate", "SBAC": "Real Estate", "SBRA": "Real Estate", "SITC": "Real Estate",
+  "SLG": "Real Estate", "SPG": "Real Estate", "SRC": "Real Estate", "STAG": "Real Estate",
+  "STOR": "Real Estate", "SUI": "Real Estate", "TREH": "Real Estate", "TRNO": "Real Estate",
+  "UDR": "Real Estate", "UNIT": "Real Estate", "VICI": "Real Estate", "VNO": "Real Estate",
+  "VTR": "Real Estate", "WELL": "Real Estate", "WRI": "Real Estate",
 
-  // Health Insurance & Services
-  "CVS": "Healthcare", "CI": "Healthcare", "ELV": "Healthcare", "HUM": "Healthcare",
-  "CNC": "Healthcare", "MOH": "Healthcare", "HCA": "Healthcare", "THC": "Healthcare",
-  "UHS": "Healthcare", "DVA": "Healthcare", "ACHC": "Healthcare", "SGRY": "Healthcare",
-  "OPCH": "Healthcare", "AMED": "Healthcare", "LHCG": "Healthcare", "ENSG": "Healthcare",
-  "NHC": "Healthcare", "PNTG": "Healthcare", "CCRN": "Healthcare", "AMN": "Healthcare",
-  "CHE": "Healthcare", "SHC": "Healthcare", "USPH": "Healthcare", "HIMS": "Healthcare",
-  "DOCS": "Healthcare", "AMWL": "Healthcare", "TDOC": "Healthcare", "ONEM": "Healthcare",
-  "OSCR": "Healthcare", "CLVR": "Healthcare", "GDRX": "Healthcare", "PHR": "Healthcare",
+  // Materials
+  "AA": "Materials", "ALB": "Materials", "AMR": "Materials", "APD": "Materials",
+  "ARCH": "Materials", "ARLP": "Materials", "ASH": "Materials", "ATI": "Materials",
+  "ATR": "Materials", "AVNT": "Materials", "AVY": "Materials", "BALL": "Materials",
+  "BERY": "Materials", "BHP": "Materials", "BMS": "Materials", "BTU": "Materials",
+  "CBT": "Materials", "CC": "Materials", "CCJ": "Materials", "CCK": "Materials",
+  "CE": "Materials", "CEIX": "Materials", "CENX": "Materials", "CF": "Materials",
+  "CITE": "Materials", "CLF": "Materials", "CLW": "Materials", "CMC": "Materials",
+  "CONSOL": "Materials", "CTVA": "Materials", "CX": "Materials", "DD": "Materials",
+  "DNN": "Materials", "DOW": "Materials", "ECL": "Materials", "EMN": "Materials",
+  "ESI": "Materials", "FCX": "Materials", "FMC": "Materials", "GPK": "Materials",
+  "HCC": "Materials", "HUN": "Materials", "HWKN": "Materials", "IFF": "Materials",
+  "IOSP": "Materials", "IP": "Materials", "ITE": "Materials", "KALU": "Materials",
+  "KBH": "Materials", "KRO": "Materials", "KWR": "Materials", "LAC": "Materials",
+  "LIN": "Materials", "LTHM": "Materials", "LYB": "Materials", "MERC": "Materials",
+  "METC": "Materials", "MOS": "Materials", "MP": "Materials", "MTX": "Materials",
+  "NCR": "Materials", "NEM": "Materials", "NEU": "Materials", "NTR": "Materials",
+  "NUE": "Materials", "OI": "Materials", "OLN": "Materials", "PKG": "Materials",
+  "PLL": "Materials", "PPG": "Materials", "RIO": "Materials", "RPM": "Materials",
+  "RS": "Materials", "SCCO": "Materials", "SEE": "Materials", "SHW": "Materials",
+  "SLGN": "Materials", "SON": "Materials", "SQM": "Materials", "STLD": "Materials",
+  "SUM": "Materials", "TECK": "Materials", "TROX": "Materials", "UEC": "Materials",
+  "USLM": "Materials", "UUUU": "Materials", "VALE": "Materials", "VNTR": "Materials",
+  "WLK": "Materials", "X": "Materials", "ZEUS": "Materials",
 
-  // ============================================
-  // FINANCIAL - 100+ stocks
-  // ============================================
-  // Banks - Large
-  "JPM": "Financial", "BAC": "Financial", "WFC": "Financial", "C": "Financial",
-  "GS": "Financial", "MS": "Financial", "USB": "Financial", "PNC": "Financial",
-  "TFC": "Financial", "COF": "Financial", "BK": "Financial", "STT": "Financial",
-  "SCHW": "Financial", "FITB": "Financial", "KEY": "Financial", "RF": "Financial",
-  "CFG": "Financial", "MTB": "Financial", "HBAN": "Financial", "ZION": "Financial",
-  "CMA": "Financial", "FHN": "Financial", "WBS": "Financial", "FRC": "Financial",
-  "SIVB": "Financial", "PACW": "Financial", "WAL": "Financial", "EWBC": "Financial",
-
-  // Regional Banks
-  "FCNCA": "Financial", "NTRS": "Financial", "ALLY": "Financial", "SYF": "Financial",
-  "DFS": "Financial", "NYCB": "Financial", "SNV": "Financial", "FNB": "Financial",
-  "WTFC": "Financial", "PNFP": "Financial", "BOKF": "Financial", "ONB": "Financial",
-  "GBCI": "Financial", "SBCF": "Financial", "TOWN": "Financial", "CATY": "Financial",
-  "OZK": "Financial", "ABCB": "Financial", "FULT": "Financial", "UMPQ": "Financial",
-
-  // Payment & Credit
-  "V": "Financial", "MA": "Financial", "AXP": "Financial", "PYPL": "Financial",
-  "SQ": "Financial", "FIS": "Financial", "FISV": "Financial", "GPN": "Financial",
-  "FLT": "Financial", "WU": "Financial", "FOUR": "Financial", "PAYO": "Financial",
-  "RPAY": "Financial", "RELY": "Financial", "ACIW": "Financial", "EVTC": "Financial",
-
-  // Asset Management & Investment
-  "BLK": "Financial", "SPGI": "Financial", "MCO": "Financial", "MSCI": "Financial",
-  "ICE": "Financial", "CME": "Financial", "NDAQ": "Financial", "CBOE": "Financial",
-  "TROW": "Financial", "IVZ": "Financial", "BEN": "Financial", "JHG": "Financial",
-  "AMG": "Financial", "APAM": "Financial", "VCTR": "Financial", "AB": "Financial",
-  "SEIC": "Financial", "EVR": "Financial", "PJT": "Financial", "MKTX": "Financial",
-  "VIRT": "Financial", "COIN": "Financial", "HOOD": "Financial", "IBKR": "Financial",
-  "LPLA": "Financial", "RJF": "Financial", "SF": "Financial", "HLNE": "Financial",
-
-  // Insurance
-  "BRK-B": "Financial", "BRK-A": "Financial", "CB": "Financial", "MMC": "Financial",
-  "AON": "Financial", "AJG": "Financial", "WTW": "Financial", "CINF": "Financial",
-  "TRV": "Financial", "PGR": "Financial", "ALL": "Financial", "MET": "Financial",
-  "PRU": "Financial", "AIG": "Financial", "AFL": "Financial", "LNC": "Financial",
-  "GL": "Financial", "UNM": "Financial", "VOYA": "Financial", "CNO": "Financial",
-  "PFG": "Financial", "RGA": "Financial", "EQH": "Financial", "ATH": "Financial",
-  "AEL": "Financial", "KNSL": "Financial", "RLI": "Financial", "WRB": "Financial",
-  "HIG": "Financial", "L": "Financial", "AIZ": "Financial", "ORI": "Financial",
-  "ERIE": "Financial", "KMPR": "Financial", "ACGL": "Financial", "SIGI": "Financial",
-
-  // ============================================
-  // CONSUMER DISCRETIONARY - 100+ stocks
-  // ============================================
-  // Retail - Broadline
-  "AMZN": "Consumer", "WMT": "Consumer", "TGT": "Consumer", "COST": "Consumer",
-  "HD": "Consumer", "LOW": "Consumer", "DG": "Consumer", "DLTR": "Consumer",
-  "BJ": "Consumer", "FIVE": "Consumer", "OLLI": "Consumer", "BIG": "Consumer",
-
-  // Retail - Specialty
-  "TJX": "Consumer", "ROST": "Consumer", "BURL": "Consumer", "GPS": "Consumer",
-  "ANF": "Consumer", "AEO": "Consumer", "URBN": "Consumer", "EXPR": "Consumer",
-  "LULU": "Consumer", "FL": "Consumer", "HIBB": "Consumer", "SCVL": "Consumer",
-  "DKS": "Consumer", "ASO": "Consumer", "BGFV": "Consumer", "PLCE": "Consumer",
-  "CHS": "Consumer", "CHRS": "Consumer", "CATO": "Consumer", "RVLV": "Consumer",
-
-  // Automotive
-  "GM": "Consumer", "F": "Consumer", "STLA": "Consumer", "HMC": "Consumer",
-  "TM": "Consumer", "RACE": "Consumer", "RIVN": "Consumer", "LCID": "Consumer",
-  "FSR": "Consumer", "NIO": "Consumer", "LI": "Consumer", "XPEV": "Consumer",
-  "VNE": "Consumer", "CVNA": "Consumer", "CPNG": "Consumer", "VROOM": "Consumer",
-  "AN": "Consumer", "PAG": "Consumer", "LAD": "Consumer", "ABG": "Consumer",
-  "GPI": "Consumer", "SAH": "Consumer", "SN": "Consumer", "CARS": "Consumer",
-  "ALV": "Consumer", "BWA": "Consumer", "LEA": "Consumer", "APTV": "Consumer",
-  "GNTX": "Consumer", "VC": "Consumer", "LKQ": "Consumer", "MTOR": "Consumer",
-
-  // Restaurants & Dining
-  "MCD": "Consumer", "SBUX": "Consumer", "CMG": "Consumer", "YUM": "Consumer",
-  "DPZ": "Consumer", "QSR": "Consumer", "DRI": "Consumer", "TXRH": "Consumer",
-  "EAT": "Consumer", "BLMN": "Consumer", "CAKE": "Consumer", "DIN": "Consumer",
-  "BJRI": "Consumer", "CHUY": "Consumer", "WING": "Consumer", "SHAK": "Consumer",
-  "BROS": "Consumer", "PTLO": "Consumer", "DNUT": "Consumer", "LOCO": "Consumer",
-  "RUTH": "Consumer", "RRGB": "Consumer", "DENN": "Consumer", "JACK": "Consumer",
-  "PZZA": "Consumer", "WEN": "Consumer", "ARCO": "Consumer", "PLAY": "Consumer",
-
-  // Hotels & Travel
-  "MAR": "Consumer", "HLT": "Consumer", "H": "Consumer", "IHG": "Consumer",
-  "WH": "Consumer", "CHH": "Consumer", "STAY": "Consumer", "MGM": "Consumer",
-  "WYNN": "Consumer", "LVS": "Consumer", "CZR": "Consumer", "PENN": "Consumer",
-  "DKNG": "Consumer", "GDEN": "Consumer", "RRR": "Consumer", "BYD": "Consumer",
-  "VAC": "Consumer", "TNL": "Consumer", "RCL": "Consumer", "CCL": "Consumer",
-  "NCLH": "Consumer", "LUV": "Consumer", "DAL": "Consumer", "UAL": "Consumer",
-  "AAL": "Consumer", "JBLU": "Consumer", "ALK": "Consumer", "SAVE": "Consumer",
-
-  // Media & Entertainment
-  "NKE": "Consumer", "LEVI": "Consumer", "HBI": "Consumer", "PVH": "Consumer",
-  "RL": "Consumer", "TPR": "Consumer", "CPRI": "Consumer", "WWW": "Consumer",
-  "VFC": "Consumer", "GOOS": "Consumer", "GIII": "Consumer", "CROX": "Consumer",
-  "SKX": "Consumer", "DECK": "Consumer", "SHOO": "Consumer", "CAL": "Consumer",
-  "OXM": "Consumer", "BOOT": "Consumer", "WOOF": "Consumer", "CHWY": "Consumer",
-  "BARK": "Consumer", "ZG": "Consumer", "RDFN": "Consumer", "OPEN": "Consumer",
-  "REAL": "Consumer", "COMP": "Consumer", "FVRR": "Consumer", "UPWK": "Consumer",
-
-  // Gaming & Toys
-  "EA": "Consumer", "TTWO": "Consumer", "ATVI": "Consumer", "ZNGA": "Consumer",
-  "RBLX": "Consumer", "U": "Consumer", "DKNG": "Consumer", "PENN": "Consumer",
-  "HAS": "Consumer", "MAT": "Consumer", "FNKO": "Consumer", "JAKK": "Consumer",
-  "PLBY": "Consumer", "PLTK": "Consumer", "SKLZ": "Consumer",
-
-  // ============================================
-  // COMMUNICATION SERVICES - 60+ stocks
-  // ============================================
-  // Telecom
-  "VZ": "Communication", "T": "Communication", "TMUS": "Communication",
-  "LUMN": "Communication", "FYBR": "Communication", "USM": "Communication",
-  "ATUS": "Communication", "CABO": "Communication", "SHEN": "Communication",
-  "CNSL": "Communication", "LILA": "Communication", "LILAK": "Communication",
-  "TDS": "Communication", "VOD": "Communication", "ORAN": "Communication",
-  "TEF": "Communication", "TI": "Communication", "EEFT": "Communication",
-
-  // Media & Entertainment
-  "NFLX": "Communication", "DIS": "Communication", "CMCSA": "Communication",
-  "WBD": "Communication", "PARA": "Communication", "PARAA": "Communication",
-  "FOX": "Communication", "FOXA": "Communication", "VIAC": "Communication",
-  "LYV": "Communication", "MSGS": "Communication", "MSG": "Communication",
-  "SIRI": "Communication", "SPOT": "Communication", "IQ": "Communication",
-  "TME": "Communication", "BILI": "Communication", "ROKU": "Communication",
-  "FUBO": "Communication", "AMC": "Communication", "CNK": "Communication",
-  "IMAX": "Communication", "LGF-A": "Communication", "LGF-B": "Communication",
-  "EDR": "Communication", "WWE": "Communication", "LSXMA": "Communication",
-  "LSXMB": "Communication", "LSXMK": "Communication", "DISCB": "Communication",
-
-  // Internet Media
-  "GOOGL": "Communication", "GOOG": "Communication", "META": "Communication",
-  "SNAP": "Communication", "PINS": "Communication", "TWTR": "Communication",
-  "MTCH": "Communication", "BMBL": "Communication", "IAC": "Communication",
-  "ANGI": "Communication", "YELP": "Communication", "TRIP": "Communication",
-  "ZG": "Communication", "Z": "Communication", "CHTR": "Communication",
-  "LBRDK": "Communication", "LBRDA": "Communication", "FWONK": "Communication",
-
-  // Advertising
-  "OMC": "Communication", "IPG": "Communication", "WPP": "Communication",
-  "PUBGY": "Communication", "TTD": "Communication", "MGNI": "Communication",
-  "APPS": "Communication", "IAS": "Communication", "DV": "Communication",
-  "CRTO": "Communication", "QNST": "Communication", "QUOT": "Communication",
-
-  // ============================================
-  // INDUSTRIAL - 100+ stocks
-  // ============================================
-  // Aerospace & Defense
-  "BA": "Industrial", "LMT": "Industrial", "RTX": "Industrial", "NOC": "Industrial",
-  "GD": "Industrial", "TXT": "Industrial", "HWM": "Industrial", "TDG": "Industrial",
-  "HEI": "Industrial", "MOG-A": "Industrial", "ERJ": "Industrial", "SPR": "Industrial",
-  "AXON": "Industrial", "LDOS": "Industrial", "SAIC": "Industrial", "CACI": "Industrial",
-  "BAH": "Industrial", "PSN": "Industrial", "MRCY": "Industrial", "KTOS": "Industrial",
-  "AVAV": "Industrial", "PLTR": "Industrial", "RGR": "Industrial", "SWBI": "Industrial",
-  "ASGN": "Industrial", "HII": "Industrial", "LHX": "Industrial", "CW": "Industrial",
-
-  // Industrial Conglomerates & Machinery
-  "HON": "Industrial", "GE": "Industrial", "MMM": "Industrial", "ITW": "Industrial",
-  "EMR": "Industrial", "ROK": "Industrial", "DOV": "Industrial", "PH": "Industrial",
-  "IR": "Industrial", "XYL": "Industrial", "ROP": "Industrial", "AME": "Industrial",
-  "IEX": "Industrial", "NDSN": "Industrial", "FTV": "Industrial", "GGG": "Industrial",
-  "GNRC": "Industrial", "MIDD": "Industrial", "CFX": "Industrial", "RBC": "Industrial",
-  "LECO": "Industrial", "GWW": "Industrial", "FAST": "Industrial", "SWK": "Industrial",
-  "SNAP": "Industrial", "SNA": "Industrial", "TTC": "Industrial", "AGCO": "Industrial",
-
-  // Construction & Engineering
-  "CAT": "Industrial", "DE": "Industrial", "CNHI": "Industrial", "PCAR": "Industrial",
-  "CMI": "Industrial", "OSK": "Industrial", "TEX": "Industrial", "MTW": "Industrial",
-  "URI": "Industrial", "SITE": "Industrial", "BLDR": "Industrial", "MLM": "Industrial",
-  "VMC": "Industrial", "EXP": "Industrial", "UFPI": "Industrial", "BLD": "Industrial",
-  "MAS": "Industrial", "FBHS": "Industrial", "AWI": "Industrial", "TREX": "Industrial",
-  "AZEK": "Industrial", "DOOR": "Industrial", "ROCK": "Industrial", "GVA": "Industrial",
-  "ATRO": "Industrial", "ACM": "Industrial", "FLR": "Industrial", "J": "Industrial",
-  "PWR": "Industrial", "EME": "Industrial", "MTZ": "Industrial", "DY": "Industrial",
-
-  // Transportation - Rail & Trucking
-  "UNP": "Industrial", "CSX": "Industrial", "NSC": "Industrial", "CP": "Industrial",
-  "CNI": "Industrial", "KSU": "Industrial", "UPS": "Industrial", "FDX": "Industrial",
-  "XPO": "Industrial", "JBHT": "Industrial", "ODFL": "Industrial", "WERN": "Industrial",
-  "SAIA": "Industrial", "SNDR": "Industrial", "KNX": "Industrial", "ARCB": "Industrial",
-  "LSTR": "Industrial", "HTLD": "Industrial", "MRTN": "Industrial", "HUBG": "Industrial",
-  "EXPD": "Industrial", "CHRW": "Industrial", "ECHO": "Industrial", "GXO": "Industrial",
-  "RXO": "Industrial", "FWRD": "Industrial", "MATX": "Industrial", "ZTO": "Industrial",
-
-  // Airlines
-  "DAL": "Industrial", "UAL": "Industrial", "AAL": "Industrial", "LUV": "Industrial",
-  "ALK": "Industrial", "JBLU": "Industrial", "SAVE": "Industrial", "HA": "Industrial",
-  "ALGT": "Industrial", "SKYW": "Industrial", "MESA": "Industrial", "RYAAY": "Industrial",
-
-  // Other Industrial Services
-  "WM": "Industrial", "RSG": "Industrial", "WCN": "Industrial", "CLH": "Industrial",
-  "CTAS": "Industrial", "PAYX": "Industrial", "ADP": "Industrial", "RHI": "Industrial",
-  "HSIC": "Industrial", "VRSK": "Industrial", "INFO": "Industrial", "DNB": "Industrial",
-  "TRI": "Industrial", "G": "Industrial", "BR": "Industrial", "FIS": "Industrial",
-  "ETN": "Industrial", "AOS": "Industrial", "LII": "Industrial", "WSO": "Industrial",
-
-  // ============================================
-  // ENERGY - 80+ stocks
-  // ============================================
-  // Oil & Gas - Integrated
-  "XOM": "Energy", "CVX": "Energy", "COP": "Energy", "EOG": "Energy",
-  "OXY": "Energy", "MPC": "Energy", "VLO": "Energy", "PSX": "Energy",
-  "PBF": "Energy", "DK": "Energy", "HFC": "Energy", "PARR": "Energy",
-  "DINO": "Energy", "CLMT": "Energy", "CVI": "Energy", "INT": "Energy",
-
-  // Oil & Gas - Exploration & Production
-  "FANG": "Energy", "DVN": "Energy", "APA": "Energy", "PXD": "Energy",
-  "HES": "Energy", "MRO": "Energy", "CLR": "Energy", "MTDR": "Energy",
-  "PR": "Energy", "CTRA": "Energy", "EQT": "Energy", "AR": "Energy",
-  "RRC": "Energy", "SWN": "Energy", "CNX": "Energy", "CHK": "Energy",
-  "MGY": "Energy", "SM": "Energy", "PDCE": "Energy", "CHRD": "Energy",
-  "VTLE": "Energy", "CPE": "Energy", "ESTE": "Energy", "GPOR": "Energy",
-  "TALO": "Energy", "CRK": "Energy", "REI": "Energy", "ROCC": "Energy",
-  "SBOW": "Energy", "BATL": "Energy", "SD": "Energy", "WTI": "Energy",
-
-  // Oilfield Services
-  "SLB": "Energy", "HAL": "Energy", "BKR": "Energy", "NOV": "Energy",
-  "FTI": "Energy", "CHX": "Energy", "HP": "Energy", "NBR": "Energy",
-  "PTEN": "Energy", "WHD": "Energy", "LBRT": "Energy", "RES": "Energy",
-  "OII": "Energy", "TDW": "Energy", "NE": "Energy", "RIG": "Energy",
-  "VAL": "Energy", "DO": "Energy", "HLX": "Energy", "AROC": "Energy",
-  "DTM": "Energy", "WTTR": "Energy", "NINE": "Energy", "ACDC": "Energy",
-
-  // Midstream
-  "KMI": "Energy", "WMB": "Energy", "OKE": "Energy", "EPD": "Energy",
-  "ET": "Energy", "MPLX": "Energy", "PAA": "Energy", "TRGP": "Energy",
-  "LNG": "Energy", "ENLC": "Energy", "DCP": "Energy", "CEQP": "Energy",
-  "HESM": "Energy", "WES": "Energy", "NS": "Energy", "AM": "Energy",
-
-  // ============================================
-  // CONSUMER STAPLES - 70+ stocks
-  // ============================================
-  // Beverages
-  "KO": "Consumer Staples", "PEP": "Consumer Staples", "MNST": "Consumer Staples",
-  "KDP": "Consumer Staples", "STZ": "Consumer Staples", "BF-B": "Consumer Staples",
-  "BF-A": "Consumer Staples", "TAP": "Consumer Staples", "SAM": "Consumer Staples",
-  "FIZZ": "Consumer Staples", "CELH": "Consumer Staples", "NBEV": "Consumer Staples",
-  "COKE": "Consumer Staples", "DEO": "Consumer Staples", "BUD": "Consumer Staples",
-
-  // Food Products
-  "MDLZ": "Consumer Staples", "GIS": "Consumer Staples", "K": "Consumer Staples",
-  "KHC": "Consumer Staples", "CPB": "Consumer Staples", "SJM": "Consumer Staples",
-  "CAG": "Consumer Staples", "HSY": "Consumer Staples", "MKC": "Consumer Staples",
-  "HRL": "Consumer Staples", "TSN": "Consumer Staples", "PPC": "Consumer Staples",
-  "BRFS": "Consumer Staples", "INGR": "Consumer Staples", "LANC": "Consumer Staples",
-  "THS": "Consumer Staples", "BGS": "Consumer Staples", "LNDC": "Consumer Staples",
-  "SFM": "Consumer Staples", "POST": "Consumer Staples", "SMPL": "Consumer Staples",
-  "BYND": "Consumer Staples", "TTCF": "Consumer Staples", "NOMD": "Consumer Staples",
-
-  // Household & Personal Products
-  "PG": "Consumer Staples", "CL": "Consumer Staples", "KMB": "Consumer Staples",
-  "CHD": "Consumer Staples", "CLX": "Consumer Staples", "SPB": "Consumer Staples",
-  "COTY": "Consumer Staples", "ELF": "Consumer Staples", "EL": "Consumer Staples",
-  "NWL": "Consumer Staples", "ENR": "Consumer Staples", "HLF": "Consumer Staples",
-  "HELE": "Consumer Staples", "IPAR": "Consumer Staples", "REV": "Consumer Staples",
-  "NU": "Consumer Staples", "SKIN": "Consumer Staples", "HNST": "Consumer Staples",
-
-  // Tobacco
-  "PM": "Consumer Staples", "MO": "Consumer Staples", "BTI": "Consumer Staples",
-  "TPB": "Consumer Staples", "VGR": "Consumer Staples", "IMBBY": "Consumer Staples",
-
-  // Food & Drug Retail
-  "WMT": "Consumer Staples", "COST": "Consumer Staples", "KR": "Consumer Staples",
-  "WBA": "Consumer Staples", "SYY": "Consumer Staples", "USFD": "Consumer Staples",
-  "ACI": "Consumer Staples", "GO": "Consumer Staples", "UNFI": "Consumer Staples",
-  "CHEF": "Consumer Staples", "PFGC": "Consumer Staples", "SPTN": "Consumer Staples",
-  "SFM": "Consumer Staples", "IMKTA": "Consumer Staples", "VLGEA": "Consumer Staples",
-
-  // ============================================
-  // UTILITIES - 50+ stocks
-  // ============================================
-  // Electric Utilities
-  "NEE": "Utilities", "DUK": "Utilities", "SO": "Utilities", "D": "Utilities",
-  "AEP": "Utilities", "SRE": "Utilities", "XEL": "Utilities", "EXC": "Utilities",
-  "WEC": "Utilities", "ED": "Utilities", "ES": "Utilities", "PPL": "Utilities",
-  "EIX": "Utilities", "DTE": "Utilities", "FE": "Utilities", "ETR": "Utilities",
-  "AEE": "Utilities", "CMS": "Utilities", "CNP": "Utilities", "EVRG": "Utilities",
-  "ATO": "Utilities", "PNW": "Utilities", "NI": "Utilities", "OGE": "Utilities",
-  "POR": "Utilities", "NWE": "Utilities", "AVA": "Utilities", "BKH": "Utilities",
-  "IDA": "Utilities", "OTTR": "Utilities", "ALE": "Utilities", "PNM": "Utilities",
-  "HE": "Utilities", "NWN": "Utilities", "CPK": "Utilities", "MGEE": "Utilities",
-
-  // Clean Energy
-  "CEG": "Utilities", "VST": "Utilities", "NRG": "Utilities", "CWEN": "Utilities",
-  "AES": "Utilities", "ENPH": "Utilities", "SEDG": "Utilities", "RUN": "Utilities",
-  "NOVA": "Utilities", "FSLR": "Utilities", "CSIQ": "Utilities", "JKS": "Utilities",
-  "SPWR": "Utilities", "ARRY": "Utilities", "MAXN": "Utilities", "BE": "Utilities",
-  "PLUG": "Utilities", "BLDP": "Utilities", "FCEL": "Utilities", "HYLN": "Utilities",
-  "CLNE": "Utilities", "AMRC": "Utilities", "STEM": "Utilities", "ENVX": "Utilities",
-
-  // Water & Multi-Utilities
-  "AWK": "Utilities", "AWR": "Utilities", "WTRG": "Utilities", "CWT": "Utilities",
-  "SJW": "Utilities", "YORW": "Utilities", "CWCO": "Utilities", "PEG": "Utilities",
-  "NJR": "Utilities", "NFG": "Utilities", "OGS": "Utilities", "SWX": "Utilities",
-  "UGI": "Utilities", "SR": "Utilities",
-
-  // ============================================
-  // REAL ESTATE - 60+ stocks
-  // ============================================
-  // Data Centers & Telecom
-  "PLD": "Real Estate", "AMT": "Real Estate", "EQIX": "Real Estate", "CCI": "Real Estate",
-  "DLR": "Real Estate", "SBAC": "Real Estate", "UNIT": "Real Estate", "QTS": "Real Estate",
-  "CONE": "Real Estate", "CORZ": "Real Estate",
-
-  // Industrial REITs
-  "STAG": "Real Estate", "REXR": "Real Estate", "FR": "Real Estate", "EGP": "Real Estate",
-  "TRNO": "Real Estate", "IIPR": "Real Estate", "GTY": "Real Estate", "PLYM": "Real Estate",
-
-  // Residential REITs
-  "AVB": "Real Estate", "EQR": "Real Estate", "ESS": "Real Estate", "MAA": "Real Estate",
-  "UDR": "Real Estate", "CPT": "Real Estate", "AIV": "Real Estate", "ELME": "Real Estate",
-  "IRT": "Real Estate", "NNN": "Real Estate", "NXRT": "Real Estate", "ELS": "Real Estate",
-  "SUI": "Real Estate", "APLE": "Real Estate", "RHP": "Real Estate", "INVH": "Real Estate",
-  "AMH": "Real Estate", "TREH": "Real Estate",
-
-  // Retail REITs
-  "SPG": "Real Estate", "O": "Real Estate", "VICI": "Real Estate", "REG": "Real Estate",
-  "KIM": "Real Estate", "BRX": "Real Estate", "FRT": "Real Estate", "KRG": "Real Estate",
-  "AKR": "Real Estate", "SITC": "Real Estate", "WRI": "Real Estate", "PECO": "Real Estate",
-  "ADC": "Real Estate", "EPRT": "Real Estate", "STOR": "Real Estate", "SRC": "Real Estate",
-  "NNN": "Real Estate", "NTST": "Real Estate", "FCPT": "Real Estate", "GOOD": "Real Estate",
-
-  // Office & Healthcare REITs
-  "WELL": "Real Estate", "VTR": "Real Estate", "OHI": "Real Estate", "HR": "Real Estate",
-  "DOC": "Real Estate", "SBRA": "Real Estate", "LTC": "Real Estate", "NHI": "Real Estate",
-  "CTRE": "Real Estate", "GMRE": "Real Estate", "BXP": "Real Estate", "VNO": "Real Estate",
-  "SLG": "Real Estate", "ARE": "Real Estate", "HIW": "Real Estate", "CUZ": "Real Estate",
-  "PDM": "Real Estate", "DEI": "Real Estate", "ESRT": "Real Estate", "OFC": "Real Estate",
-  "KRC": "Real Estate", "JBGS": "Real Estate", "DEA": "Real Estate", "CLI": "Real Estate",
-
-  // ============================================
-  // MATERIALS - 60+ stocks
-  // ============================================
-  // Chemicals
-  "LIN": "Materials", "APD": "Materials", "SHW": "Materials", "ECL": "Materials",
-  "DD": "Materials", "DOW": "Materials", "PPG": "Materials", "LYB": "Materials",
-  "NEM": "Materials", "FCX": "Materials", "CTVA": "Materials", "ALB": "Materials",
-  "CF": "Materials", "NTR": "Materials", "MOS": "Materials", "FMC": "Materials",
-  "IFF": "Materials", "EMN": "Materials", "CE": "Materials", "RPM": "Materials",
-  "AVNT": "Materials", "ASH": "Materials", "ESI": "Materials", "HUN": "Materials",
-  "OLN": "Materials", "WLK": "Materials", "CC": "Materials", "KRO": "Materials",
-  "TROX": "Materials", "VNTR": "Materials", "MTX": "Materials", "NEU": "Materials",
-  "CBT": "Materials", "HWKN": "Materials", "IOSP": "Materials", "KWR": "Materials",
-
-  // Metals & Mining
-  "NUE": "Materials", "STLD": "Materials", "CLF": "Materials", "X": "Materials",
-  "AA": "Materials", "ATI": "Materials", "CMC": "Materials", "RS": "Materials",
-  "ZEUS": "Materials", "CENX": "Materials", "KALU": "Materials", "HCC": "Materials",
-  "AMR": "Materials", "ARCH": "Materials", "BTU": "Materials", "CEIX": "Materials",
-  "ARLP": "Materials", "CONSOL": "Materials", "METC": "Materials", "NCR": "Materials",
-  "SCCO": "Materials", "TECK": "Materials", "RIO": "Materials", "BHP": "Materials",
-  "VALE": "Materials", "MP": "Materials", "LAC": "Materials", "LTHM": "Materials",
-  "PLL": "Materials", "SQM": "Materials", "UUUU": "Materials", "CCJ": "Materials",
-  "UEC": "Materials", "DNN": "Materials",
-
-  // Construction Materials
-  "VMC": "Materials", "MLM": "Materials", "EXP": "Materials", "CX": "Materials",
-  "ITE": "Materials", "USLM": "Materials", "CITE": "Materials", "SUM": "Materials",
-
-  // Paper & Packaging
-  "IP": "Materials", "PKG": "Materials", "SEE": "Materials", "BERY": "Materials",
-  "GPK": "Materials", "SON": "Materials", "OI": "Materials", "SLGN": "Materials",
-  "CCK": "Materials", "BALL": "Materials", "ATR": "Materials", "AVY": "Materials",
-  "BMS": "Materials", "CLW": "Materials", "MERC": "Materials", "KBH": "Materials",
+  // Communication
+  "AMC": "Communication", "APPS": "Communication", "ATUS": "Communication", "CABO": "Communication",
+  "CHTR": "Communication", "CMCSA": "Communication", "CNK": "Communication", "CNSL": "Communication",
+  "CRTO": "Communication", "DIS": "Communication", "DISCB": "Communication", "DV": "Communication",
+  "EDR": "Communication", "EEFT": "Communication", "FOX": "Communication", "FOXA": "Communication",
+  "FUBO": "Communication", "FWONK": "Communication", "FYBR": "Communication", "IAS": "Communication",
+  "IMAX": "Communication", "IPG": "Communication", "IQ": "Communication", "LBRDA": "Communication",
+  "LBRDK": "Communication", "LGF-A": "Communication", "LGF-B": "Communication", "LILA": "Communication",
+  "LILAK": "Communication", "LSXMA": "Communication", "LSXMB": "Communication", "LSXMK": "Communication",
+  "LUMN": "Communication", "LYV": "Communication", "MGNI": "Communication", "MSG": "Communication",
+  "MSGS": "Communication", "NFLX": "Communication", "OMC": "Communication", "ORAN": "Communication",
+  "PARA": "Communication", "PARAA": "Communication", "PUBGY": "Communication", "QNST": "Communication",
+  "QUOT": "Communication", "ROKU": "Communication", "SHEN": "Communication", "SIRI": "Communication",
+  "T": "Communication", "TDS": "Communication", "TEF": "Communication", "TI": "Communication",
+  "TMUS": "Communication", "TTD": "Communication", "TWTR": "Communication", "USM": "Communication",
+  "VIAC": "Communication", "VOD": "Communication", "VZ": "Communication", "WBD": "Communication",
+  "WPP": "Communication", "WWE": "Communication", "Z": "Communication"
 };
 
 function getSectorForSymbol(symbol: string): string {
@@ -983,7 +950,7 @@ export async function getMostActiveStocks(count: number = 10): Promise<TrendingS
 }
 
 /**
- * Get all symbols for a given sector
+ * Get all symbols for a given sector (from hardcoded list - fallback only)
  */
 export function getSymbolsForSector(sectorId: string): string[] {
   // Map sector ID back to sector name
@@ -1010,7 +977,21 @@ export function getSymbolsForSector(sectorId: string): string[] {
 }
 
 /**
- * Get all sectors with their stock counts
+ * Get sector info by ID
+ */
+export function getSectorInfoById(sectorId: string): SectorInfo | undefined {
+  return SECTORS.find(s => s.id === sectorId);
+}
+
+/**
+ * Get all sectors with their stock counts (uses NASDAQ API)
+ */
+export async function getSectorCountsFromNasdaq(): Promise<Record<string, number>> {
+  return getNasdaqSectorCounts();
+}
+
+/**
+ * Get all sectors with their stock counts (from hardcoded list - fallback)
  */
 export function getSectorCounts(): Record<string, number> {
   const counts: Record<string, number> = {};
@@ -1032,18 +1013,29 @@ export interface SectorStock extends HeatmapStock {
 }
 
 /**
- * Fetch all stocks for a specific sector
- * Uses comprehensive hardcoded list with 700+ stocks across all sectors
+ * Fetch all stocks for a specific sector using NASDAQ API
+ * Returns 100-1500+ stocks depending on sector (7,000+ total across all sectors)
  */
 export async function getSectorStocks(sectorId: string): Promise<SectorStock[]> {
-  const symbols = getSymbolsForSector(sectorId);
-  if (symbols.length === 0) {
-    console.error(`No symbols found for sector: ${sectorId}`);
+  const sectorInfo = getSectorInfoById(sectorId);
+  if (!sectorInfo) {
+    console.error(`Unknown sector: ${sectorId}`);
     return [];
   }
 
-  console.log(`Fetching ${symbols.length} stocks for sector ${sectorId}...`);
+  console.log(`Fetching stocks from NASDAQ API for sector ${sectorId}...`);
 
+  // Get all symbols from NASDAQ for this sector
+  const symbols = await fetchAllNasdaqSectorSymbols(sectorInfo.nasdaqApiValue);
+
+  if (symbols.length === 0) {
+    console.error(`No symbols found from NASDAQ for sector: ${sectorId}`);
+    return [];
+  }
+
+  console.log(`Found ${symbols.length} symbols from NASDAQ for sector ${sectorId}`);
+
+  // Fetch detailed quotes from Yahoo Finance in batches
   const batchSize = 50;
   const allQuotes: SectorStock[] = [];
 
@@ -1061,7 +1053,7 @@ export async function getSectorStocks(sectorId: string): Promise<SectorStock[]> 
         change: quote.regularMarketChange || 0,
         changePercent: quote.regularMarketChangePercent || 0,
         marketCap: quote.marketCap || 0,
-        sector: getSectorForSymbol(quote.symbol),
+        sector: sectorInfo.name,
         volume: quote.regularMarketVolume || 0,
         avgVolume: quote.averageDailyVolume3Month || 0,
         fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
@@ -1093,76 +1085,66 @@ export interface SectorPerformance {
 }
 
 /**
- * Get performance data for all sectors
+ * Get performance data for all sectors using NASDAQ API
+ * Fetches top 50 stocks per sector for performance calculation (faster than fetching all 7000+)
  */
 export async function getAllSectorsPerformance(): Promise<SectorPerformance[]> {
   try {
-    // Get all unique symbols from SECTOR_MAP
-    const allSymbols = [...new Set(Object.keys(SECTOR_MAP))];
-
-    // Fetch all quotes
-    const batchSize = 50;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allQuotes: any[] = [];
-
-    for (let i = 0; i < allSymbols.length; i += batchSize) {
-      const batch = allSymbols.slice(i, i + batchSize);
-      const quotes = await yahooFinance.quote(batch);
-      const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
-      allQuotes.push(...quotesArray);
-    }
-
-    // Group by sector and calculate performance
-    const sectorData: Record<string, {
-      stocks: { symbol: string; changePercent: number; marketCap: number }[];
-    }> = {};
-
-    for (const quote of allQuotes) {
-      if (!quote || !quote.regularMarketPrice) continue;
-
-      const sectorName = SECTOR_MAP[quote.symbol] || "Other";
-      const sectorId = SECTOR_NAME_TO_ID[sectorName] || "other";
-
-      if (!sectorData[sectorId]) {
-        sectorData[sectorId] = { stocks: [] };
-      }
-
-      sectorData[sectorId].stocks.push({
-        symbol: quote.symbol,
-        changePercent: quote.regularMarketChangePercent || 0,
-        marketCap: quote.marketCap || 0,
-      });
-    }
-
-    // Calculate performance metrics for each sector
     const results: SectorPerformance[] = [];
 
+    // Process each sector
     for (const sector of SECTORS) {
-      const data = sectorData[sector.id];
-      if (!data || data.stocks.length === 0) continue;
+      try {
+        // Get top 50 stocks from NASDAQ API for this sector (by market cap - NASDAQ returns them sorted)
+        const { stocks: nasdaqStocks, total } = await fetchNasdaqSectorStocks(sector.nasdaqApiValue, 50, 0);
 
-      const stocks = data.stocks;
-      const avgChange = stocks.reduce((sum, s) => sum + s.changePercent, 0) / stocks.length;
-      const totalMarketCap = stocks.reduce((sum, s) => sum + s.marketCap, 0);
-      const advancers = stocks.filter(s => s.changePercent > 0).length;
-      const decliners = stocks.filter(s => s.changePercent < 0).length;
+        if (nasdaqStocks.length === 0) continue;
 
-      // Find top gainer and loser
-      const sorted = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
-      const topGainer = sorted[0] ? { symbol: sorted[0].symbol, changePercent: sorted[0].changePercent } : null;
-      const topLoser = sorted[sorted.length - 1] ? { symbol: sorted[sorted.length - 1].symbol, changePercent: sorted[sorted.length - 1].changePercent } : null;
+        // Get symbols
+        const symbols = nasdaqStocks.map(s => s.symbol);
 
-      results.push({
-        sectorId: sector.id,
-        sectorInfo: sector,
-        stockCount: stocks.length,
-        avgChange,
-        totalMarketCap,
-        topGainer,
-        topLoser,
-        advancers,
-        decliners,
-      });
+        // Fetch detailed quotes from Yahoo Finance
+        const quotes = await yahooFinance.quote(symbols);
+        const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const validQuotes = quotesArray.filter((q: any) => q && q.regularMarketPrice);
+
+        if (validQuotes.length === 0) continue;
+
+        // Calculate metrics
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const stocks = validQuotes.map((q: any) => ({
+          symbol: q.symbol,
+          changePercent: q.regularMarketChangePercent || 0,
+          marketCap: q.marketCap || 0,
+        }));
+
+        const avgChange = stocks.reduce((sum, s) => sum + s.changePercent, 0) / stocks.length;
+        const totalMarketCap = stocks.reduce((sum, s) => sum + s.marketCap, 0);
+        const advancers = stocks.filter(s => s.changePercent > 0).length;
+        const decliners = stocks.filter(s => s.changePercent < 0).length;
+
+        // Find top gainer and loser
+        const sorted = [...stocks].sort((a, b) => b.changePercent - a.changePercent);
+        const topGainer = sorted[0] ? { symbol: sorted[0].symbol, changePercent: sorted[0].changePercent } : null;
+        const topLoser = sorted[sorted.length - 1] ? { symbol: sorted[sorted.length - 1].symbol, changePercent: sorted[sorted.length - 1].changePercent } : null;
+
+        results.push({
+          sectorId: sector.id,
+          sectorInfo: sector,
+          stockCount: total, // Use total from NASDAQ API (actual count)
+          avgChange,
+          totalMarketCap,
+          topGainer,
+          topLoser,
+          advancers,
+          decliners,
+        });
+      } catch (error) {
+        console.error(`Error fetching performance for sector ${sector.id}:`, error);
+        // Continue with other sectors
+      }
     }
 
     // Sort by average change (best performing first)
@@ -1183,16 +1165,17 @@ export interface PaginatedSectorStocksResult {
 }
 
 /**
- * Fetch paginated stocks for a specific sector (for lazy loading)
+ * Fetch paginated stocks for a specific sector using NASDAQ API (for lazy loading)
+ * Supports 7,000+ stocks across all sectors
  */
 export async function getSectorStocksPaginated(
   sectorId: string,
   page: number = 1,
   limit: number = 20
 ): Promise<PaginatedSectorStocksResult> {
-  const symbols = getSymbolsForSector(sectorId);
-  if (symbols.length === 0) {
-    console.error(`No symbols found for sector: ${sectorId}`);
+  const sectorInfo = getSectorInfoById(sectorId);
+  if (!sectorInfo) {
+    console.error(`Unknown sector: ${sectorId}`);
     return {
       stocks: [],
       page,
@@ -1203,29 +1186,35 @@ export async function getSectorStocksPaginated(
     };
   }
 
-  const total = symbols.length;
-  const totalPages = Math.ceil(total / limit);
-  const startIndex = (page - 1) * limit;
-  const endIndex = Math.min(startIndex + limit, total);
+  // Calculate offset for NASDAQ API pagination
+  const offset = (page - 1) * limit;
 
-  // Get symbols for this page
-  const pageSymbols = symbols.slice(startIndex, endIndex);
-
-  if (pageSymbols.length === 0) {
-    return {
-      stocks: [],
-      page,
-      limit,
-      total,
-      totalPages,
-      hasMore: false,
-    };
-  }
-
-  console.log(`Fetching page ${page} (${pageSymbols.length} stocks) for sector ${sectorId}...`);
+  console.log(`Fetching page ${page} from NASDAQ API for sector ${sectorId} (offset: ${offset}, limit: ${limit})...`);
 
   try {
-    const quotes = await yahooFinance.quote(pageSymbols);
+    // Fetch from NASDAQ API with pagination
+    const { stocks: nasdaqStocks, total } = await fetchNasdaqSectorStocks(
+      sectorInfo.nasdaqApiValue,
+      limit,
+      offset
+    );
+
+    if (nasdaqStocks.length === 0) {
+      return {
+        stocks: [],
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: false,
+      };
+    }
+
+    // Get symbols for this page
+    const symbols = nasdaqStocks.map(s => s.symbol);
+
+    // Fetch detailed quotes from Yahoo Finance
+    const quotes = await yahooFinance.quote(symbols);
     const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1236,7 +1225,7 @@ export async function getSectorStocksPaginated(
       change: quote.regularMarketChange || 0,
       changePercent: quote.regularMarketChangePercent || 0,
       marketCap: quote.marketCap || 0,
-      sector: getSectorForSymbol(quote.symbol),
+      sector: sectorInfo.name,
       volume: quote.regularMarketVolume || 0,
       avgVolume: quote.averageDailyVolume3Month || 0,
       fiftyTwoWeekHigh: quote.fiftyTwoWeekHigh || 0,
@@ -1245,13 +1234,15 @@ export async function getSectorStocksPaginated(
     })).filter((stock: SectorStock) => stock.price > 0)
        .sort((a: SectorStock, b: SectorStock) => b.marketCap - a.marketCap);
 
+    const totalPages = Math.ceil(total / limit);
+
     return {
       stocks,
       page,
       limit,
       total,
       totalPages,
-      hasMore: endIndex < total,
+      hasMore: offset + limit < total,
     };
   } catch (error) {
     console.error(`Error fetching page ${page} for sector ${sectorId}:`, error);
@@ -1259,9 +1250,9 @@ export async function getSectorStocksPaginated(
       stocks: [],
       page,
       limit,
-      total,
-      totalPages,
-      hasMore: endIndex < total,
+      total: 0,
+      totalPages: 0,
+      hasMore: false,
     };
   }
 }
