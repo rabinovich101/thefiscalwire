@@ -34,19 +34,29 @@ interface TreemapData {
   fill: string;
 }
 
-// Color scale for percentage changes
+// Color scale for percentage changes - TradingView exact colors (softer palette)
 function getColorForChange(changePercent: number): string {
-  if (changePercent <= -5) return "#991b1b"; // Deep red
-  if (changePercent <= -3) return "#dc2626"; // Red
-  if (changePercent <= -1) return "#ef4444"; // Light red
-  if (changePercent <= -0.5) return "#f87171"; // Very light red
-  if (changePercent < 0) return "#fca5a5"; // Pale red
-  if (changePercent === 0) return "#6b7280"; // Gray
-  if (changePercent < 0.5) return "#86efac"; // Pale green
-  if (changePercent < 1) return "#4ade80"; // Very light green
-  if (changePercent < 3) return "#22c55e"; // Light green
-  if (changePercent < 5) return "#16a34a"; // Green
-  return "#15803d"; // Deep green
+  // Soft coral/salmon reds like TradingView
+  if (changePercent <= -3) return "#f23645"; // TradingView deep red
+  if (changePercent <= -2) return "#f4555f"; // Coral red
+  if (changePercent <= -1) return "#eb7a7f"; // Soft red
+  if (changePercent < -0.3) return "#eda5a9"; // Light pink/salmon
+  // Gray zone for near-zero (light silver like TradingView)
+  if (changePercent < 0.3) return "#b0b0b0"; // Silver gray
+  // Soft greens like TradingView
+  if (changePercent < 1) return "#7dc88c"; // Light mint green
+  if (changePercent < 2) return "#4db065"; // Soft green
+  if (changePercent < 3) return "#26a641"; // Medium green
+  return "#1a9035"; // Deep green
+}
+
+// Get text color - dark text on light backgrounds, white on dark
+function getTextColor(changePercent: number): string {
+  // Light backgrounds need dark text
+  if (changePercent > -0.3 && changePercent < 0.3) return "#1a1a1a"; // Gray zone
+  if (changePercent >= -0.3 && changePercent < 0) return "#1a1a1a"; // Light pink
+  if (changePercent >= 0 && changePercent < 1) return "#1a1a1a"; // Light green
+  return "#ffffff"; // White for darker backgrounds
 }
 
 function formatMarketCap(marketCap: number): string {
@@ -96,6 +106,9 @@ const CustomContent = (props: CustomContentProps) => {
   );
   const percentFontSize = Math.min(symbolFontSize - 2, 12);
 
+  // Get appropriate text color based on background
+  const textColor = getTextColor(changePercent);
+
   return (
     <g>
       <rect
@@ -104,81 +117,43 @@ const CustomContent = (props: CustomContentProps) => {
         width={width}
         height={height}
         fill={fill}
-        stroke="#0f172a"
+        stroke="#1e293b"
         strokeWidth={1}
         rx={2}
         className="cursor-pointer transition-opacity hover:opacity-80"
       />
       {showSymbol && (
-        <>
-          {/* Text shadow for better contrast */}
-          <text
-            x={x + width / 2}
-            y={y + height / 2 - (showPercent ? 7 : 0)}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#000000"
-            fontSize={symbolFontSize}
-            fontWeight="bold"
-            className="pointer-events-none"
-            style={{
-              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-            }}
-          >
-            {symbol}
-          </text>
-          {/* Main text - bright white */}
-          <text
-            x={x + width / 2}
-            y={y + height / 2 - (showPercent ? 7 : 0)}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#ffffff"
-            fontSize={symbolFontSize}
-            fontWeight="bold"
-            className="pointer-events-none"
-            style={{
-              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
-            }}
-          >
-            {symbol}
-          </text>
-        </>
+        <text
+          x={x + width / 2}
+          y={y + height / 2 - (showPercent ? 7 : 0)}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill={textColor}
+          stroke="none"
+          fontSize={symbolFontSize}
+          fontWeight="500"
+          className="pointer-events-none"
+          style={{ textShadow: 'none', WebkitTextStroke: '0' }}
+        >
+          {symbol}
+        </text>
       )}
       {showPercent && (
-        <>
-          {/* Percentage text shadow */}
-          <text
-            x={x + width / 2}
-            y={y + height / 2 + 9}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#000000"
-            fontSize={percentFontSize}
-            fontWeight="600"
-            className="pointer-events-none"
-          >
-            {changePercent >= 0 ? "+" : ""}
-            {changePercent.toFixed(2)}%
-          </text>
-          {/* Main percentage text - bright white */}
-          <text
-            x={x + width / 2}
-            y={y + height / 2 + 9}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#ffffff"
-            fontSize={percentFontSize}
-            fontWeight="600"
-            className="pointer-events-none"
-            style={{
-              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
-            }}
-          >
-            {changePercent >= 0 ? "+" : ""}
-            {changePercent.toFixed(2)}%
-          </text>
-        </>
+        <text
+          x={x + width / 2}
+          y={y + height / 2 + 9}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill={textColor}
+          stroke="none"
+          fontSize={percentFontSize}
+          fontWeight="400"
+          className="pointer-events-none"
+          style={{ textShadow: 'none', WebkitTextStroke: '0' }}
+        >
+          {changePercent >= 0 ? "+" : ""}
+          {changePercent.toFixed(2)}%
+        </text>
       )}
     </g>
   );
