@@ -513,3 +513,80 @@ Create a comprehensive stock feature similar to Yahoo Finance where users can:
 *(To be filled after implementation)*
 
 ### Current Status: Pending Approval
+
+---
+
+# Stock Heatmap Page Implementation
+
+## Overview
+Create a dynamic stock market heatmap page under `/stocks/heatmap` that displays S&P 500 and NASDAQ stocks with color-coded performance visualization. Users can switch between indices via dropdown.
+
+## To-Do Checklist
+
+- [x] 1. Add S&P 500 and NASDAQ constituent functions to Yahoo Finance lib
+- [x] 2. Create API route `/api/stocks/heatmap` to serve heatmap data
+- [x] 3. Create `StockHeatmap` component with treemap visualization
+- [x] 4. Create the heatmap page at `/stocks/heatmap/page.tsx`
+- [x] 5. Add dropdown to switch between S&P 500 and NASDAQ
+- [x] 6. Style the heatmap with color gradients (red to green based on % change)
+- [x] 7. Add hover tooltips showing stock details
+- [x] 8. Update navigation config to include Heatmap link
+- [x] 9. Test and verify with Playwright
+
+## Technical Approach
+
+### Heatmap Data Structure
+```typescript
+interface HeatmapStock {
+  symbol: string
+  name: string
+  price: number
+  change: number
+  changePercent: number
+  marketCap: number
+  sector: string
+}
+```
+
+### Color Mapping
+- Deep Red: < -5%
+- Red: -5% to -2%
+- Light Red: -2% to 0%
+- Light Green: 0% to 2%
+- Green: 2% to 5%
+- Deep Green: > 5%
+
+### Size Mapping
+- Block size proportional to market cap
+
+## Review
+
+### Summary
+Successfully implemented a dynamic stock market heatmap page with the following features:
+
+### Features Implemented
+- **Treemap Visualization**: Stocks displayed in a treemap where box size represents market cap
+- **Color Coding**: Red-to-green gradient based on daily percentage change (-5% to +5%)
+- **Index Selector**: Dropdown to switch between S&P 500 Top 100 and NASDAQ-100
+- **Stats Cards**: Shows count of advancing/declining/unchanged stocks and average change
+- **Interactive Tooltips**: Hover to see symbol, sector, company name, price, change, and market cap
+- **Color Legend**: Visual legend showing the color scale
+- **Click Navigation**: Click any stock to go to its detail page
+- **Live Market Ticker**: Scrolling ticker showing major indices at the top
+
+### Files Created
+| File | Description |
+|------|-------------|
+| `src/app/api/stocks/heatmap/route.ts` | API endpoint for heatmap data |
+| `src/app/stocks/heatmap/page.tsx` | Heatmap page with hero section and market ticker |
+| `src/components/stocks/StockHeatmap.tsx` | Interactive treemap component with tooltip |
+| `src/components/ui/select.tsx` | Shadcn Select component for dropdown |
+
+### Files Modified
+| File | Changes |
+|------|---------|
+| `src/lib/yahoo-finance.ts` | Added SP500_SYMBOLS, NASDAQ100_SYMBOLS arrays, HeatmapStock interface, getHeatmapData() function, and SECTOR_MAP |
+| `src/components/stocks/index.ts` | Added StockHeatmap export |
+| `src/config/navigation.ts` | Added Heatmap link under Stocks menu |
+
+### Current Status: Complete

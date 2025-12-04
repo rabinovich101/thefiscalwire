@@ -31,6 +31,7 @@ export const navigationConfig: NavConfig = [
     href: "/stocks",
     items: [
       { label: "All Stocks", href: "/stocks", description: "Browse all stocks" },
+      { label: "Heatmap", href: "/stocks/heatmap", description: "S&P 500 & NASDAQ visualization" },
       { label: "By Sector", href: "/stocks/sectors", description: "Tech, Healthcare, Finance..." },
       { label: "Top 10 Gainers", href: "/stocks/gainers", description: "Today's biggest winners" },
       { label: "Top 10 Losers", href: "/stocks/losers", description: "Today's biggest losers" },
