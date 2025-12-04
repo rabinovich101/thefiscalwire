@@ -7,3 +7,5 @@ export { StockStatistics } from "./StockStatistics";
 export { StockNews } from "./StockNews";
 export { TrendingStockCard } from "./TrendingStockCard";
 export { StockHeatmap } from "./StockHeatmap";
+export { SectorCard, SectorCardCompact } from "./SectorCard";
+export { SectorStocksTable } from "./SectorStocksTable";

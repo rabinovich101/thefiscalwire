@@ -101,7 +101,12 @@
       "Bash(/opt/homebrew/bin/gh run list --repo rabinovich101/thefiscalwire --limit 3)",
       "Bash(grep:*)",
       "WebFetch(domain:en.wikipedia.org)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "mcp__playwright__browser_run_code",
+      "Bash(node:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:jsr.io)"
     ],
     "deny": [],
     "ask": []
