@@ -84,9 +84,17 @@ const CustomContent = (props: CustomContentProps) => {
 
   if (depth !== 1) return null;
 
-  const showSymbol = width > 40 && height > 25;
-  const showPercent = width > 50 && height > 40;
-  const fontSize = width < 60 ? 10 : width < 80 ? 11 : 12;
+  // More aggressive thresholds to show text on smaller boxes
+  const showSymbol = width > 30 && height > 20;
+  const showPercent = width > 45 && height > 35;
+
+  // Dynamic font sizing based on box dimensions
+  const symbolFontSize = Math.min(
+    Math.max(width / 5, 10),
+    Math.max(height / 3, 10),
+    16
+  );
+  const percentFontSize = Math.min(symbolFontSize - 2, 12);
 
   return (
     <g>
@@ -96,38 +104,81 @@ const CustomContent = (props: CustomContentProps) => {
         width={width}
         height={height}
         fill={fill}
-        stroke="#1f2937"
+        stroke="#0f172a"
         strokeWidth={1}
         rx={2}
         className="cursor-pointer transition-opacity hover:opacity-80"
       />
       {showSymbol && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2 - (showPercent ? 6 : 0)}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#ffffff"
-          fontSize={fontSize}
-          fontWeight="bold"
-          className="pointer-events-none"
-        >
-          {symbol}
-        </text>
+        <>
+          {/* Text shadow for better contrast */}
+          <text
+            x={x + width / 2}
+            y={y + height / 2 - (showPercent ? 7 : 0)}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#000000"
+            fontSize={symbolFontSize}
+            fontWeight="bold"
+            className="pointer-events-none"
+            style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+            }}
+          >
+            {symbol}
+          </text>
+          {/* Main text - bright white */}
+          <text
+            x={x + width / 2}
+            y={y + height / 2 - (showPercent ? 7 : 0)}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#ffffff"
+            fontSize={symbolFontSize}
+            fontWeight="bold"
+            className="pointer-events-none"
+            style={{
+              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
+            }}
+          >
+            {symbol}
+          </text>
+        </>
       )}
       {showPercent && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2 + 10}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="#ffffff"
-          fontSize={fontSize - 2}
-          className="pointer-events-none opacity-90"
-        >
-          {changePercent >= 0 ? "+" : ""}
-          {changePercent.toFixed(2)}%
-        </text>
+        <>
+          {/* Percentage text shadow */}
+          <text
+            x={x + width / 2}
+            y={y + height / 2 + 9}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#000000"
+            fontSize={percentFontSize}
+            fontWeight="600"
+            className="pointer-events-none"
+          >
+            {changePercent >= 0 ? "+" : ""}
+            {changePercent.toFixed(2)}%
+          </text>
+          {/* Main percentage text - bright white */}
+          <text
+            x={x + width / 2}
+            y={y + height / 2 + 9}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#ffffff"
+            fontSize={percentFontSize}
+            fontWeight="600"
+            className="pointer-events-none"
+            style={{
+              textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.5)',
+            }}
+          >
+            {changePercent >= 0 ? "+" : ""}
+            {changePercent.toFixed(2)}%
+          </text>
+        </>
       )}
     </g>
   );
