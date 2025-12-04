@@ -276,9 +276,11 @@ export function StockHeatmap() {
   }, [stocks]);
 
   // Handle click on treemap cell
-  const handleClick = (data: TreemapData) => {
-    if (data?.symbol) {
-      window.location.href = `/stocks/${data.symbol}`;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleClick = (node: any) => {
+    const symbol = node?.symbol as string | undefined;
+    if (symbol) {
+      window.location.href = `/stocks/${symbol}`;
     }
   };
 
