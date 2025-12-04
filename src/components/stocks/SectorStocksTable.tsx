@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
   Loader2,
 } from "lucide-react";
 import { type SectorStock } from "@/lib/yahoo-finance";
+
+type SortField = "symbol" | "price" | "changePercent" | "marketCap";
+type SortDirection = "asc" | "desc";
 
 interface SectorStocksTableProps {
   sectorId: string;
@@ -122,6 +128,44 @@ function StockRow({ stock, rank }: { stock: SectorStock; rank: number }) {
   );
 }
 
+// Sortable column header component
+function SortableHeader({
+  field,
+  label,
+  currentSort,
+  currentDirection,
+  onSort,
+  align = "left",
+}: {
+  field: SortField;
+  label: string;
+  currentSort: SortField | null;
+  currentDirection: SortDirection;
+  onSort: (field: SortField) => void;
+  align?: "left" | "right" | "center";
+}) {
+  const isActive = currentSort === field;
+  const alignClass = align === "right" ? "justify-end" : align === "center" ? "justify-center" : "justify-start";
+
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className={`flex items-center gap-1 ${alignClass} w-full hover:text-foreground transition-colors group`}
+    >
+      <span>{label}</span>
+      {isActive ? (
+        currentDirection === "asc" ? (
+          <ArrowUp className="h-3.5 w-3.5 text-primary" />
+        ) : (
+          <ArrowDown className="h-3.5 w-3.5 text-primary" />
+        )
+      ) : (
+        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
+      )}
+    </button>
+  );
+}
+
 export function SectorStocksTable({
   sectorId,
   initialStocks,
@@ -132,6 +176,48 @@ export function SectorStocksTable({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Sorting state
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  // Handle sort click
+  const handleSort = useCallback((field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction if same field
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      // New field - default to desc for numeric, asc for symbol
+      setSortField(field);
+      setSortDirection(field === "symbol" ? "asc" : "desc");
+    }
+  }, [sortField]);
+
+  // Sort stocks
+  const sortedStocks = useMemo(() => {
+    if (!sortField) return stocks;
+
+    return [...stocks].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case "symbol":
+          comparison = a.symbol.localeCompare(b.symbol);
+          break;
+        case "price":
+          comparison = a.price - b.price;
+          break;
+        case "changePercent":
+          comparison = a.changePercent - b.changePercent;
+          break;
+        case "marketCap":
+          comparison = a.marketCap - b.marketCap;
+          break;
+      }
+
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+  }, [stocks, sortField, sortDirection]);
 
   const loadMore = useCallback(async () => {
     if (loading || !pagination.hasMore) return;
@@ -198,17 +284,52 @@ export function SectorStocksTable({
       {/* Table Header */}
       <div className="grid grid-cols-12 gap-4 items-center px-4 py-3 bg-muted/30 border-b border-border/50 text-xs font-medium text-muted-foreground uppercase tracking-wider">
         <div className="col-span-1">#</div>
-        <div className="col-span-3">Stock</div>
-        <div className="col-span-2 text-right">Price</div>
-        <div className="col-span-2 text-right">Change</div>
-        <div className="col-span-2 text-right hidden sm:block">Market Cap</div>
+        <div className="col-span-3">
+          <SortableHeader
+            field="symbol"
+            label="Stock"
+            currentSort={sortField}
+            currentDirection={sortDirection}
+            onSort={handleSort}
+          />
+        </div>
+        <div className="col-span-2">
+          <SortableHeader
+            field="price"
+            label="Price"
+            currentSort={sortField}
+            currentDirection={sortDirection}
+            onSort={handleSort}
+            align="right"
+          />
+        </div>
+        <div className="col-span-2">
+          <SortableHeader
+            field="changePercent"
+            label="Change"
+            currentSort={sortField}
+            currentDirection={sortDirection}
+            onSort={handleSort}
+            align="right"
+          />
+        </div>
+        <div className="col-span-2 hidden sm:block">
+          <SortableHeader
+            field="marketCap"
+            label="Market Cap"
+            currentSort={sortField}
+            currentDirection={sortDirection}
+            onSort={handleSort}
+            align="right"
+          />
+        </div>
         <div className="col-span-2 text-center hidden lg:block">52W Range</div>
       </div>
 
       {/* Table Body */}
       <div>
-        {stocks.map((stock, index) => (
-          <StockRow key={stock.symbol} stock={stock} rank={index + 1} />
+        {sortedStocks.map((stock, index) => (
+          <StockRow key={stock.symbol} stock={stock} rank={sortField ? index + 1 : index + 1} />
         ))}
       </div>
 
