@@ -204,17 +204,61 @@ async function main() {
 
   console.log('📂 Creating categories...')
   const categories = await Promise.all([
+    // Markets Section (7)
     prisma.category.create({
-      data: { name: 'Markets', slug: 'markets', color: 'bg-blue-600' },
+      data: { name: 'US Markets', slug: 'us-markets', color: 'bg-blue-600' },
     }),
     prisma.category.create({
-      data: { name: 'Tech', slug: 'tech', color: 'bg-purple-600' },
+      data: { name: 'Europe Markets', slug: 'europe-markets', color: 'bg-blue-500' },
+    }),
+    prisma.category.create({
+      data: { name: 'Asia Markets', slug: 'asia-markets', color: 'bg-blue-400' },
+    }),
+    prisma.category.create({
+      data: { name: 'Forex', slug: 'forex', color: 'bg-cyan-600' },
     }),
     prisma.category.create({
       data: { name: 'Crypto', slug: 'crypto', color: 'bg-orange-500' },
     }),
     prisma.category.create({
+      data: { name: 'Bonds', slug: 'bonds', color: 'bg-indigo-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'ETF', slug: 'etf', color: 'bg-teal-600' },
+    }),
+    // Business Section (12)
+    prisma.category.create({
       data: { name: 'Economy', slug: 'economy', color: 'bg-green-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Finance', slug: 'finance', color: 'bg-emerald-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Health & Science', slug: 'health-science', color: 'bg-red-500' },
+    }),
+    prisma.category.create({
+      data: { name: 'Real Estate', slug: 'real-estate', color: 'bg-amber-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Media', slug: 'media', color: 'bg-pink-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Transportation', slug: 'transportation', color: 'bg-slate-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Industrial', slug: 'industrial', color: 'bg-zinc-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Sports', slug: 'sports', color: 'bg-lime-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Tech', slug: 'tech', color: 'bg-purple-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Politics', slug: 'politics', color: 'bg-rose-600' },
+    }),
+    prisma.category.create({
+      data: { name: 'Consumption', slug: 'consumption', color: 'bg-yellow-600' },
     }),
     prisma.category.create({
       data: { name: 'Opinion', slug: 'opinion', color: 'bg-gray-600' },
@@ -259,7 +303,7 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['NVDA', 'AMD', 'MSFT', 'GOOGL'],
       authorId: authorMap['Sarah Chen'],
-      categoryId: categoryMap['markets'],
+      categoryId: categoryMap['us-markets'],
       headings: [
         { id: 'ai-boom', text: 'The AI Investment Boom', level: 2 },
         { id: 'key-players', text: 'Key Players Leading the Charge', level: 2 },
@@ -683,7 +727,7 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['CL', 'XOM', 'CVX', 'OXY'],
       authorId: authorMap['Robert Hayes'],
-      categoryId: categoryMap['markets'],
+      categoryId: categoryMap['us-markets'],
       headings: [
         { id: 'opec-deliberations', text: 'OPEC+ Deliberations', level: 2 },
         { id: 'demand-outlook', text: 'Global Demand Outlook', level: 2 },
@@ -1174,7 +1218,7 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['TSLA', 'F', 'GM', 'RIVN'],
       authorId: authorMap['Emma Thompson'],
-      categoryId: categoryMap['markets'],
+      categoryId: categoryMap['us-markets'],
       headings: [
         { id: 'delivery-numbers', text: 'The Delivery Numbers', level: 2 },
         { id: 'cybertruck-impact', text: 'Cybertruck\'s Impact', level: 2 },

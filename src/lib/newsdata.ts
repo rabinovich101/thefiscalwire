@@ -212,13 +212,18 @@ export function convertToContentBlocks(content: string | null, description: stri
  * Map NewsData category to our category slugs
  */
 export function mapCategory(categories: string[]): string {
-  // Priority mapping
+  // Priority mapping - maps external API categories to our internal categories
   const categoryMap: Record<string, string> = {
-    business: 'markets',
-    politics: 'economy',
+    business: 'finance',
+    politics: 'politics',
     technology: 'tech',
     world: 'economy',
-    top: 'markets',
+    top: 'us-markets',
+    science: 'health-science',
+    health: 'health-science',
+    entertainment: 'media',
+    sports: 'sports',
+    environment: 'industrial',
   };
 
   for (const cat of categories) {
@@ -226,7 +231,7 @@ export function mapCategory(categories: string[]): string {
     if (mapped) return mapped;
   }
 
-  return 'markets'; // Default
+  return 'us-markets'; // Default
 }
 
 /**
@@ -256,7 +261,7 @@ export function extractTickers(content: string | null, title: string): string[] 
  * Fetch news by specific category and search query
  */
 export async function fetchNewsByCategory(
-  targetCategory: 'crypto' | 'economy' | 'opinion',
+  targetCategory: string,
   searchQuery: string
 ): Promise<NewsDataArticle[]> {
   if (!NEWSDATA_API_KEY) {
@@ -265,9 +270,27 @@ export async function fetchNewsByCategory(
 
   // Map our categories to NewsData categories
   const categoryMap: Record<string, string> = {
-    crypto: 'business', // crypto news often falls under business
-    economy: 'politics,business',
-    opinion: 'politics,business',
+    // Markets
+    'us-markets': 'business',
+    'europe-markets': 'business',
+    'asia-markets': 'business',
+    'forex': 'business',
+    'crypto': 'business',
+    'bonds': 'business',
+    'etf': 'business',
+    // Business
+    'economy': 'politics,business',
+    'finance': 'business',
+    'health-science': 'health,science',
+    'real-estate': 'business',
+    'media': 'entertainment',
+    'transportation': 'business',
+    'industrial': 'business',
+    'sports': 'sports',
+    'tech': 'technology',
+    'politics': 'politics',
+    'consumption': 'business',
+    'opinion': 'politics,business',
   };
 
   const params = new URLSearchParams({

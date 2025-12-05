@@ -20,11 +20,29 @@ export const runtime = 'nodejs';
 
 const CRON_SECRET = process.env.CRON_SECRET;
 
-// Search queries for each category
+// Search queries for each category (using new category slugs)
 const CATEGORY_QUERIES: Record<string, string> = {
-  crypto: 'bitcoin OR ethereum OR cryptocurrency OR crypto OR blockchain',
-  economy: 'economy OR inflation OR federal reserve OR GDP OR unemployment OR fiscal policy',
-  opinion: 'market analysis OR stock forecast OR investment outlook OR expert opinion OR financial commentary',
+  // Markets categories
+  'us-markets': 'S&P 500 OR Dow Jones OR NASDAQ OR NYSE OR stock market OR Wall Street',
+  'europe-markets': 'FTSE OR DAX OR Euro Stoxx OR European markets OR London Stock Exchange',
+  'asia-markets': 'Nikkei OR Hang Seng OR Shanghai OR Asian markets OR Tokyo Stock Exchange',
+  'forex': 'forex OR currency OR exchange rate OR USD OR EUR OR dollar OR yen',
+  'crypto': 'bitcoin OR ethereum OR cryptocurrency OR crypto OR blockchain',
+  'bonds': 'treasury OR bond yield OR fixed income OR government bonds OR corporate bonds',
+  'etf': 'ETF OR exchange traded fund OR index fund OR Vanguard OR BlackRock',
+  // Business categories
+  'economy': 'economy OR inflation OR federal reserve OR GDP OR unemployment OR fiscal policy',
+  'finance': 'banking OR financial services OR investment banking OR fintech OR payments',
+  'health-science': 'healthcare OR biotech OR pharma OR FDA OR medical research OR clinical trial',
+  'real-estate': 'real estate OR housing market OR mortgage rates OR commercial property OR REIT',
+  'media': 'streaming OR entertainment OR Netflix OR Disney OR media company OR advertising',
+  'transportation': 'airlines OR shipping OR logistics OR supply chain OR freight OR aviation',
+  'industrial': 'manufacturing OR industrial production OR factory OR supply chain OR automation',
+  'sports': 'sports business OR team valuation OR sports media OR athletic OR ESPN',
+  'tech': 'technology OR AI OR semiconductor OR software OR cloud computing OR cybersecurity',
+  'politics': 'economic policy OR regulation OR trade policy OR government OR legislation',
+  'consumption': 'retail OR consumer spending OR e-commerce OR Amazon OR shopping',
+  'opinion': 'market analysis OR stock forecast OR investment outlook OR expert opinion OR financial commentary',
 };
 
 async function getOrCreateNewsDataAuthor() {
@@ -52,17 +70,54 @@ async function getCategoryId(categorySlug: string): Promise<string> {
 
   if (!category) {
     const categoryNames: Record<string, string> = {
-      crypto: 'Crypto',
-      economy: 'Economy',
-      opinion: 'Opinion',
-      markets: 'Markets',
-      tech: 'Tech',
+      // Markets Section
+      'us-markets': 'US Markets',
+      'europe-markets': 'Europe Markets',
+      'asia-markets': 'Asia Markets',
+      'forex': 'Forex',
+      'crypto': 'Crypto',
+      'bonds': 'Bonds',
+      'etf': 'ETF',
+      // Business Section
+      'economy': 'Economy',
+      'finance': 'Finance',
+      'health-science': 'Health & Science',
+      'real-estate': 'Real Estate',
+      'media': 'Media',
+      'transportation': 'Transportation',
+      'industrial': 'Industrial',
+      'sports': 'Sports',
+      'tech': 'Tech',
+      'politics': 'Politics',
+      'consumption': 'Consumption',
+      'opinion': 'Opinion',
+    };
+    const categoryColors: Record<string, string> = {
+      'us-markets': 'bg-blue-600',
+      'europe-markets': 'bg-blue-500',
+      'asia-markets': 'bg-blue-400',
+      'forex': 'bg-cyan-600',
+      'crypto': 'bg-orange-500',
+      'bonds': 'bg-indigo-600',
+      'etf': 'bg-teal-600',
+      'economy': 'bg-green-600',
+      'finance': 'bg-emerald-600',
+      'health-science': 'bg-red-500',
+      'real-estate': 'bg-amber-600',
+      'media': 'bg-pink-600',
+      'transportation': 'bg-slate-600',
+      'industrial': 'bg-zinc-600',
+      'sports': 'bg-lime-600',
+      'tech': 'bg-purple-600',
+      'politics': 'bg-rose-600',
+      'consumption': 'bg-yellow-600',
+      'opinion': 'bg-gray-600',
     };
     category = await prisma.category.create({
       data: {
         name: categoryNames[categorySlug] || categorySlug,
         slug: categorySlug,
-        color: 'bg-blue-600',
+        color: categoryColors[categorySlug] || 'bg-gray-600',
       },
     });
   }
@@ -206,7 +261,7 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   const url = new URL(request.url);
   const secretParam = url.searchParams.get('secret');
-  const category = url.searchParams.get('category') as 'crypto' | 'economy' | 'opinion' | null;
+  const category = url.searchParams.get('category');
 
   const isAuthorized =
     authHeader === `Bearer ${CRON_SECRET}` ||
@@ -217,9 +272,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const validCategories = Object.keys(CATEGORY_QUERIES);
   if (!category || !CATEGORY_QUERIES[category]) {
     return NextResponse.json(
-      { error: 'Invalid category. Use: crypto, economy, or opinion' },
+      { error: `Invalid category. Valid categories: ${validCategories.join(', ')}` },
       { status: 400 }
     );
   }

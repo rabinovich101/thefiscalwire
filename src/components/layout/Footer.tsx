@@ -15,10 +15,12 @@ const footerLinks = {
     { name: "Cookie Policy", href: "/cookies" },
   ],
   sections: [
-    { name: "Markets", href: "/markets" },
-    { name: "Tech", href: "/tech" },
-    { name: "Crypto", href: "/crypto" },
-    { name: "Economy", href: "/economy" },
+    { name: "US Markets", href: "/category/us-markets" },
+    { name: "Tech", href: "/category/tech" },
+    { name: "Crypto", href: "/category/crypto" },
+    { name: "Economy", href: "/category/economy" },
+    { name: "Finance", href: "/category/finance" },
+    { name: "Politics", href: "/category/politics" },
   ],
 };
 

@@ -3,7 +3,7 @@ export interface Article {
   id: string;
   title: string;
   excerpt: string;
-  category: "markets" | "tech" | "crypto" | "economy" | "opinion";
+  category: string; // Dynamic category slug
   imageUrl: string;
   author: string;
   publishedAt: string;
@@ -79,11 +79,27 @@ export interface ArticleDetail extends Article {
 
 // Category colors
 export const categoryColors: Record<string, string> = {
-  markets: "bg-blue-600",
-  tech: "bg-purple-600",
-  crypto: "bg-orange-500",
-  economy: "bg-green-600",
-  opinion: "bg-gray-600",
+  // Markets Section
+  'us-markets': 'bg-blue-600',
+  'europe-markets': 'bg-blue-500',
+  'asia-markets': 'bg-blue-400',
+  'forex': 'bg-cyan-600',
+  'crypto': 'bg-orange-500',
+  'bonds': 'bg-indigo-600',
+  'etf': 'bg-teal-600',
+  // Business Section
+  'economy': 'bg-green-600',
+  'finance': 'bg-emerald-600',
+  'health-science': 'bg-red-500',
+  'real-estate': 'bg-amber-600',
+  'media': 'bg-pink-600',
+  'transportation': 'bg-slate-600',
+  'industrial': 'bg-zinc-600',
+  'sports': 'bg-lime-600',
+  'tech': 'bg-purple-600',
+  'politics': 'bg-rose-600',
+  'consumption': 'bg-yellow-600',
+  'opinion': 'bg-gray-600',
 };
 
 // Mock Market Data
@@ -110,7 +126,7 @@ export const featuredArticle: Article = {
   id: "1",
   title: "Tech Giants Lead Market Rally as AI Investments Surge to Record Highs",
   excerpt: "Major technology companies posted significant gains on Wednesday as investors pile into artificial intelligence stocks, with semiconductor makers leading the charge. The S&P 500 tech sector rose 2.3% in its best session since October.",
-  category: "markets",
+  category: "us-markets",
   imageUrl: "https://picsum.photos/seed/tech-rally/1200/800",
   author: "Sarah Chen",
   publishedAt: "2h ago",
@@ -157,7 +173,7 @@ export const topStories: Article[] = [
     id: "5",
     title: "Oil Prices Drop as OPEC+ Considers Production Increase",
     excerpt: "Crude futures fall 1.5% on reports of potential supply boost from major producers.",
-    category: "markets",
+    category: "us-markets",
     imageUrl: "https://picsum.photos/seed/oil-markets/600/400",
     author: "Robert Hayes",
     publishedAt: "1h ago",
@@ -207,7 +223,7 @@ export const topStories: Article[] = [
     id: "10",
     title: "Tesla Stock Jumps After Cybertruck Delivery Numbers Revealed",
     excerpt: "Electric vehicle maker beats expectations with strong Q4 delivery figures.",
-    category: "markets",
+    category: "us-markets",
     imageUrl: "https://picsum.photos/seed/tesla/600/400",
     author: "Emma Thompson",
     publishedAt: "6h ago",
@@ -220,10 +236,10 @@ export const trendingStories: TrendingItem[] = [
   { rank: 1, title: "Fed Signals Rate Cut Path for 2025", category: "economy", url: "#" },
   { rank: 2, title: "NVIDIA Stock Hits All-Time High", category: "tech", url: "#" },
   { rank: 3, title: "Bitcoin Eyes $100K Milestone", category: "crypto", url: "#" },
-  { rank: 4, title: "Oil Prices Under Pressure", category: "markets", url: "#" },
+  { rank: 4, title: "Oil Prices Under Pressure", category: "us-markets", url: "#" },
   { rank: 5, title: "Apple AI Plans Leaked", category: "tech", url: "#" },
   { rank: 6, title: "Housing Recovery Gains Steam", category: "economy", url: "#" },
-  { rank: 7, title: "Tesla Delivery Beat", category: "markets", url: "#" },
+  { rank: 7, title: "Tesla Delivery Beat", category: "us-markets", url: "#" },
   { rank: 8, title: "Crypto Regulation Update", category: "crypto", url: "#" },
 ];
 
@@ -251,7 +267,7 @@ export const latestVideos: Video[] = [
     title: "Market Close: Tech Leads Rally as Fed Minutes Released",
     thumbnail: "https://picsum.photos/seed/market-close/400/225",
     duration: "8:42",
-    category: "markets",
+    category: "us-markets",
   },
   {
     id: "v2",
@@ -276,24 +292,39 @@ export const latestVideos: Video[] = [
   },
 ];
 
-// Navigation Categories
+// All Categories (19 total)
 export const categories = [
-  { name: "Markets", slug: "markets", icon: "TrendingUp" },
-  { name: "Tech", slug: "tech", icon: "Cpu" },
+  // Markets Section
+  { name: "US Markets", slug: "us-markets", icon: "TrendingUp" },
+  { name: "Europe Markets", slug: "europe-markets", icon: "TrendingUp" },
+  { name: "Asia Markets", slug: "asia-markets", icon: "TrendingUp" },
+  { name: "Forex", slug: "forex", icon: "DollarSign" },
   { name: "Crypto", slug: "crypto", icon: "Bitcoin" },
+  { name: "Bonds", slug: "bonds", icon: "Landmark" },
+  { name: "ETF", slug: "etf", icon: "BarChart2" },
+  // Business Section
   { name: "Economy", slug: "economy", icon: "Building2" },
-  { name: "Personal Finance", slug: "personal-finance", icon: "Wallet" },
+  { name: "Finance", slug: "finance", icon: "Wallet" },
+  { name: "Health & Science", slug: "health-science", icon: "HeartPulse" },
+  { name: "Real Estate", slug: "real-estate", icon: "Home" },
+  { name: "Media", slug: "media", icon: "Tv" },
+  { name: "Transportation", slug: "transportation", icon: "Truck" },
+  { name: "Industrial", slug: "industrial", icon: "Factory" },
+  { name: "Sports", slug: "sports", icon: "Trophy" },
+  { name: "Tech", slug: "tech", icon: "Cpu" },
+  { name: "Politics", slug: "politics", icon: "Vote" },
+  { name: "Consumption", slug: "consumption", icon: "ShoppingCart" },
   { name: "Opinion", slug: "opinion", icon: "MessageSquare" },
 ];
 
 // Navigation Links
 export const navLinks = [
   { name: "Stocks", href: "/stocks" },
-  { name: "Markets", href: "/markets" },
-  { name: "Economy", href: "/economy" },
-  { name: "Tech", href: "/tech" },
-  { name: "Crypto", href: "/crypto" },
-  { name: "Opinion", href: "/opinion" },
+  { name: "US Markets", href: "/category/us-markets" },
+  { name: "Economy", href: "/category/economy" },
+  { name: "Tech", href: "/category/tech" },
+  { name: "Crypto", href: "/category/crypto" },
+  { name: "Opinion", href: "/category/opinion" },
 ];
 
 // Mock Stock Chart Data
@@ -343,7 +374,7 @@ export const articleDetails: Record<string, ArticleDetail> = {
     slug: "tech-giants-lead-market-rally",
     title: "Tech Giants Lead Market Rally as AI Investments Surge to Record Highs",
     excerpt: "Major technology companies posted significant gains on Wednesday as investors pile into artificial intelligence stocks, with semiconductor makers leading the charge.",
-    category: "markets",
+    category: "us-markets",
     imageUrl: "https://picsum.photos/seed/tech-rally/1920/1080",
     author: "Sarah Chen",
     publishedAt: "2h ago",

@@ -92,11 +92,27 @@ function formatRelativeTime(date: Date): string {
 
 // Category colors map
 const categoryColors: Record<string, string> = {
-  markets: 'bg-blue-600',
-  tech: 'bg-purple-600',
-  crypto: 'bg-orange-500',
-  economy: 'bg-green-600',
-  opinion: 'bg-gray-600',
+  // Markets Section
+  'us-markets': 'bg-blue-600',
+  'europe-markets': 'bg-blue-500',
+  'asia-markets': 'bg-blue-400',
+  'forex': 'bg-cyan-600',
+  'crypto': 'bg-orange-500',
+  'bonds': 'bg-indigo-600',
+  'etf': 'bg-teal-600',
+  // Business Section
+  'economy': 'bg-green-600',
+  'finance': 'bg-emerald-600',
+  'health-science': 'bg-red-500',
+  'real-estate': 'bg-amber-600',
+  'media': 'bg-pink-600',
+  'transportation': 'bg-slate-600',
+  'industrial': 'bg-zinc-600',
+  'sports': 'bg-lime-600',
+  'tech': 'bg-purple-600',
+  'politics': 'bg-rose-600',
+  'consumption': 'bg-yellow-600',
+  'opinion': 'bg-gray-600',
 }
 
 // Transform Prisma article to frontend Article
@@ -231,6 +247,12 @@ export async function getArticleBySlug(slug: string): Promise<ArticleDetail | nu
   return article ? transformArticleDetail(article) : null
 }
 
+export async function getCategoryBySlug(slug: string) {
+  return prisma.category.findUnique({
+    where: { slug },
+  })
+}
+
 export async function getRelatedArticles(articleId: string): Promise<Article[]> {
   const article = await prisma.article.findUnique({
     where: { id: articleId },
@@ -344,12 +366,6 @@ export async function getArticleCountByCategory(categorySlug: string): Promise<n
         slug: categorySlug,
       },
     },
-  })
-}
-
-export async function getCategoryBySlug(slug: string) {
-  return prisma.category.findUnique({
-    where: { slug },
   })
 }
 

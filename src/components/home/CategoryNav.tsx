@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, Cpu, Bitcoin, Building2, Wallet, MessageSquare } from "lucide-react";
+import { TrendingUp, Cpu, Bitcoin, Building2, Wallet, MessageSquare, Vote, HeartPulse } from "lucide-react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const categories = [
-  { name: "Markets", slug: "markets", icon: TrendingUp, color: "bg-blue-600" },
+  { name: "US Markets", slug: "us-markets", icon: TrendingUp, color: "bg-blue-600" },
   { name: "Tech", slug: "tech", icon: Cpu, color: "bg-purple-600" },
   { name: "Crypto", slug: "crypto", icon: Bitcoin, color: "bg-orange-500" },
   { name: "Economy", slug: "economy", icon: Building2, color: "bg-green-600" },
-  { name: "Personal Finance", slug: "personal-finance", icon: Wallet, color: "bg-teal-600" },
+  { name: "Finance", slug: "finance", icon: Wallet, color: "bg-emerald-600" },
+  { name: "Politics", slug: "politics", icon: Vote, color: "bg-rose-600" },
+  { name: "Health", slug: "health-science", icon: HeartPulse, color: "bg-red-500" },
   { name: "Opinion", slug: "opinion", icon: MessageSquare, color: "bg-gray-600" },
 ];
 
@@ -24,7 +26,7 @@ export function CategoryNav() {
               return (
                 <Link
                   key={category.slug}
-                  href={`/${category.slug}`}
+                  href={`/category/${category.slug}`}
                   className="group flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border/40 hover:border-primary/50 hover:bg-surface-hover transition-all shrink-0"
                 >
                   <div className={`p-1.5 rounded-full ${category.color}`}>

@@ -56,6 +56,8 @@ export const navigationConfig: NavConfig = [
       { label: "Sports", href: "/sports", description: "Sports business news" },
       { label: "Tech", href: "/tech", description: "Technology sector news" },
       { label: "Politics", href: "/politics", description: "Political news and policy" },
+      { label: "Consumption", href: "/consumption", description: "Consumer spending and retail" },
+      { label: "Opinion", href: "/opinion", description: "Opinion and editorial content" },
     ],
   },
 ];
