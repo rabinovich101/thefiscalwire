@@ -24,7 +24,12 @@ model Category {
   color     String    @default("bg-gray-600")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-  articles  Article[]
+
+  // Primary articles (where this is the main category)
+  primaryArticles  Article[] @relation("PrimaryCategory")
+
+  // All articles in this category (many-to-many)
+  articles         Article[] @relation("ArticleCategories")
 }
 
 model Tag {
@@ -67,8 +72,12 @@ model Article {
   authorId         String
   author           Author    @relation(fields: [authorId], references: [id])
 
+  // Primary category (for backward compatibility and main display)
   categoryId       String
-  category         Category  @relation(fields: [categoryId], references: [id])
+  category         Category  @relation("PrimaryCategory", fields: [categoryId], references: [id])
+
+  // Multiple categories (article can appear in multiple category pages)
+  categories       Category[] @relation("ArticleCategories")
 
   tags             Tag[]
 

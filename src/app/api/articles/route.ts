@@ -59,7 +59,8 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: any = {}
     if (category) {
-      where.category = { slug: category }
+      // Use many-to-many relation - articles can belong to multiple categories
+      where.categories = { some: { slug: category } }
     }
 
     // Add analysis filters

@@ -52,6 +52,29 @@ export const VALID_BUSINESS_TYPES = [
 export const VALID_SENTIMENTS = ['bullish', 'bearish', 'neutral'] as const;
 export const VALID_IMPACT_LEVELS = ['high', 'medium', 'low'] as const;
 
+// Valid category slugs for the site
+export const VALID_CATEGORIES = [
+  'us-markets',
+  'europe-markets',
+  'asia-markets',
+  'forex',
+  'crypto',
+  'bonds',
+  'etf',
+  'economy',
+  'finance',
+  'health-science',
+  'real-estate',
+  'media',
+  'transportation',
+  'industrial',
+  'sports',
+  'tech',
+  'politics',
+  'consumption',
+  'opinion',
+] as const;
+
 export interface ArticleAnalysisResult {
   // Markets
   markets: string[];
@@ -73,6 +96,9 @@ export interface ArticleAnalysisResult {
   businessType: string | null;
   sentiment: string | null;
   impactLevel: string | null;
+
+  // Categories (for site navigation)
+  suggestedCategories: string[];  // e.g., ["us-markets", "tech", "consumption"]
 
   // Confidence
   confidence: number;
@@ -152,8 +178,30 @@ VALID IMPACT LEVELS:
 - medium (notable but not major)
 - low (minor/routine news)
 
+VALID CATEGORIES (for site navigation - select ALL that apply):
+- us-markets (US stock market news)
+- europe-markets (European markets)
+- asia-markets (Asian markets)
+- forex (currency/forex)
+- crypto (cryptocurrency)
+- bonds (fixed income)
+- etf (ETFs)
+- economy (macroeconomic news)
+- finance (banking, financial services)
+- health-science (healthcare, biotech, pharma)
+- real-estate (property, housing)
+- media (entertainment, streaming)
+- transportation (airlines, logistics)
+- industrial (manufacturing)
+- sports (sports business)
+- tech (technology, AI, semiconductors)
+- politics (political news affecting markets)
+- consumption (retail, consumer spending)
+- opinion (analysis, commentary)
+
 For stock symbols, use standard ticker format (e.g., AAPL, MSFT, NVDA, GOOGL).
-For competitors, identify the main competitors of each mentioned stock.`;
+For competitors, identify the main competitors of each mentioned stock.
+For categories, select 1-4 categories where this article should appear on the site.`;
 
 /**
  * Analyze an article using Perplexity AI
@@ -189,6 +237,7 @@ Respond with ONLY this JSON structure:
   "businessType": "earnings",
   "sentiment": "bullish",
   "impactLevel": "high",
+  "suggestedCategories": ["us-markets", "tech"],
   "confidence": 0.85
 }
 
@@ -199,7 +248,8 @@ RULES:
 4. If no stocks mentioned, set primaryStock to null and mentionedStocks to []
 5. If sector is unclear, set primarySector to null
 6. Confidence should be 0.0-1.0 based on how certain you are
-7. Always identify competitors for mentioned stocks when known`;
+7. Always identify competitors for mentioned stocks when known
+8. suggestedCategories: pick 1-4 categories from VALID CATEGORIES where this article should appear`;
 
   const messages: PerplexityMessage[] = [
     { role: 'system', content: ANALYSIS_SYSTEM_PROMPT },
@@ -282,6 +332,7 @@ function parseAnalysisResponse(content: string): ArticleAnalysisResult | null {
       businessType: validateOption(parsed.businessType, VALID_BUSINESS_TYPES as unknown as string[]),
       sentiment: validateOption(parsed.sentiment, VALID_SENTIMENTS as unknown as string[]),
       impactLevel: validateOption(parsed.impactLevel, VALID_IMPACT_LEVELS as unknown as string[]),
+      suggestedCategories: validateArray(parsed.suggestedCategories, VALID_CATEGORIES as unknown as string[]),
       confidence: validateConfidence(parsed.confidence),
     };
 

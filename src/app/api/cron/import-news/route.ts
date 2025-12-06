@@ -206,10 +206,6 @@ async function importArticle(
     const baseSlug = generateSlug(title);
     const slug = await ensureUniqueSlug(baseSlug);
 
-    // Map category
-    const categorySlug = mapCategory(article.category);
-    const categoryId = await getCategoryId(categorySlug);
-
     // Get or create tags (including AI-suggested tags)
     const tagIds = await getOrCreateTags(allTagKeywords);
 
@@ -217,6 +213,27 @@ async function importArticle(
     const tickers = analysisResult.mentionedStocks.length > 0
       ? analysisResult.mentionedStocks
       : extractTickers(article.content, title);
+
+    // Get categories from AI analysis (or fallback to mapped category)
+    let categoryIds: string[] = [];
+    if (analysisResult.suggestedCategories && analysisResult.suggestedCategories.length > 0) {
+      for (const catSlug of analysisResult.suggestedCategories) {
+        const catId = await getCategoryId(catSlug);
+        categoryIds.push(catId);
+      }
+    }
+
+    // Fallback to NewsData category if AI didn't suggest any
+    if (categoryIds.length === 0) {
+      const fallbackSlug = mapCategory(article.category);
+      const fallbackId = await getCategoryId(fallbackSlug);
+      categoryIds.push(fallbackId);
+    }
+
+    // First category is the primary one
+    const primaryCategoryId = categoryIds[0];
+
+    console.log(`[Import] Categories: ${analysisResult.suggestedCategories?.join(', ') || 'fallback'}`);
 
     // Step 3: Create article with analysis in a single create
     const newArticle = await prisma.article.create({
@@ -237,7 +254,11 @@ async function importArticle(
         seoKeywords,
         isAiEnhanced,
         authorId,
-        categoryId,
+        categoryId: primaryCategoryId,
+        // Connect ALL categories (many-to-many)
+        categories: {
+          connect: categoryIds.map(id => ({ id })),
+        },
         tags: {
           connect: tagIds.map(id => ({ id })),
         },

@@ -342,15 +342,19 @@ export async function getCategories() {
 }
 
 export async function getArticlesByCategory(categorySlug: string, limit?: number): Promise<Article[]> {
+  // Use the many-to-many relation to find articles in this category
+  // Articles can belong to multiple categories
   const articles = await prisma.article.findMany({
     where: {
-      category: {
-        slug: categorySlug,
+      categories: {
+        some: {
+          slug: categorySlug,
+        },
       },
     },
     include: {
       author: true,
-      category: true,
+      category: true, // Primary category for display
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
@@ -360,10 +364,13 @@ export async function getArticlesByCategory(categorySlug: string, limit?: number
 }
 
 export async function getArticleCountByCategory(categorySlug: string): Promise<number> {
+  // Use the many-to-many relation to count articles in this category
   return prisma.article.count({
     where: {
-      category: {
-        slug: categorySlug,
+      categories: {
+        some: {
+          slug: categorySlug,
+        },
       },
     },
   })
