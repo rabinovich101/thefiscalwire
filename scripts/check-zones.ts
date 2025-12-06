@@ -8,7 +8,8 @@ async function main() {
     where: { slug: 'category-us-markets' },
     include: {
       zones: {
-        include: {
+        select: {
+          content: true,
           zoneDefinition: true
         }
       }
@@ -34,7 +35,11 @@ async function main() {
   const allPages = await prisma.pageDefinition.findMany({
     where: { pageType: 'CATEGORY' },
     include: {
-      zones: true,
+      zones: {
+        select: {
+          content: true
+        }
+      },
       category: true
     }
   });
