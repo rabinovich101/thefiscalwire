@@ -14,7 +14,9 @@ import {
   getArticleCountByCategory,
   getTrendingStories,
   getCategoryBySlug,
+  getCategoryPageContent,
 } from "@/lib/data";
+import { ZoneRenderer } from "@/components/zones";
 import {
   TrendingUp,
   DollarSign,
@@ -112,6 +114,9 @@ export default async function CategoryPage({ params }: PageProps) {
     notFound();
   }
 
+  // Try to get page builder content
+  const pageContent = await getCategoryPageContent(slug);
+
   const [articles, totalCount, trendingStories] = await Promise.all([
     getArticlesByCategory(slug, PAGE_SIZE),
     getArticleCountByCategory(slug),
@@ -124,6 +129,15 @@ export default async function CategoryPage({ params }: PageProps) {
   // Extract color class for gradient
   const colorClass = category.color || 'bg-gray-600';
   const gradientColor = colorClass.replace('bg-', '');
+
+  // If page builder is configured, render zones
+  const usePageBuilder = pageContent && pageContent.size > 0;
+
+  // Helper to get zone content
+  const getZoneContent = (zoneSlug: string) => {
+    if (!pageContent) return null;
+    return pageContent.get(zoneSlug);
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -150,19 +164,38 @@ export default async function CategoryPage({ params }: PageProps) {
         <section className="py-8">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Articles Grid */}
+              {/* Articles Grid - use zone if configured */}
               <div className="lg:col-span-2">
-                <LoadMoreArticles
-                  initialArticles={articles}
-                  category={slug}
-                  initialTotal={totalCount}
-                  pageSize={PAGE_SIZE}
-                />
+                {usePageBuilder && getZoneContent("article-grid") ? (
+                  <ZoneRenderer
+                    zoneType={getZoneContent("article-grid")!.zoneType}
+                    content={getZoneContent("article-grid")!.content}
+                  />
+                ) : usePageBuilder && getZoneContent("article-list") ? (
+                  <ZoneRenderer
+                    zoneType={getZoneContent("article-list")!.zoneType}
+                    content={getZoneContent("article-list")!.content}
+                  />
+                ) : (
+                  <LoadMoreArticles
+                    initialArticles={articles}
+                    category={slug}
+                    initialTotal={totalCount}
+                    pageSize={PAGE_SIZE}
+                  />
+                )}
               </div>
 
-              {/* Sidebar */}
+              {/* Sidebar - use zone if configured */}
               <div className="lg:col-span-1">
-                <TrendingSidebar stories={trendingStories} />
+                {usePageBuilder && getZoneContent("trending-sidebar") ? (
+                  <ZoneRenderer
+                    zoneType={getZoneContent("trending-sidebar")!.zoneType}
+                    content={getZoneContent("trending-sidebar")!.content}
+                  />
+                ) : (
+                  <TrendingSidebar stories={trendingStories} />
+                )}
                 <MarketMovers />
               </div>
             </div>

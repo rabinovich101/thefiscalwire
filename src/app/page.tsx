@@ -11,6 +11,7 @@ import { ArticleGrid } from "@/components/home/ArticleGrid";
 import { TrendingSidebar } from "@/components/home/TrendingSidebar";
 import { MarketMovers } from "@/components/home/MarketMovers";
 import { VideoCarousel } from "@/components/home/VideoCarousel";
+import { ZoneRenderer } from "@/components/zones";
 import {
   getFeaturedArticle,
   getSecondaryArticles,
@@ -18,10 +19,14 @@ import {
   getTrendingStories,
   getVideos,
   getBreakingNews,
+  getHomepageContent,
 } from "@/lib/data";
 
 export default async function Home() {
-  // Fetch all data in parallel
+  // Try to get page builder content first
+  const pageContent = await getHomepageContent();
+
+  // Fetch all fallback data in parallel (for when page builder is not configured)
   const [
     featuredArticle,
     secondaryArticles,
@@ -38,8 +43,11 @@ export default async function Home() {
     getBreakingNews(),
   ]);
 
-  // Handle case where no featured article exists
-  if (!featuredArticle) {
+  // If page builder is configured, render zones
+  const usePageBuilder = pageContent && pageContent.size > 0;
+
+  // Handle case where no featured article exists (and no page builder)
+  if (!featuredArticle && !usePageBuilder) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
@@ -51,6 +59,12 @@ export default async function Home() {
     );
   }
 
+  // Helper to get zone content
+  const getZoneContent = (zoneSlug: string) => {
+    if (!pageContent) return null;
+    return pageContent.get(zoneSlug);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -59,16 +73,30 @@ export default async function Home() {
       {/* Market Ticker - fetches live data from Yahoo Finance */}
       <MarketTicker />
 
-      {/* Breaking News */}
-      <BreakingNewsBanner news={breakingNews} />
+      {/* Breaking News - use zone if configured, otherwise fallback */}
+      {usePageBuilder && getZoneContent("breaking-banner") ? (
+        <ZoneRenderer
+          zoneType={getZoneContent("breaking-banner")!.zoneType}
+          content={getZoneContent("breaking-banner")!.content}
+        />
+      ) : (
+        <BreakingNewsBanner news={breakingNews} />
+      )}
 
       {/* Main Content */}
       <main id="main-content" className="flex-1">
-        {/* Hero Section */}
-        <HeroSection
-          featuredArticle={featuredArticle}
-          secondaryArticles={secondaryArticles}
-        />
+        {/* Hero Section - use zone if configured, otherwise fallback */}
+        {usePageBuilder && getZoneContent("hero-featured") ? (
+          <ZoneRenderer
+            zoneType={getZoneContent("hero-featured")!.zoneType}
+            content={getZoneContent("hero-featured")!.content}
+          />
+        ) : featuredArticle ? (
+          <HeroSection
+            featuredArticle={featuredArticle}
+            secondaryArticles={secondaryArticles}
+          />
+        ) : null}
 
         {/* Category Navigation */}
         <CategoryNav />
@@ -90,22 +118,44 @@ export default async function Home() {
 
             {/* Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Article Grid - 2/3 width */}
+              {/* Article Grid - 2/3 width - use zone if configured */}
               <div className="lg:col-span-2">
-                <ArticleGrid articles={topStories} />
+                {usePageBuilder && getZoneContent("article-grid") ? (
+                  <ZoneRenderer
+                    zoneType={getZoneContent("article-grid")!.zoneType}
+                    content={getZoneContent("article-grid")!.content}
+                  />
+                ) : (
+                  <ArticleGrid articles={topStories} />
+                )}
               </div>
 
               {/* Sidebar - 1/3 width */}
               <div className="lg:col-span-1">
-                <TrendingSidebar stories={trendingStories} />
+                {usePageBuilder && getZoneContent("trending-sidebar") ? (
+                  <ZoneRenderer
+                    zoneType={getZoneContent("trending-sidebar")!.zoneType}
+                    content={getZoneContent("trending-sidebar")!.content}
+                  />
+                ) : (
+                  <TrendingSidebar stories={trendingStories} />
+                )}
                 <MarketMovers />
               </div>
             </div>
           </div>
         </section>
 
-        {/* Video Section */}
-        <VideoCarousel videos={videos} />
+        {/* Video Section - use zone if configured */}
+        {usePageBuilder && getZoneContent("video-carousel") ? (
+          <ZoneRenderer
+            zoneType={getZoneContent("video-carousel")!.zoneType}
+            content={getZoneContent("video-carousel")!.content}
+            className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"
+          />
+        ) : (
+          <VideoCarousel videos={videos} />
+        )}
       </main>
 
       {/* Footer */}

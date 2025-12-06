@@ -9,11 +9,13 @@ import {
   Users,
   ArrowLeft,
   Activity,
-  Brain
+  Brain,
+  LayoutGrid
 } from "lucide-react"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/page-builder", label: "Page Builder", icon: LayoutGrid },
   { href: "/admin/articles", label: "Articles", icon: FileText },
   { href: "/admin/analysis", label: "AI Analysis", icon: Brain },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },

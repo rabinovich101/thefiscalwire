@@ -376,5 +376,204 @@ export async function getArticleCountByCategory(categorySlug: string): Promise<n
   })
 }
 
+// ============================================
+// Page Builder Data Functions
+// ============================================
+
+import { getPageZonesContent, type ResolvedContent } from './auto-fill'
+import type { ZoneContent } from '@/components/zones/types'
+
+export interface PageConfiguration {
+  id: string
+  name: string
+  slug: string
+  pageType: string
+  isActive: boolean
+  zones: PageZoneConfig[]
+}
+
+export interface PageZoneConfig {
+  id: string
+  slug: string
+  zoneType: string
+  isEnabled: boolean
+  sortOrder: number
+}
+
+/**
+ * Gets the page configuration for a specific page slug
+ */
+export async function getPageConfiguration(slug: string): Promise<PageConfiguration | null> {
+  const page = await prisma.pageDefinition.findFirst({
+    where: { slug, isActive: true },
+    include: {
+      zones: {
+        where: { isEnabled: true },
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          zoneDefinition: true,
+        },
+      },
+    },
+  })
+
+  if (!page) {
+    return null
+  }
+
+  return {
+    id: page.id,
+    name: page.name,
+    slug: page.slug,
+    pageType: page.pageType,
+    isActive: page.isActive,
+    zones: page.zones.map((zone) => ({
+      id: zone.id,
+      slug: zone.zoneDefinition?.slug || zone.id,
+      zoneType: zone.zoneDefinition?.zoneType || 'CUSTOM',
+      isEnabled: zone.isEnabled,
+      sortOrder: zone.sortOrder,
+    })),
+  }
+}
+
+/**
+ * Gets all content for a page by its slug, with zones resolved
+ */
+export async function getPageContent(
+  pageSlug: string
+): Promise<Map<string, { zoneType: string; content: ZoneContent[] }> | null> {
+  const zonesContent = await getPageZonesContent(pageSlug)
+
+  if (!zonesContent || zonesContent.size === 0) {
+    return null
+  }
+
+  // Transform to the expected format
+  const result = new Map<string, { zoneType: string; content: ZoneContent[] }>()
+
+  for (const [zoneSlug, data] of zonesContent) {
+    result.set(zoneSlug, {
+      zoneType: data.zoneType,
+      content: data.content.map(transformZoneContent),
+    })
+  }
+
+  return result
+}
+
+/**
+ * Transform auto-fill content to zone content format
+ */
+function transformZoneContent(item: ResolvedContent): ZoneContent {
+  if ('slug' in item) {
+    // It's an article
+    return {
+      id: item.id,
+      title: item.title,
+      slug: item.slug,
+      excerpt: item.excerpt,
+      imageUrl: item.imageUrl,
+      publishedAt: item.publishedAt,
+      isFeatured: item.isFeatured,
+      isBreaking: item.isBreaking,
+      category: item.category,
+      author: item.author,
+    }
+  } else {
+    // It's a video
+    return {
+      id: item.id,
+      title: item.title,
+      thumbnail: item.thumbnail,
+      duration: item.duration,
+      category: item.category,
+      createdAt: item.createdAt,
+    }
+  }
+}
+
+/**
+ * Gets homepage configuration
+ */
+export async function getHomepageConfiguration(): Promise<PageConfiguration | null> {
+  return getPageConfiguration('homepage')
+}
+
+/**
+ * Gets homepage content with all zones resolved
+ */
+export async function getHomepageContent(): Promise<Map<string, { zoneType: string; content: ZoneContent[] }> | null> {
+  return getPageContent('homepage')
+}
+
+/**
+ * Gets category page configuration
+ */
+export async function getCategoryPageConfiguration(
+  categorySlug: string
+): Promise<PageConfiguration | null> {
+  // First try to find a specific category page
+  const specificPage = await prisma.pageDefinition.findFirst({
+    where: {
+      isActive: true,
+      pageType: 'CATEGORY',
+      category: { slug: categorySlug },
+    },
+    include: {
+      zones: {
+        where: { isEnabled: true },
+        orderBy: { sortOrder: 'asc' },
+        include: {
+          zoneDefinition: true,
+        },
+      },
+    },
+  })
+
+  if (specificPage) {
+    return {
+      id: specificPage.id,
+      name: specificPage.name,
+      slug: specificPage.slug,
+      pageType: specificPage.pageType,
+      isActive: specificPage.isActive,
+      zones: specificPage.zones.map((zone) => ({
+        id: zone.id,
+        slug: zone.zoneDefinition?.slug || zone.id,
+        zoneType: zone.zoneDefinition?.zoneType || 'CUSTOM',
+        isEnabled: zone.isEnabled,
+        sortOrder: zone.sortOrder,
+      })),
+    }
+  }
+
+  // Fall back to a generic category template
+  return getPageConfiguration('category-template')
+}
+
+/**
+ * Gets category page content with all zones resolved
+ */
+export async function getCategoryPageContent(
+  categorySlug: string
+): Promise<Map<string, { zoneType: string; content: ZoneContent[] }> | null> {
+  // First try to find a specific category page
+  const specificPage = await prisma.pageDefinition.findFirst({
+    where: {
+      isActive: true,
+      pageType: 'CATEGORY',
+      category: { slug: categorySlug },
+    },
+  })
+
+  if (specificPage) {
+    return getPageContent(specificPage.slug)
+  }
+
+  // Fall back to category-template
+  return getPageContent('category-template')
+}
+
 // Export category colors for use in components
 export { categoryColors }

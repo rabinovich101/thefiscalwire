@@ -30,6 +30,9 @@ model Category {
 
   // All articles in this category (many-to-many)
   articles         Article[] @relation("ArticleCategories")
+
+  // Page definitions for this category
+  pageDefinitions  PageDefinition[]
 }
 
 model Tag {
@@ -88,6 +91,9 @@ model Article {
   // AI Analysis relation
   analysis         ArticleAnalysis?
 
+  // Page builder placements
+  placements       ContentPlacement[]
+
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -115,6 +121,9 @@ model Video {
   category  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Page builder placements
+  placements ContentPlacement[]
 }
 
 model BreakingNews {
@@ -148,6 +157,9 @@ model User {
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
+
+  // Page builder placements created by this user
+  contentPlacements ContentPlacement[]
 }
 
 model Account {
@@ -258,4 +270,200 @@ model ArticleAnalysis {
   @@index([primaryStock])
   @@index([sentiment])
   @@index([businessType])
+}
+
+// ============ Page Builder Models ============
+
+enum PageType {
+  HOMEPAGE
+  CATEGORY
+  STOCK
+  CUSTOM
+}
+
+enum ZoneType {
+  HERO_FEATURED       // Large featured article
+  HERO_SECONDARY      // Secondary articles next to hero
+  ARTICLE_GRID        // Grid of article cards
+  ARTICLE_LIST        // Vertical list of articles
+  TRENDING_SIDEBAR    // Numbered trending list
+  BREAKING_BANNER     // Breaking news banner
+  MARKET_TICKER       // Stock ticker
+  MARKET_MOVERS       // Top gainers/losers
+  VIDEO_CAROUSEL      // Video slider
+  CATEGORY_NAV        // Category navigation
+  CUSTOM_HTML         // Custom HTML/embed
+  STOCK_CHART         // Stock chart widget
+  STOCK_NEWS          // Stock-related news
+}
+
+enum ContentType {
+  ARTICLE
+  VIDEO
+  CUSTOM
+  AUTO  // Filled by auto-fill rules
+}
+
+// Represents a page that can have managed layouts
+model PageDefinition {
+  id          String   @id @default(uuid())
+  name        String   // "Homepage", "Category: US Markets", "Stock: AAPL"
+  slug        String   @unique // "homepage", "category-us-markets", "stock-aapl"
+  pageType    PageType
+
+  // For dynamic pages, store the reference
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  stockSymbol String?  // For stock pages
+
+  // Layout configuration
+  layoutId    String?
+  layout      LayoutTemplate? @relation(fields: [layoutId], references: [id])
+
+  // Status
+  isActive    Boolean  @default(true)
+
+  // Zones on this page
+  zones       PageZone[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pageType])
+  @@index([slug])
+}
+
+// Layout templates define zone arrangements
+model LayoutTemplate {
+  id          String   @id @default(uuid())
+  name        String   // "Homepage Default", "Category Grid", "Stock Focus"
+  description String?
+
+  // JSON configuration for grid layout
+  gridConfig  Json     // { "columns": 12, "rows": "auto", "areas": [...] }
+
+  // Preview thumbnail
+  thumbnail   String?
+
+  pages       PageDefinition[]
+  zones       ZoneDefinition[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Zone definitions (templates for zones that can appear on pages)
+model ZoneDefinition {
+  id            String   @id @default(uuid())
+  name          String   // "Hero Featured", "Top Stories Grid", "Trending Sidebar"
+  slug          String   @unique // "hero-featured", "top-stories-grid"
+  description   String?
+
+  // Zone type determines rendering component
+  zoneType      ZoneType
+
+  // Layout position (CSS Grid area name or position)
+  gridArea      String?  // e.g., "hero", "main-left", "sidebar-right"
+
+  // Content constraints
+  minItems      Int      @default(1)
+  maxItems      Int      @default(10)
+
+  // Default auto-fill rules (JSON)
+  defaultRules  Json?    // { "source": "latest", "category": "us-markets", "limit": 6 }
+
+  // Which layouts this zone belongs to
+  layoutId      String?
+  layout        LayoutTemplate? @relation(fields: [layoutId], references: [id])
+
+  // Instances of this zone on pages
+  pageZones     PageZone[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Actual zone instance on a specific page
+model PageZone {
+  id              String   @id @default(uuid())
+
+  // Which page this zone is on
+  pageId          String
+  page            PageDefinition @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  // Zone definition (template)
+  zoneDefinitionId String
+  zoneDefinition   ZoneDefinition @relation(fields: [zoneDefinitionId], references: [id])
+
+  // Override settings for this instance
+  customName      String?  // Override display name
+  isEnabled       Boolean  @default(true)
+
+  // Display order within the page
+  sortOrder       Int      @default(0)
+
+  // Auto-fill rules (overrides zone definition defaults)
+  autoFillRules   Json?
+
+  // Content placements in this zone
+  placements      ContentPlacement[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([pageId, zoneDefinitionId])
+  @@index([pageId])
+}
+
+// Content placed in a specific zone
+model ContentPlacement {
+  id            String   @id @default(uuid())
+
+  // Which zone this placement is in
+  zoneId        String
+  zone          PageZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  // Content reference (polymorphic)
+  contentType   ContentType
+  articleId     String?
+  article       Article? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  videoId       String?
+  video         Video?   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  customContent Json?    // For custom HTML/widgets
+
+  // Placement position within zone
+  position      Int      @default(0)
+
+  // Pinned content doesn't get replaced by auto-fill
+  isPinned      Boolean  @default(false)
+
+  // Scheduling
+  startDate     DateTime?
+  endDate       DateTime?
+
+  // Created by
+  createdById   String?
+  createdBy     User?    @relation(fields: [createdById], references: [id])
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([zoneId, position])
+  @@index([zoneId])
+  @@index([articleId])
+}
+
+// Auto-fill rules configuration (reusable rules)
+model AutoFillRule {
+  id            String   @id @default(uuid())
+  name          String   // "Latest US Markets", "Featured Crypto"
+  description   String?
+
+  // Rule configuration (JSON)
+  config        Json     // { source, filters, sort, limit }
+
+  isActive      Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

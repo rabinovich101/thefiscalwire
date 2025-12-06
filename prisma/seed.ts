@@ -117,7 +117,16 @@ const stockChartData = {
 async function main() {
   console.log('🌱 Starting seed...')
 
-  // Clear existing data
+  // Clear existing data (order matters due to foreign keys)
+  // Page builder tables first
+  await prisma.contentPlacement.deleteMany()
+  await prisma.pageZone.deleteMany()
+  await prisma.pageDefinition.deleteMany()
+  await prisma.zoneDefinition.deleteMany()
+  await prisma.layoutTemplate.deleteMany()
+  await prisma.autoFillRule.deleteMany()
+
+  // Then content tables
   await prisma.article.deleteMany()
   await prisma.tag.deleteMany()
   await prisma.category.deleteMany()
@@ -1372,11 +1381,320 @@ async function main() {
     },
   })
 
+  // ============ Page Builder Seed Data ============
+  console.log('🏗️ Creating page builder data...')
+
+  // Create default layout template
+  const homepageLayout = await prisma.layoutTemplate.create({
+    data: {
+      name: 'Homepage Default',
+      description: 'Default homepage layout with hero, grid, and sidebar',
+      gridConfig: {
+        columns: 12,
+        rows: 'auto',
+        areas: [
+          { name: 'market-ticker', row: 1, colSpan: 12 },
+          { name: 'breaking-banner', row: 2, colSpan: 12 },
+          { name: 'hero', row: 3, colStart: 1, colSpan: 8 },
+          { name: 'hero-secondary', row: 3, colStart: 9, colSpan: 4 },
+          { name: 'category-nav', row: 4, colSpan: 12 },
+          { name: 'top-stories', row: 5, colStart: 1, colSpan: 8 },
+          { name: 'trending-sidebar', row: 5, colStart: 9, colSpan: 4 },
+          { name: 'video-carousel', row: 6, colSpan: 12 },
+        ],
+      },
+    },
+  })
+
+  const categoryLayout = await prisma.layoutTemplate.create({
+    data: {
+      name: 'Category Default',
+      description: 'Default category page layout with articles grid and sidebar',
+      gridConfig: {
+        columns: 12,
+        rows: 'auto',
+        areas: [
+          { name: 'category-hero', row: 1, colSpan: 12 },
+          { name: 'article-grid', row: 2, colStart: 1, colSpan: 8 },
+          { name: 'sidebar', row: 2, colStart: 9, colSpan: 4 },
+        ],
+      },
+    },
+  })
+
+  // Create zone definitions
+  const zoneDefinitions = await Promise.all([
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Hero Featured',
+        slug: 'hero-featured',
+        description: 'Large featured article at the top of the page',
+        zoneType: 'HERO_FEATURED',
+        gridArea: 'hero',
+        minItems: 1,
+        maxItems: 1,
+        defaultRules: { source: 'articles', filters: { isFeatured: true }, sort: 'publishedAt', limit: 1 },
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Hero Secondary',
+        slug: 'hero-secondary',
+        description: 'Secondary articles next to the hero',
+        zoneType: 'HERO_SECONDARY',
+        gridArea: 'hero-secondary',
+        minItems: 1,
+        maxItems: 3,
+        defaultRules: { source: 'articles', filters: { isFeatured: false }, sort: 'publishedAt', limit: 3 },
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Top Stories Grid',
+        slug: 'top-stories-grid',
+        description: '2-column grid of top stories',
+        zoneType: 'ARTICLE_GRID',
+        gridArea: 'top-stories',
+        minItems: 1,
+        maxItems: 6,
+        defaultRules: { source: 'articles', filters: {}, sort: 'publishedAt', limit: 6, skip: 4 },
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Trending Sidebar',
+        slug: 'trending-sidebar',
+        description: 'Numbered list of trending articles',
+        zoneType: 'TRENDING_SIDEBAR',
+        gridArea: 'trending-sidebar',
+        minItems: 1,
+        maxItems: 8,
+        defaultRules: { source: 'articles', filters: {}, sort: 'publishedAt', limit: 8 },
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Breaking News Banner',
+        slug: 'breaking-banner',
+        description: 'Breaking news banner at the top',
+        zoneType: 'BREAKING_BANNER',
+        gridArea: 'breaking-banner',
+        minItems: 0,
+        maxItems: 1,
+        defaultRules: { source: 'breaking', filters: { isActive: true }, limit: 1 },
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Market Ticker',
+        slug: 'market-ticker',
+        description: 'Live market data ticker',
+        zoneType: 'MARKET_TICKER',
+        gridArea: 'market-ticker',
+        minItems: 0,
+        maxItems: 1,
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Market Movers',
+        slug: 'market-movers',
+        description: 'Top gainers and losers widget',
+        zoneType: 'MARKET_MOVERS',
+        gridArea: 'market-movers',
+        minItems: 0,
+        maxItems: 1,
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Video Carousel',
+        slug: 'video-carousel',
+        description: 'Horizontal video carousel',
+        zoneType: 'VIDEO_CAROUSEL',
+        gridArea: 'video-carousel',
+        minItems: 1,
+        maxItems: 10,
+        defaultRules: { source: 'videos', sort: 'createdAt', limit: 4 },
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Category Navigation',
+        slug: 'category-nav',
+        description: 'Category navigation pills',
+        zoneType: 'CATEGORY_NAV',
+        gridArea: 'category-nav',
+        minItems: 0,
+        maxItems: 1,
+        layoutId: homepageLayout.id,
+      },
+    }),
+    prisma.zoneDefinition.create({
+      data: {
+        name: 'Article Grid',
+        slug: 'article-grid',
+        description: 'Paginated article grid for category pages',
+        zoneType: 'ARTICLE_GRID',
+        gridArea: 'article-grid',
+        minItems: 1,
+        maxItems: 20,
+        defaultRules: { source: 'articles', sort: 'publishedAt', limit: 8 },
+        layoutId: categoryLayout.id,
+      },
+    }),
+  ])
+
+  const zoneDefMap = Object.fromEntries(zoneDefinitions.map((z) => [z.slug, z.id]))
+
+  // Create homepage page definition with zones
+  const homepageDef = await prisma.pageDefinition.create({
+    data: {
+      name: 'Homepage',
+      slug: 'homepage',
+      pageType: 'HOMEPAGE',
+      isActive: true,
+      layoutId: homepageLayout.id,
+    },
+  })
+
+  // Create page zones for homepage
+  await Promise.all([
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['market-ticker'],
+        isEnabled: true,
+        sortOrder: 0,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['breaking-banner'],
+        isEnabled: true,
+        sortOrder: 1,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['hero-featured'],
+        isEnabled: true,
+        sortOrder: 2,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['hero-secondary'],
+        isEnabled: true,
+        sortOrder: 3,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['category-nav'],
+        isEnabled: true,
+        sortOrder: 4,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['top-stories-grid'],
+        isEnabled: true,
+        sortOrder: 5,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['trending-sidebar'],
+        isEnabled: true,
+        sortOrder: 6,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['market-movers'],
+        isEnabled: true,
+        sortOrder: 7,
+      },
+    }),
+    prisma.pageZone.create({
+      data: {
+        pageId: homepageDef.id,
+        zoneDefinitionId: zoneDefMap['video-carousel'],
+        isEnabled: true,
+        sortOrder: 8,
+      },
+    }),
+  ])
+
+  // Create some default auto-fill rules
+  await Promise.all([
+    prisma.autoFillRule.create({
+      data: {
+        name: 'Latest Articles',
+        description: 'Get the most recent articles',
+        config: { source: 'articles', filters: {}, sort: 'publishedAt', order: 'desc', limit: 10 },
+        isActive: true,
+      },
+    }),
+    prisma.autoFillRule.create({
+      data: {
+        name: 'Featured Articles',
+        description: 'Get featured articles only',
+        config: { source: 'articles', filters: { isFeatured: true }, sort: 'publishedAt', order: 'desc', limit: 5 },
+        isActive: true,
+      },
+    }),
+    prisma.autoFillRule.create({
+      data: {
+        name: 'US Markets Articles',
+        description: 'Articles from US Markets category',
+        config: { source: 'articles', filters: { categorySlug: 'us-markets' }, sort: 'publishedAt', order: 'desc', limit: 10 },
+        isActive: true,
+      },
+    }),
+    prisma.autoFillRule.create({
+      data: {
+        name: 'Crypto Articles',
+        description: 'Articles from Crypto category',
+        config: { source: 'articles', filters: { categorySlug: 'crypto' }, sort: 'publishedAt', order: 'desc', limit: 10 },
+        isActive: true,
+      },
+    }),
+    prisma.autoFillRule.create({
+      data: {
+        name: 'Tech Articles',
+        description: 'Articles from Tech category',
+        config: { source: 'articles', filters: { categorySlug: 'tech' }, sort: 'publishedAt', order: 'desc', limit: 10 },
+        isActive: true,
+      },
+    }),
+  ])
+
   console.log('✅ Seed completed successfully!')
   console.log(`   - ${authors.length} authors`)
   console.log(`   - ${categories.length} categories`)
   console.log(`   - ${tags.length} tags`)
   console.log(`   - 10 articles with full content`)
+  console.log(`   - 2 layout templates`)
+  console.log(`   - ${zoneDefinitions.length} zone definitions`)
+  console.log(`   - 1 homepage configuration with 9 zones`)
+  console.log(`   - 5 auto-fill rules`)
 }
 
 main()

@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/admin"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
+import { Toaster } from "@/components/ui/sonner"
 
 export default async function AdminLayout({
   children,
@@ -12,6 +13,7 @@ export default async function AdminLayout({
     <div className="flex min-h-screen bg-zinc-950">
       <AdminSidebar />
       <main className="flex-1 p-8">{children}</main>
+      <Toaster position="top-right" richColors />
     </div>
   )
 }
