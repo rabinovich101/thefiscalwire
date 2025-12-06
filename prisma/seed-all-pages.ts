@@ -27,16 +27,24 @@ async function main() {
 
   // Step 2: Get all categories with articles
   console.log('\n2. Getting categories with articles...')
-  const categories = await prisma.category.findMany({
-    include: {
-      articles: {
-        orderBy: { publishedAt: 'desc' },
-        take: 10,
-      },
-      _count: { select: { articles: true } }
+  const categories = await prisma.category.findMany()
+
+  // Get articles for each category directly (more reliable than _count)
+  const categoriesWithArticles = []
+  for (const category of categories) {
+    const articles = await prisma.article.findMany({
+      where: { categoryId: category.id },
+      orderBy: { publishedAt: 'desc' },
+      take: 10,
+    })
+    if (articles.length > 0) {
+      categoriesWithArticles.push({
+        ...category,
+        articles,
+        _count: { articles: articles.length }
+      })
     }
-  })
-  const categoriesWithArticles = categories.filter((c: any) => c._count.articles > 0)
+  }
   console.log(`   Found ${categoriesWithArticles.length} categories with articles`)
 
   // Step 3: Update Homepage with all content

@@ -114,7 +114,8 @@
       "WebFetch(domain:www.bloomberg.com)",
       "Bash(npx tsx:*)",
       "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx tsx:*)",
-      "Bash(git check-ignore:*)"
+      "Bash(git check-ignore:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx prisma migrate:*)"
     ],
     "deny": [],
     "ask": []
