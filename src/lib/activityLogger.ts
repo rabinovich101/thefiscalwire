@@ -9,6 +9,8 @@ interface ImportDetails {
   skipped: number;
   errors: number;
   aiEnhanced: number;
+  analyzed?: number;
+  analysisFailed?: number;
   articles?: Array<{ title: string; status: string }>;
 }
 
@@ -152,5 +154,26 @@ export async function logPerplexityBatch({
     count: totalCalls,
     status: status as ActivityStatus,
     errorMessage: failedCalls > 0 ? `${failedCalls} API calls failed` : undefined,
+  });
+}
+
+// Log article analysis stats
+export async function logArticleAnalysis({
+  totalAnalyzed,
+  analysisFailed,
+}: {
+  totalAnalyzed: number;
+  analysisFailed: number;
+}) {
+  const status = analysisFailed > 0 ? 'WARNING' : 'SUCCESS';
+  const action = `Article Analysis: ${totalAnalyzed} analyzed, ${analysisFailed} failed`;
+
+  return logActivity({
+    type: 'ARTICLE_ANALYSIS',
+    action,
+    details: { totalAnalyzed, analysisFailed },
+    count: totalAnalyzed,
+    status: status as ActivityStatus,
+    errorMessage: analysisFailed > 0 ? `${analysisFailed} articles failed analysis` : undefined,
   });
 }

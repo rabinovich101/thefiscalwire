@@ -8,12 +8,14 @@ import {
   FolderOpen,
   Users,
   ArrowLeft,
-  Activity
+  Activity,
+  Brain
 } from "lucide-react"
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/articles", label: "Articles", icon: FileText },
+  { href: "/admin/analysis", label: "AI Analysis", icon: Brain },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/authors", label: "Authors", icon: Users },
   { href: "/admin/activity-logs", label: "Activity Logs", icon: Activity },

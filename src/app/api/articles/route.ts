@@ -49,10 +49,42 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
     const limit = parseInt(searchParams.get('limit') || '8')
 
+    // Analysis filter parameters
+    const sector = searchParams.get('sector')
+    const stock = searchParams.get('stock')
+    const market = searchParams.get('market')
+    const sentiment = searchParams.get('sentiment')
+    const businessType = searchParams.get('businessType')
+
     // Build where clause
     const where: any = {}
     if (category) {
       where.category = { slug: category }
+    }
+
+    // Add analysis filters
+    if (sector || stock || market || sentiment || businessType) {
+      where.analysis = {}
+
+      if (sector) {
+        where.analysis.primarySector = sector
+      }
+
+      if (stock) {
+        where.analysis.mentionedStocks = { has: stock.toUpperCase() }
+      }
+
+      if (market) {
+        where.analysis.markets = { has: market }
+      }
+
+      if (sentiment) {
+        where.analysis.sentiment = sentiment
+      }
+
+      if (businessType) {
+        where.analysis.businessType = businessType
+      }
     }
 
     // Get total count for pagination info
@@ -64,6 +96,7 @@ export async function GET(request: NextRequest) {
       include: {
         author: true,
         category: true,
+        analysis: true,
       },
       orderBy: { publishedAt: 'desc' },
       skip: offset,

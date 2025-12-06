@@ -13,7 +13,8 @@ import {
   convertRewrittenToBlocks,
   delay,
 } from '@/lib/perplexity';
-import { logImport, logNewsApiUsage, logPerplexityBatch, logError } from '@/lib/activityLogger';
+import { analyzeArticleWithAI } from '@/lib/article-analyzer';
+import { logImport, logNewsApiUsage, logPerplexityBatch, logError, logArticleAnalysis } from '@/lib/activityLogger';
 
 // Force dynamic - no caching for cron jobs
 export const dynamic = 'force-dynamic';
@@ -132,19 +133,38 @@ async function ensureUniqueSlug(baseSlug: string): Promise<string> {
 }
 
 /**
- * Import a single article from NewsData with AI enhancement
+ * Import a single article from NewsData with AI analysis and enhancement
  */
 async function importArticle(
   article: NewsDataArticle,
   authorId: string
-): Promise<{ success: boolean; articleId?: string; error?: string; aiEnhanced?: boolean }> {
+): Promise<{ success: boolean; articleId?: string; error?: string; aiEnhanced?: boolean; analyzed?: boolean }> {
   try {
     // Check if already imported
     if (await articleExists(article.article_id)) {
       return { success: false, error: 'Already imported' };
     }
 
-    // Try to rewrite with Perplexity AI
+    console.log(`[Import] Processing article: "${article.title.substring(0, 50)}..."`);
+
+    // Step 1: Analyze article with AI (required - skip if fails)
+    console.log(`[Import] Analyzing article...`);
+    const analysisResult = await analyzeArticleWithAI(
+      article.title,
+      article.content || article.description || ''
+    );
+
+    if (!analysisResult) {
+      console.log(`[Import] Analysis failed - skipping article`);
+      return { success: false, error: 'Analysis failed' };
+    }
+
+    console.log(`[Import] Analysis complete: ${analysisResult.primarySector || 'no sector'}, ${analysisResult.mentionedStocks.length} stocks`);
+
+    // Add delay between Perplexity calls
+    await delay(1000);
+
+    // Step 2: Try to rewrite with Perplexity AI
     let title = article.title;
     let excerpt = article.description || article.title;
     let contentBlocks: object[];
@@ -152,8 +172,6 @@ async function importArticle(
     let seoKeywords: string[] = [];
     let isAiEnhanced = false;
     let allTagKeywords = article.keywords || [];
-
-    console.log(`[Import] Processing article: "${article.title.substring(0, 50)}..."`);
 
     const rewritten = await rewriteArticleWithPerplexity(article.title, article.content);
 
@@ -195,10 +213,12 @@ async function importArticle(
     // Get or create tags (including AI-suggested tags)
     const tagIds = await getOrCreateTags(allTagKeywords);
 
-    // Extract tickers from both original and rewritten content
-    const tickers = extractTickers(article.content, title);
+    // Use tickers from analysis (more accurate than regex extraction)
+    const tickers = analysisResult.mentionedStocks.length > 0
+      ? analysisResult.mentionedStocks
+      : extractTickers(article.content, title);
 
-    // Create article with AI-enhanced fields
+    // Step 3: Create article with analysis in a single create
     const newArticle = await prisma.article.create({
       data: {
         title,
@@ -221,10 +241,29 @@ async function importArticle(
         tags: {
           connect: tagIds.map(id => ({ id })),
         },
+        // Create analysis record
+        analysis: {
+          create: {
+            markets: analysisResult.markets,
+            primarySector: analysisResult.primarySector,
+            secondarySectors: analysisResult.secondarySectors,
+            subSectors: analysisResult.subSectors,
+            industries: analysisResult.industries,
+            primaryStock: analysisResult.primaryStock,
+            mentionedStocks: analysisResult.mentionedStocks,
+            competitors: analysisResult.competitors,
+            businessType: analysisResult.businessType,
+            sentiment: analysisResult.sentiment,
+            impactLevel: analysisResult.impactLevel,
+            aiModel: 'sonar',
+            confidence: analysisResult.confidence,
+            rawResponse: analysisResult as object,
+          },
+        },
       },
     });
 
-    return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced };
+    return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced, analyzed: true };
   } catch (error) {
     console.error(`[Import] Failed to import article ${article.article_id}:`, error);
     return { success: false, error: String(error) };
@@ -295,6 +334,8 @@ export async function GET(request: Request) {
       skipped: 0,
       errors: 0,
       aiEnhanced: 0,
+      analyzed: 0,
+      analysisFailed: 0,
       details: [] as { title: string; status: string }[],
     };
 
@@ -309,13 +350,19 @@ export async function GET(request: Request) {
         if (result.aiEnhanced) {
           results.aiEnhanced++;
         }
+        if (result.analyzed) {
+          results.analyzed++;
+        }
         results.details.push({
           title: article.title,
-          status: result.aiEnhanced ? 'imported (AI-enhanced)' : 'imported',
+          status: result.aiEnhanced ? 'imported (AI-enhanced + analyzed)' : 'imported (analyzed)',
         });
       } else if (result.error === 'Already imported') {
         results.skipped++;
         results.details.push({ title: article.title, status: 'skipped (duplicate)' });
+      } else if (result.error === 'Analysis failed') {
+        results.analysisFailed++;
+        results.details.push({ title: article.title, status: 'skipped (analysis failed)' });
       } else {
         results.errors++;
         results.details.push({ title: article.title, status: `error: ${result.error}` });
@@ -327,7 +374,7 @@ export async function GET(request: Request) {
       }
     }
 
-    console.log(`[Cron] Import complete: ${results.imported} imported (${results.aiEnhanced} AI-enhanced), ${results.skipped} skipped, ${results.errors} errors`);
+    console.log(`[Cron] Import complete: ${results.imported} imported (${results.aiEnhanced} AI-enhanced, ${results.analyzed} analyzed), ${results.skipped} skipped, ${results.analysisFailed} analysis failed, ${results.errors} errors`);
 
     // Log import completion
     await logImport({
@@ -336,6 +383,8 @@ export async function GET(request: Request) {
       skipped: results.skipped,
       errors: results.errors,
       aiEnhanced: results.aiEnhanced,
+      analyzed: results.analyzed,
+      analysisFailed: results.analysisFailed,
       articles: results.details,
     });
 
@@ -345,6 +394,14 @@ export async function GET(request: Request) {
         totalCalls: results.imported + results.errors,
         successfulCalls: results.aiEnhanced,
         failedCalls: results.imported - results.aiEnhanced + results.errors,
+      });
+    }
+
+    // Log article analysis stats
+    if (results.analyzed > 0 || results.analysisFailed > 0) {
+      await logArticleAnalysis({
+        totalAnalyzed: results.analyzed,
+        analysisFailed: results.analysisFailed,
       });
     }
 

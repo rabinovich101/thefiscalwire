@@ -18,6 +18,7 @@ import {
   convertRewrittenToBlocks,
   delay,
 } from '../src/lib/perplexity';
+import { analyzeArticleWithAI, ArticleAnalysisResult } from '../src/lib/article-analyzer';
 
 const prisma = new PrismaClient();
 
@@ -125,12 +126,32 @@ async function ensureUniqueSlug(baseSlug: string): Promise<string> {
 async function importArticle(
   article: NewsDataArticle,
   authorId: string
-): Promise<{ success: boolean; articleId?: string; error?: string; aiEnhanced?: boolean }> {
+): Promise<{ success: boolean; articleId?: string; error?: string; aiEnhanced?: boolean; analyzed?: boolean }> {
   try {
     if (await articleExists(article.article_id)) {
       return { success: false, error: 'Already imported' };
     }
 
+    console.log(`[Import] Processing: "${article.title.substring(0, 60)}..."`);
+
+    // Step 1: Analyze article with AI (required - skip if fails)
+    console.log(`  → Analyzing article...`);
+    const analysisResult = await analyzeArticleWithAI(
+      article.title,
+      article.content || article.description || ''
+    );
+
+    if (!analysisResult) {
+      console.log(`  ✗ Analysis failed - skipping article`);
+      return { success: false, error: 'Analysis failed' };
+    }
+
+    console.log(`  ✓ Analysis complete: ${analysisResult.primarySector || 'no sector'}, ${analysisResult.mentionedStocks.length} stocks`);
+
+    // Add delay between Perplexity calls
+    await delay(1000);
+
+    // Step 2: Rewrite article with Perplexity
     let title = article.title;
     let excerpt = article.description || article.title;
     let contentBlocks: object[];
@@ -138,8 +159,6 @@ async function importArticle(
     let seoKeywords: string[] = [];
     let isAiEnhanced = false;
     let allTagKeywords = article.keywords || [];
-
-    console.log(`[Import] Processing: "${article.title.substring(0, 60)}..."`);
 
     const rewritten = await rewriteArticleWithPerplexity(article.title, article.content);
 
@@ -170,8 +189,13 @@ async function importArticle(
     const categorySlug = mapCategory(article.category);
     const categoryId = await getCategoryId(categorySlug);
     const tagIds = await getOrCreateTags(allTagKeywords);
-    const tickers = extractTickers(article.content, title);
 
+    // Use tickers from analysis (more accurate than regex extraction)
+    const tickers = analysisResult.mentionedStocks.length > 0
+      ? analysisResult.mentionedStocks
+      : extractTickers(article.content, title);
+
+    // Step 3: Create article with analysis in a transaction
     const newArticle = await prisma.article.create({
       data: {
         title,
@@ -194,10 +218,29 @@ async function importArticle(
         tags: {
           connect: tagIds.map(id => ({ id })),
         },
+        // Create analysis record
+        analysis: {
+          create: {
+            markets: analysisResult.markets,
+            primarySector: analysisResult.primarySector,
+            secondarySectors: analysisResult.secondarySectors,
+            subSectors: analysisResult.subSectors,
+            industries: analysisResult.industries,
+            primaryStock: analysisResult.primaryStock,
+            mentionedStocks: analysisResult.mentionedStocks,
+            competitors: analysisResult.competitors,
+            businessType: analysisResult.businessType,
+            sentiment: analysisResult.sentiment,
+            impactLevel: analysisResult.impactLevel,
+            aiModel: 'sonar',
+            confidence: analysisResult.confidence,
+            rawResponse: analysisResult as object,
+          },
+        },
       },
     });
 
-    return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced };
+    return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced, analyzed: true };
   } catch (error) {
     console.error(`[Import] Failed:`, error);
     return { success: false, error: String(error) };
@@ -231,6 +274,8 @@ async function main() {
       skipped: 0,
       errors: 0,
       aiEnhanced: 0,
+      analyzed: 0,
+      analysisFailed: 0,
     };
 
     for (let i = 0; i < articles.length; i++) {
@@ -244,9 +289,12 @@ async function main() {
       if (result.success) {
         results.imported++;
         if (result.aiEnhanced) results.aiEnhanced++;
+        if (result.analyzed) results.analyzed++;
       } else if (result.error === 'Already imported') {
         results.skipped++;
         console.log(`  ⏭ Skipped (duplicate)`);
+      } else if (result.error === 'Analysis failed') {
+        results.analysisFailed++;
       } else {
         results.errors++;
         console.log(`  ✗ Error: ${result.error}`);
@@ -261,9 +309,12 @@ async function main() {
     console.log('');
     console.log('='.repeat(60));
     console.log('📊 Results:');
-    console.log(`  Imported: ${results.imported} (${results.aiEnhanced} AI-enhanced)`);
-    console.log(`  Skipped:  ${results.skipped}`);
-    console.log(`  Errors:   ${results.errors}`);
+    console.log(`  Imported:         ${results.imported}`);
+    console.log(`  AI-enhanced:      ${results.aiEnhanced}`);
+    console.log(`  Analyzed:         ${results.analyzed}`);
+    console.log(`  Analysis Failed:  ${results.analysisFailed}`);
+    console.log(`  Skipped:          ${results.skipped}`);
+    console.log(`  Errors:           ${results.errors}`);
     console.log('='.repeat(60));
   } catch (error) {
     console.error('Import failed:', error);

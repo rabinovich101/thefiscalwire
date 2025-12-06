@@ -76,6 +76,9 @@ model Article {
   relatedTo        Article[] @relation("RelatedArticles")
   relatedFrom      Article[] @relation("RelatedArticles")
 
+  // AI Analysis relation
+  analysis         ArticleAnalysis?
+
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -176,11 +179,12 @@ model VerificationToken {
 // ============ Activity Logging Models ============
 
 enum ActivityType {
-  IMPORT          // Article import from NewsData.io
-  PERPLEXITY_API  // Perplexity AI API usage
-  NEWS_API        // NewsData.io API call
-  ERROR           // Any error in automation
-  SYSTEM          // System events
+  IMPORT            // Article import from NewsData.io
+  PERPLEXITY_API    // Perplexity AI API usage
+  NEWS_API          // NewsData.io API call
+  ARTICLE_ANALYSIS  // AI article analysis
+  ERROR             // Any error in automation
+  SYSTEM            // System events
 }
 
 enum ActivityStatus {
@@ -203,4 +207,46 @@ model ActivityLog {
   @@index([type])
   @@index([status])
   @@index([createdAt])
+}
+
+// ============ AI Article Analysis ============
+
+model ArticleAnalysis {
+  id            String   @id @default(uuid())
+  articleId     String   @unique
+  article       Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Market Classification
+  markets       String[] @default([]) // ["US", "Europe", "Asia", "Crypto", "Forex"]
+
+  // Sector Classification (aligned with existing 11 sectors)
+  primarySector    String?   // e.g., "technology"
+  secondarySectors String[]  @default([]) // e.g., ["healthcare", "financial"]
+
+  // Sub-sector/Industry
+  subSectors    String[] @default([]) // e.g., ["semiconductors", "cloud computing"]
+  industries    String[] @default([]) // e.g., ["artificial intelligence", "data centers"]
+
+  // Stock Analysis
+  primaryStock    String?   // Main stock the article is about
+  mentionedStocks String[]  @default([]) // All mentioned stocks
+  competitors     Json?     // { "NVDA": ["AMD", "INTC"] }
+
+  // Business Classification
+  businessType    String?   // "earnings", "merger", "product_launch", etc.
+  sentiment       String?   // "bullish", "bearish", "neutral"
+  impactLevel     String?   // "high", "medium", "low"
+
+  // AI Metadata
+  aiModel         String    // "sonar"
+  confidence      Float?    // AI confidence score (0-1)
+  rawResponse     Json?     // Full AI response for debugging
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([primarySector])
+  @@index([primaryStock])
+  @@index([sentiment])
+  @@index([businessType])
 }
