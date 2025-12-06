@@ -113,7 +113,8 @@
       "WebFetch(domain:www.cnn.com)",
       "WebFetch(domain:www.bloomberg.com)",
       "Bash(npx tsx:*)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx tsx:*)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx tsx:*)",
+      "Bash(git check-ignore:*)"
     ],
     "deny": [],
     "ask": []
