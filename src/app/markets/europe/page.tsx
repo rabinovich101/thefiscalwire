@@ -24,8 +24,8 @@ const PAGE_SIZE = 8;
 
 export default async function EuropeMarketsPage() {
   const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory("europe-markets", PAGE_SIZE),
-    getArticleCountByCategory("europe-markets"),
+    getArticlesByCategory("european-markets", PAGE_SIZE),
+    getArticleCountByCategory("european-markets"),
     getTrendingStories(8),
   ]);
 
@@ -58,7 +58,7 @@ export default async function EuropeMarketsPage() {
               <div className="lg:col-span-2">
                 <LoadMoreArticles
                   initialArticles={articles}
-                  category="europe-markets"
+                  category="european-markets"
                   initialTotal={totalCount}
                   pageSize={PAGE_SIZE}
                 />

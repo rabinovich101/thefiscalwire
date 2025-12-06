@@ -24,8 +24,8 @@ const PAGE_SIZE = 8;
 
 export default async function HealthSciencePage() {
   const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory("health-science", PAGE_SIZE),
-    getArticleCountByCategory("health-science"),
+    getArticlesByCategory("healthcare", PAGE_SIZE),
+    getArticleCountByCategory("healthcare"),
     getTrendingStories(8),
   ]);
 
@@ -58,7 +58,7 @@ export default async function HealthSciencePage() {
               <div className="lg:col-span-2">
                 <LoadMoreArticles
                   initialArticles={articles}
-                  category="health-science"
+                  category="healthcare"
                   initialTotal={totalCount}
                   pageSize={PAGE_SIZE}
                 />
