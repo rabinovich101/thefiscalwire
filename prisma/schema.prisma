@@ -279,6 +279,8 @@ enum PageType {
   CATEGORY
   STOCK
   CUSTOM
+  STATIC
+  MARKETS
 }
 
 enum ZoneType {

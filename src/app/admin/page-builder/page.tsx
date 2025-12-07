@@ -11,7 +11,10 @@ import {
   Settings,
   ChevronRight,
   Clock,
-  Layers
+  Layers,
+  RefreshCw,
+  Loader2,
+  Globe
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,11 +44,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+interface SyncStatus {
+  discovered: number
+  existing: number
+  missing: number
+  missingPages: Array<{ name: string; slug: string }>
+}
+
 interface PageDefinition {
   id: string
   name: string
   slug: string
-  pageType: "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM"
+  pageType: "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM" | "STATIC" | "MARKETS"
   isActive: boolean
   category?: { id: string; name: string; slug: string } | null
   stockSymbol?: string | null
@@ -71,6 +81,8 @@ const pageTypeIcons = {
   CATEGORY: FolderOpen,
   STOCK: TrendingUp,
   CUSTOM: Settings,
+  STATIC: Globe,
+  MARKETS: TrendingUp,
 }
 
 const pageTypeColors = {
@@ -78,6 +90,8 @@ const pageTypeColors = {
   CATEGORY: "bg-green-500",
   STOCK: "bg-purple-500",
   CUSTOM: "bg-orange-500",
+  STATIC: "bg-gray-500",
+  MARKETS: "bg-indigo-500",
 }
 
 export default function PageBuilderDashboard() {
@@ -88,10 +102,14 @@ export default function PageBuilderDashboard() {
   const [newPage, setNewPage] = useState({
     name: "",
     slug: "",
-    pageType: "CUSTOM" as "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM",
+    pageType: "CUSTOM" as "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM" | "STATIC" | "MARKETS",
     categoryId: "",
     stockSymbol: "",
   })
+  const [syncOpen, setSyncOpen] = useState(false)
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncLoading, setSyncLoading] = useState(false)
 
   useEffect(() => {
     fetchPages()
@@ -122,6 +140,44 @@ export default function PageBuilderDashboard() {
     } catch (error) {
       console.error("Failed to fetch categories:", error)
     }
+  }
+
+  async function fetchSyncStatus() {
+    setSyncLoading(true)
+    try {
+      const res = await fetch("/api/admin/page-builder/sync")
+      if (res.ok) {
+        const data = await res.json()
+        setSyncStatus(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch sync status:", error)
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  async function handleSync() {
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/admin/page-builder/sync", {
+        method: "POST",
+      })
+      if (res.ok) {
+        setSyncOpen(false)
+        setSyncStatus(null)
+        fetchPages()
+      }
+    } catch (error) {
+      console.error("Failed to sync pages:", error)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  function openSyncDialog() {
+    setSyncOpen(true)
+    fetchSyncStatus()
   }
 
   async function createPage() {
@@ -192,13 +248,97 @@ export default function PageBuilderDashboard() {
           </p>
         </div>
 
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              New Page
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2" onClick={openSyncDialog}>
+                <RefreshCw className="w-4 h-4" />
+                Sync Pages
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-900 border-zinc-800">
+              <DialogHeader>
+                <DialogTitle className="text-white">Sync Pages</DialogTitle>
+                <DialogDescription>
+                  Automatically discover and create pages from your database content.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 py-4">
+                {syncLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+                  </div>
+                ) : syncStatus ? (
+                  <>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-zinc-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-white">{syncStatus.discovered}</div>
+                        <div className="text-sm text-zinc-400">Discovered</div>
+                      </div>
+                      <div className="bg-zinc-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-500">{syncStatus.existing}</div>
+                        <div className="text-sm text-zinc-400">Existing</div>
+                      </div>
+                      <div className="bg-zinc-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-yellow-500">{syncStatus.missing}</div>
+                        <div className="text-sm text-zinc-400">Missing</div>
+                      </div>
+                    </div>
+
+                    {syncStatus.missing > 0 && (
+                      <div className="bg-zinc-800 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-white mb-2">Pages to be created:</h4>
+                        <ul className="space-y-1 max-h-40 overflow-y-auto">
+                          {syncStatus.missingPages.map((page, i) => (
+                            <li key={i} className="text-sm text-zinc-400">
+                              {page.name} <span className="text-zinc-600">({page.slug})</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {syncStatus.missing === 0 && (
+                      <div className="text-center py-4 text-green-500">
+                        All pages are synced!
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSyncOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSync}
+                  disabled={syncing || !syncStatus || syncStatus.missing === 0}
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Sync {syncStatus?.missing || 0} Pages
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                New Page
+              </Button>
+            </DialogTrigger>
           <DialogContent className="bg-zinc-900 border-zinc-800">
             <DialogHeader>
               <DialogTitle className="text-white">Create New Page</DialogTitle>
@@ -312,6 +452,7 @@ export default function PageBuilderDashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats */}
