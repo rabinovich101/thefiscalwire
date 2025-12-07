@@ -270,6 +270,78 @@ export async function syncAllPages(): Promise<{
 }
 
 /**
+ * Fixes zones that have null auto-fill rules by setting proper rules based on page type
+ */
+export async function fixZonesAutoFillRules(): Promise<{
+  fixed: number
+  zones: { pageName: string; zoneName: string }[]
+}> {
+  // Find all zones on article-capable pages, then filter in JS for null/undefined autoFillRules
+  const allZones = await prisma.pageZone.findMany({
+    where: {
+      page: {
+        pageType: { in: [...ARTICLE_PAGE_TYPES] },
+      },
+    },
+    include: {
+      page: {
+        select: {
+          name: true,
+          pageType: true,
+          categoryId: true,
+          category: { select: { slug: true } },
+        },
+      },
+      zoneDefinition: {
+        select: { name: true, maxItems: true },
+      },
+    },
+  })
+
+  // Filter in JavaScript for zones with null/undefined autoFillRules
+  const zonesWithoutRules = allZones.filter(
+    (z) => z.autoFillRules === null || z.autoFillRules === undefined
+  )
+
+  if (zonesWithoutRules.length === 0) {
+    return { fixed: 0, zones: [] }
+  }
+
+  const results: { pageName: string; zoneName: string }[] = []
+
+  // Update each zone with proper auto-fill rules
+  await prisma.$transaction(
+    async (tx) => {
+      for (const zone of zonesWithoutRules) {
+        const autoFillRules = buildAutoFillRules(
+          zone.page.pageType,
+          zone.page.categoryId || undefined,
+          zone.page.category?.slug,
+          zone.zoneDefinition?.maxItems
+        )
+
+        if (autoFillRules) {
+          await tx.pageZone.update({
+            where: { id: zone.id },
+            data: {
+              autoFillRules: autoFillRules as unknown as Prisma.InputJsonObject,
+            },
+          })
+
+          results.push({
+            pageName: zone.page.name,
+            zoneName: zone.zoneDefinition?.name || "Unknown",
+          })
+        }
+      }
+    },
+    { timeout: 60000 }
+  )
+
+  return { fixed: results.length, zones: results }
+}
+
+/**
  * Syncs zones to existing pages that don't have all required zones
  */
 export async function syncZonesToExistingPages(): Promise<{

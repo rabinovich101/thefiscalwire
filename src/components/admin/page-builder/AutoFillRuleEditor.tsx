@@ -56,7 +56,7 @@ interface AutoFillConfig {
     isFeatured?: boolean
     isBreaking?: boolean
     tags?: string[]
-    maxAge?: "24h" | "7d" | "30d" | ""
+    maxAge?: "24h" | "7d" | "30d"
   }
   sort?: "publishedAt" | "createdAt" | "title"
   order?: "asc" | "desc"
@@ -214,11 +214,11 @@ export function AutoFillRuleEditor({
             <div className="space-y-2">
               <Label className="text-sm text-zinc-400">Category</Label>
               <Select
-                value={config.filters?.categoryId || ""}
+                value={config.filters?.categoryId || "__all__"}
                 onValueChange={(value) =>
                   updateFilters({
-                    categoryId: value || undefined,
-                    categorySlug: categories.find((c) => c.id === value)?.slug,
+                    categoryId: value === "__all__" ? undefined : value,
+                    categorySlug: value === "__all__" ? undefined : categories.find((c) => c.id === value)?.slug,
                   })
                 }
               >
@@ -226,7 +226,7 @@ export function AutoFillRuleEditor({
                   <SelectValue placeholder="Any category" />
                 </SelectTrigger>
                 <SelectContent className="bg-zinc-800 border-zinc-700">
-                  <SelectItem value="">Any category</SelectItem>
+                  <SelectItem value="__all__">Any category</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
@@ -274,16 +274,16 @@ export function AutoFillRuleEditor({
               Maximum Age
             </Label>
             <Select
-              value={config.filters?.maxAge || ""}
-              onValueChange={(value: "24h" | "7d" | "30d" | "") =>
-                updateFilters({ maxAge: value || undefined })
+              value={config.filters?.maxAge || "__any__"}
+              onValueChange={(value: "24h" | "7d" | "30d" | "__any__") =>
+                updateFilters({ maxAge: value === "__any__" ? undefined : value })
               }
             >
               <SelectTrigger className="bg-zinc-800 border-zinc-700">
                 <SelectValue placeholder="Any time" />
               </SelectTrigger>
               <SelectContent className="bg-zinc-800 border-zinc-700">
-                <SelectItem value="">Any time</SelectItem>
+                <SelectItem value="__any__">Any time</SelectItem>
                 <SelectItem value="24h">Last 24 hours</SelectItem>
                 <SelectItem value="7d">Last 7 days</SelectItem>
                 <SelectItem value="30d">Last 30 days</SelectItem>

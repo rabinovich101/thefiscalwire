@@ -156,6 +156,33 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.investopedia.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.marketbeat.com",
+      },
+      {
+        protocol: "https",
+        hostname: "www.marketbeat.com",
+      },
+      // PR Newswire
+      {
+        protocol: "https",
+        hostname: "*.prnewswire.com",
+      },
+      {
+        protocol: "https",
+        hostname: "mma.prnewswire.com",
+      },
+      // GlobeNewswire
+      {
+        protocol: "https",
+        hostname: "*.globenewswire.com",
+      },
+      // Business Wire
+      {
+        protocol: "https",
+        hostname: "*.businesswire.com",
+      },
       // Additional trusted CDNs
       {
         protocol: "https",

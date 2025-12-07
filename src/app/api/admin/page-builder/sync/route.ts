@@ -6,6 +6,7 @@ import {
   syncZonesToExistingPages,
   cleanupNonArticlePages,
   cleanupInvalidCategoryPages,
+  fixZonesAutoFillRules,
   populateZonesWithArticles,
 } from "@/lib/page-builder-auto"
 
@@ -47,7 +48,10 @@ export async function POST() {
     // Step 4: Sync zones to existing pages that don't have zones
     const zonesResult = await syncZonesToExistingPages()
 
-    // Step 5: Populate zones with initial articles based on auto-fill rules
+    // Step 5: Fix zones that have null auto-fill rules
+    const fixRulesResult = await fixZonesAutoFillRules()
+
+    // Step 6: Populate zones with initial articles based on auto-fill rules
     const populateResult = await populateZonesWithArticles()
 
     return NextResponse.json({
@@ -63,6 +67,9 @@ export async function POST() {
       // Zone sync results
       zonesSynced: zonesResult.synced,
       pagesWithNewZones: zonesResult.pages,
+      // Auto-fill rules fix results
+      zonesFixed: fixRulesResult.fixed,
+      fixedZones: fixRulesResult.zones,
       // Article population results
       articlesPopulated: populateResult.populated,
       populatedZones: populateResult.zones,

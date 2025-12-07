@@ -1,9 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { BookmarkButton } from "@/components/ui/BookmarkButton";
 import type { Article } from "@/lib/data";
+
+const FALLBACK_IMAGE = "https://picsum.photos/800/450?grayscale";
 
 interface ArticleCardProps {
   article: Article;
@@ -11,6 +15,12 @@ interface ArticleCardProps {
 }
 
 export function ArticleCard({ article, variant = "default" }: ArticleCardProps) {
+  const [imgSrc, setImgSrc] = useState(article.imageUrl || FALLBACK_IMAGE);
+
+  const handleImageError = () => {
+    setImgSrc(FALLBACK_IMAGE);
+  };
+
   if (variant === "compact") {
     return (
       <Link
@@ -18,11 +28,12 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
         className="group flex gap-4 py-3 border-b border-border/40 last:border-0"
       >
         <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-md bg-muted">
-          <Image
-            src={article.imageUrl}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgSrc}
             alt={article.title}
-            fill
-            className="object-cover transition-transform group-hover:scale-105"
+            onError={handleImageError}
+            className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
           />
         </div>
         <div className="flex flex-col justify-center min-w-0">
@@ -42,11 +53,12 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
       <Link href={`/article/${article.slug}`}>
         {/* Image */}
         <div className="relative aspect-video overflow-hidden bg-muted">
-          <Image
-            src={article.imageUrl}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imgSrc}
             alt={article.title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            onError={handleImageError}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute top-3 left-3">
             <Badge
