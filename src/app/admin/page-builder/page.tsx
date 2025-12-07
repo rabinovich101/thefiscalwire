@@ -12,11 +12,6 @@ import {
   ChevronRight,
   Clock,
   Layers,
-  RefreshCw,
-  BarChart3,
-  FileText,
-  Check,
-  Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,26 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
-type PageTypeValue = "HOMEPAGE" | "CATEGORY" | "STOCK" | "MARKETS" | "STATIC" | "CUSTOM"
-
-interface MissingPage {
-  slug: string
-  route: string
-  name: string
-  pageType: PageTypeValue
-  description?: string
-}
-
-interface SyncPreview {
-  totalInRegistry: number
-  existingCount: number
-  missingCount: number
-  missingPages: MissingPage[]
-  grouped: Record<PageTypeValue, MissingPage[]>
-}
+type PageTypeValue = "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM"
 
 interface PageDefinition {
   id: string
@@ -95,8 +72,6 @@ const pageTypeIcons: Record<PageTypeValue, typeof Home> = {
   HOMEPAGE: Home,
   CATEGORY: FolderOpen,
   STOCK: TrendingUp,
-  MARKETS: BarChart3,
-  STATIC: FileText,
   CUSTOM: Settings,
 }
 
@@ -104,8 +79,6 @@ const pageTypeColors: Record<PageTypeValue, string> = {
   HOMEPAGE: "bg-blue-500",
   CATEGORY: "bg-green-500",
   STOCK: "bg-purple-500",
-  MARKETS: "bg-cyan-500",
-  STATIC: "bg-amber-500",
   CUSTOM: "bg-orange-500",
 }
 
@@ -121,13 +94,6 @@ export default function PageBuilderDashboard() {
     categoryId: "",
     stockSymbol: "",
   })
-
-  // Sync state
-  const [syncOpen, setSyncOpen] = useState(false)
-  const [syncPreview, setSyncPreview] = useState<SyncPreview | null>(null)
-  const [syncLoading, setSyncLoading] = useState(false)
-  const [syncing, setSyncing] = useState(false)
-  const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchPages()
@@ -157,72 +123,6 @@ export default function PageBuilderDashboard() {
       }
     } catch (error) {
       console.error("Failed to fetch categories:", error)
-    }
-  }
-
-  async function fetchSyncPreview() {
-    setSyncLoading(true)
-    try {
-      const res = await fetch("/api/admin/page-builder/sync")
-      if (res.ok) {
-        const data = await res.json()
-        setSyncPreview(data)
-        // Select all pages by default
-        setSelectedPages(new Set(data.missingPages.map((p: MissingPage) => p.slug)))
-      }
-    } catch (error) {
-      console.error("Failed to fetch sync preview:", error)
-    } finally {
-      setSyncLoading(false)
-    }
-  }
-
-  async function syncPages() {
-    if (selectedPages.size === 0) return
-
-    setSyncing(true)
-    try {
-      const res = await fetch("/api/admin/page-builder/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pageSlugs: Array.from(selectedPages) }),
-      })
-
-      if (res.ok) {
-        const result = await res.json()
-        console.log("Sync result:", result)
-        setSyncOpen(false)
-        setSyncPreview(null)
-        setSelectedPages(new Set())
-        fetchPages() // Refresh the page list
-      }
-    } catch (error) {
-      console.error("Failed to sync pages:", error)
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  function handleSyncOpen() {
-    setSyncOpen(true)
-    fetchSyncPreview()
-  }
-
-  function togglePageSelection(slug: string) {
-    const newSet = new Set(selectedPages)
-    if (newSet.has(slug)) {
-      newSet.delete(slug)
-    } else {
-      newSet.add(slug)
-    }
-    setSelectedPages(newSet)
-  }
-
-  function toggleAllPages(select: boolean) {
-    if (select && syncPreview) {
-      setSelectedPages(new Set(syncPreview.missingPages.map(p => p.slug)))
-    } else {
-      setSelectedPages(new Set())
     }
   }
 
@@ -294,18 +194,13 @@ export default function PageBuilderDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleSyncOpen} className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
-            Sync Pages
-          </Button>
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                New Page
-              </Button>
-            </DialogTrigger>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Page
+            </Button>
+          </DialogTrigger>
           <DialogContent className="bg-zinc-900 border-zinc-800">
             <DialogHeader>
               <DialogTitle className="text-white">Create New Page</DialogTitle>
@@ -330,8 +225,6 @@ export default function PageBuilderDashboard() {
                     <SelectItem value="HOMEPAGE">Homepage</SelectItem>
                     <SelectItem value="CATEGORY">Category Page</SelectItem>
                     <SelectItem value="STOCK">Stock Page</SelectItem>
-                    <SelectItem value="MARKETS">Markets Page</SelectItem>
-                    <SelectItem value="STATIC">Static Page</SelectItem>
                     <SelectItem value="CUSTOM">Custom Page</SelectItem>
                   </SelectContent>
                 </Select>
@@ -421,133 +314,6 @@ export default function PageBuilderDashboard() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Sync Pages Dialog */}
-        <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800 max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-white">Sync Page Definitions</DialogTitle>
-              <DialogDescription>
-                Automatically create page definitions for all known site pages.
-              </DialogDescription>
-            </DialogHeader>
-
-            {syncLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
-              </div>
-            ) : syncPreview ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-zinc-400">
-                  <span>
-                    {syncPreview.existingCount} of {syncPreview.totalInRegistry} pages already exist
-                  </span>
-                  <span className="font-medium text-white">
-                    {syncPreview.missingCount} pages to create
-                  </span>
-                </div>
-
-                {syncPreview.missingCount === 0 ? (
-                  <div className="text-center py-8 text-zinc-400">
-                    <Check className="w-12 h-12 mx-auto mb-4 text-green-500" />
-                    <p>All pages are already synced!</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleAllPages(true)}
-                        >
-                          Select All
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleAllPages(false)}
-                        >
-                          Deselect All
-                        </Button>
-                      </div>
-                      <span className="text-sm text-zinc-400">
-                        {selectedPages.size} selected
-                      </span>
-                    </div>
-
-                    <ScrollArea className="h-[300px] rounded-md border border-zinc-800 p-4">
-                      <div className="space-y-4">
-                        {(["CATEGORY", "MARKETS", "STOCK", "STATIC", "CUSTOM"] as PageTypeValue[]).map((type) => {
-                          const typedPages = syncPreview.grouped[type] || []
-                          if (typedPages.length === 0) return null
-
-                          const Icon = pageTypeIcons[type]
-                          const color = pageTypeColors[type]
-
-                          return (
-                            <div key={type} className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm font-medium text-zinc-300">
-                                <div className={`p-1 rounded ${color}`}>
-                                  <Icon className="w-3 h-3 text-white" />
-                                </div>
-                                {type} ({typedPages.length})
-                              </div>
-                              <div className="space-y-1 pl-6">
-                                {typedPages.map((page) => (
-                                  <div
-                                    key={page.slug}
-                                    className="flex items-center gap-3 py-1"
-                                  >
-                                    <Checkbox
-                                      id={page.slug}
-                                      checked={selectedPages.has(page.slug)}
-                                      onCheckedChange={() => togglePageSelection(page.slug)}
-                                    />
-                                    <label
-                                      htmlFor={page.slug}
-                                      className="flex-1 text-sm cursor-pointer"
-                                    >
-                                      <span className="text-white">{page.name}</span>
-                                      <span className="text-zinc-500 ml-2">{page.route}</span>
-                                    </label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </ScrollArea>
-                  </>
-                )}
-              </div>
-            ) : null}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSyncOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                onClick={syncPages}
-                disabled={syncing || selectedPages.size === 0}
-              >
-                {syncing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Create {selectedPages.size} Pages
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        </div>
       </div>
 
       {/* Stats */}
