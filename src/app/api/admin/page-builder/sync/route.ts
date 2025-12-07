@@ -1,43 +1,34 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
-import { discoverAllPages, getMissingPages, getExistingPagesCount, syncAllPages } from "@/lib/page-builder-auto"
+import { getSyncStatus, syncAllPages } from "@/lib/page-builder-auto"
 
+// GET: Preview sync status
 export async function GET() {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
-    const [discovered, missing, existingCount] = await Promise.all([
-      discoverAllPages(),
-      getMissingPages(),
-      getExistingPagesCount()
-    ])
-
-    return NextResponse.json({
-      discovered: discovered.length,
-      existing: existingCount,
-      missing: missing.length,
-      missingPages: missing
-    })
+    const status = await getSyncStatus()
+    return NextResponse.json(status)
   } catch (error) {
-    console.error("Sync preview error:", error)
-    return NextResponse.json({ error: "Failed to get sync preview" }, { status: 500 })
+    console.error("Failed to get sync status:", error)
+    return NextResponse.json(
+      { error: "Failed to get sync status" },
+      { status: 500 }
+    )
   }
 }
 
+// POST: Execute sync - create missing pages
 export async function POST() {
-  const session = await auth()
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
     const result = await syncAllPages()
-    return NextResponse.json({ success: true, ...result })
+    return NextResponse.json({
+      success: true,
+      created: result.created,
+      pages: result.pages,
+    })
   } catch (error) {
-    console.error("Sync error:", error)
-    return NextResponse.json({ error: "Failed to sync pages" }, { status: 500 })
+    console.error("Failed to sync pages:", error)
+    return NextResponse.json(
+      { error: "Failed to sync pages" },
+      { status: 500 }
+    )
   }
 }
