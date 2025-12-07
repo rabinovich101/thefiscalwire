@@ -3,23 +3,32 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // Keywords to detect market type
+// IMPORTANT: Use slugs from seed.ts (19 categories)
 const marketKeywords: Record<string, string[]> = {
   'us-markets': ['NYSE', 'NASDAQ', 'DOW', 'S&P', 'Wall Street', 'Fed', 'Federal Reserve', 'US ', 'U.S.', 'American', 'Wedbush', 'Goldman', 'JPMorgan', 'Motley Fool', 'MSTR', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'Tesla', 'Microsoft', 'Google', 'Apple', 'Amazon', 'Nvidia', 'OpenAI', 'Unity Software', 'Allstate', 'MicroStrategy', 'Evercore', 'D-Wave', 'Fulgent', 'DiamondRock', 'Hoyne'],
-  'european-markets': ['LON:', 'LSE', 'FTSE', 'DAX', 'CAC', 'UK ', 'British', 'London', 'German', 'French', 'European', 'Europe', 'Brexit', 'ECB', 'Tullow Oil'],
-  'asian-markets': ['Nikkei', 'Shanghai', 'Hong Kong', 'HSI', 'TSE', 'Japanese', 'Chinese', 'China', 'Japan', 'Korea', 'Asian', 'Asia', 'Singapore', 'ASX'],
-  'crypto-markets': ['Bitcoin', 'BTC', 'Ethereum', 'ETH', 'Crypto', 'Blockchain', 'DeFi', 'NFT', 'Altcoin', 'Satoshi'],
-  'commodities': ['Oil', 'Gold', 'Silver', 'Crude', 'WTI', 'Brent', 'Natural Gas', 'Copper', 'Wheat', 'Commodity', 'Commodities', 'Mining'],
+  'europe-markets': ['LON:', 'LSE', 'FTSE', 'DAX', 'CAC', 'UK ', 'British', 'London', 'German', 'French', 'European', 'Europe', 'Brexit', 'ECB', 'Tullow Oil'],
+  'asia-markets': ['Nikkei', 'Shanghai', 'Hong Kong', 'HSI', 'TSE', 'Japanese', 'Chinese', 'China', 'Japan', 'Korea', 'Asian', 'Asia', 'Singapore', 'ASX'],
+  'crypto': ['Bitcoin', 'BTC', 'Ethereum', 'ETH', 'Crypto', 'Blockchain', 'DeFi', 'NFT', 'Altcoin', 'Satoshi'],
+  'forex': ['Currency', 'Forex', 'FX', 'Dollar', 'Euro', 'Yen', 'Pound', 'Exchange Rate'],
+  'bonds': ['Bond', 'Treasury', 'Yield', 'Fixed Income', 'Corporate Bond', 'Government Bond'],
+  'etf': ['ETF', 'Exchange Traded Fund', 'Index Fund', 'Vanguard', 'iShares', 'SPDR'],
 };
 
 // Keywords to detect business sector
+// IMPORTANT: Use slugs from seed.ts (19 categories)
 const businessKeywords: Record<string, string[]> = {
-  'technology': ['AI', 'Artificial Intelligence', 'Software', 'Tech', 'Cloud', 'SaaS', 'Semiconductor', 'Chip', 'Data', 'Quantum', 'Computing', 'Digital', 'Code', 'App', 'Platform', 'Nvidia', 'Google', 'Microsoft', 'OpenAI', 'Apple', 'Meta', 'Unity', 'D-Wave', 'Gemini'],
-  'finance': ['Bank', 'Banking', 'Financial', 'Insurance', 'Investment', 'Dividend', 'Stock', 'Bond', 'Analyst', 'IPO', 'Merger', 'Acquisition', 'Securities', 'Mutual', 'Capital', 'Hedge', 'Private Equity', 'Royal Bank', 'Hoyne Bancorp', 'Allstate'],
-  'healthcare': ['Health', 'Medical', 'Pharma', 'Biotech', 'Drug', 'FDA', 'Clinical', 'Hospital', 'Patient', 'Fulgent Genetics'],
-  'energy': ['Energy', 'Oil', 'Gas', 'Solar', 'Wind', 'Power', 'Utility', 'Electric', 'Renewable', 'Fuel', 'Tullow'],
+  'tech': ['AI', 'Artificial Intelligence', 'Software', 'Tech', 'Cloud', 'SaaS', 'Semiconductor', 'Chip', 'Data', 'Quantum', 'Computing', 'Digital', 'Code', 'App', 'Platform', 'Nvidia', 'Google', 'Microsoft', 'OpenAI', 'Apple', 'Meta', 'Unity', 'D-Wave', 'Gemini'],
+  'finance': ['Bank', 'Banking', 'Financial', 'Insurance', 'Investment', 'Dividend', 'Stock', 'Analyst', 'IPO', 'Merger', 'Acquisition', 'Securities', 'Mutual', 'Capital', 'Hedge', 'Private Equity', 'Royal Bank', 'Hoyne Bancorp', 'Allstate'],
+  'health-science': ['Health', 'Medical', 'Pharma', 'Biotech', 'Drug', 'FDA', 'Clinical', 'Hospital', 'Patient', 'Fulgent Genetics', 'Science', 'Research'],
+  'economy': ['Economy', 'Economic', 'GDP', 'Inflation', 'Unemployment', 'Jobs Report', 'Labor', 'Recession', 'Growth'],
   'real-estate': ['Real Estate', 'Property', 'REIT', 'Housing', 'Mortgage', 'Hotel', 'Hospitality', 'DiamondRock'],
-  'consumer': ['Consumer', 'Retail', 'E-commerce', 'Shopping', 'Brand', 'Restaurant', 'Food', 'Beverage', 'George Weston'],
-  'industrial': ['Industrial', 'Manufacturing', 'Shipping', 'Logistics', 'Transport', 'Aerospace', 'Construction', 'Additive', '6K Additive', 'Globus Maritime', 'Jayud'],
+  'consumption': ['Consumer', 'Retail', 'E-commerce', 'Shopping', 'Brand', 'Restaurant', 'Food', 'Beverage', 'George Weston', 'Spending'],
+  'industrial': ['Industrial', 'Manufacturing', 'Shipping', 'Logistics', 'Aerospace', 'Construction', 'Additive', '6K Additive', 'Globus Maritime', 'Jayud'],
+  'transportation': ['Transport', 'Airline', 'Aviation', 'Shipping', 'Trucking', 'Rail', 'Logistics'],
+  'media': ['Media', 'Entertainment', 'Streaming', 'TV', 'Movie', 'Music', 'News', 'Publishing'],
+  'sports': ['Sports', 'NFL', 'NBA', 'MLB', 'Soccer', 'Football', 'Basketball', 'Olympics'],
+  'politics': ['Politics', 'Election', 'Congress', 'Senate', 'President', 'Policy', 'Government', 'Regulation'],
+  'opinion': ['Opinion', 'Analysis', 'Commentary', 'Editorial', 'Perspective'],
 };
 
 function detectCategories(text: string): { markets: string[]; business: string[] } {
