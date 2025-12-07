@@ -31,8 +31,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // Hash the new password (12 rounds - standardized across all password operations)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
     // Update the user's password
     await prisma.user.update({

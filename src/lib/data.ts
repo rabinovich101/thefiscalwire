@@ -115,18 +115,39 @@ const categoryColors: Record<string, string> = {
   'opinion': 'bg-gray-600',
 }
 
+// Prisma article type with relations
+interface PrismaArticleWithRelations {
+  id: string
+  slug: string
+  title: string
+  excerpt: string
+  imageUrl: string
+  readTime: number
+  isFeatured: boolean
+  isBreaking: boolean
+  publishedAt: Date
+  content: unknown
+  headings: unknown
+  relevantTickers: string[]
+  category?: { slug: string; color: string | null } | null
+  author?: { name: string; avatar?: string | null } | null
+  tags?: { name: string }[]
+  relatedTo?: PrismaArticleWithRelations[]
+}
+
 // Transform Prisma article to frontend Article
-function transformArticle(article: any): Article {
+function transformArticle(article: PrismaArticleWithRelations): Article {
+  const categorySlug = article.category?.slug || 'markets'
   return {
     id: article.id,
     slug: article.slug,
     title: article.title,
     excerpt: article.excerpt,
-    category: article.category?.slug || 'markets',
-    categoryColor: article.category?.color || categoryColors[article.category?.slug] || 'bg-gray-600',
+    category: categorySlug,
+    categoryColor: article.category?.color || categoryColors[categorySlug] || 'bg-gray-600',
     imageUrl: article.imageUrl,
     author: article.author?.name || 'Unknown',
-    authorAvatar: article.author?.avatar,
+    authorAvatar: article.author?.avatar ?? undefined,
     publishedAt: formatRelativeTime(article.publishedAt),
     readTime: article.readTime,
     isFeatured: article.isFeatured,
@@ -135,11 +156,11 @@ function transformArticle(article: any): Article {
 }
 
 // Transform Prisma article to frontend ArticleDetail
-function transformArticleDetail(article: any): ArticleDetail {
+function transformArticleDetail(article: PrismaArticleWithRelations): ArticleDetail {
   return {
     ...transformArticle(article),
     content: article.content as ArticleContentBlock[],
-    tags: article.tags?.map((t: any) => t.name) || [],
+    tags: article.tags?.map((t) => t.name) || [],
     relevantTickers: article.relevantTickers || [],
     headings: (article.headings as ArticleHeading[]) || [],
   }

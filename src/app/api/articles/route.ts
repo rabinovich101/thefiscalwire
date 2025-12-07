@@ -23,18 +23,34 @@ function formatRelativeTime(date: Date): string {
   return date.toLocaleDateString()
 }
 
+// Prisma article type
+interface PrismaArticle {
+  id: string
+  slug: string
+  title: string
+  excerpt: string
+  imageUrl: string
+  readTime: number
+  isFeatured: boolean
+  isBreaking: boolean
+  publishedAt: Date
+  category?: { slug: string; color: string | null } | null
+  author?: { name: string; avatar: string | null } | null
+}
+
 // Transform Prisma article to frontend Article
-function transformArticle(article: any) {
+function transformArticle(article: PrismaArticle) {
+  const categorySlug = article.category?.slug || 'markets'
   return {
     id: article.id,
     slug: article.slug,
     title: article.title,
     excerpt: article.excerpt,
-    category: article.category?.slug || 'markets',
-    categoryColor: article.category?.color || categoryColors[article.category?.slug] || 'bg-gray-600',
+    category: categorySlug,
+    categoryColor: article.category?.color || categoryColors[categorySlug] || 'bg-gray-600',
     imageUrl: article.imageUrl,
     author: article.author?.name || 'Unknown',
-    authorAvatar: article.author?.avatar,
+    authorAvatar: article.author?.avatar ?? undefined,
     publishedAt: formatRelativeTime(article.publishedAt),
     readTime: article.readTime,
     isFeatured: article.isFeatured,
@@ -57,7 +73,8 @@ export async function GET(request: NextRequest) {
     const businessType = searchParams.get('businessType')
 
     // Build where clause
-    const where: any = {}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {}
     if (category) {
       // Use many-to-many relation - articles can belong to multiple categories
       where.categories = { some: { slug: category } }

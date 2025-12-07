@@ -53,7 +53,8 @@ export default async function AnalysisPage({
   const offset = (page - 1) * limit
 
   // Build where clause for filters
-  const where: any = {}
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: Record<string, any> = {}
 
   if (searchParams.sector) {
     where.primarySector = searchParams.sector

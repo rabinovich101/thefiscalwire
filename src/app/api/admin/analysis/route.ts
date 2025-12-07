@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
 
     // Build where clause
-    const where: any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {};
 
     if (sector) {
       where.primarySector = sector;
@@ -114,10 +115,14 @@ export async function POST(request: NextRequest) {
     const { analyzeArticleWithAI } = await import('@/lib/article-analyzer');
 
     // Get article content as string
-    const contentBlocks = article.content as any[];
+    interface ContentBlock {
+      type: string;
+      content?: string;
+    }
+    const contentBlocks = article.content as unknown as ContentBlock[];
     const contentText = contentBlocks
-      .filter((block: any) => block.type === 'paragraph')
-      .map((block: any) => block.content)
+      .filter((block) => block.type === 'paragraph')
+      .map((block) => block.content || '')
       .join('\n\n');
 
     // Run analysis
