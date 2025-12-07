@@ -12,6 +12,9 @@ import {
   ChevronRight,
   Clock,
   Layers,
+  RefreshCw,
+  Loader2,
+  Check,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -68,6 +71,13 @@ interface Category {
   slug: string
 }
 
+interface SyncPreview {
+  discovered: number
+  existing: number
+  missing: number
+  missingPages: Array<{ slug: string; name: string; pageType: string }>
+}
+
 const pageTypeIcons: Record<PageTypeValue, typeof Home> = {
   HOMEPAGE: Home,
   CATEGORY: FolderOpen,
@@ -94,6 +104,12 @@ export default function PageBuilderDashboard() {
     categoryId: "",
     stockSymbol: "",
   })
+
+  // Sync state
+  const [syncOpen, setSyncOpen] = useState(false)
+  const [syncPreview, setSyncPreview] = useState<SyncPreview | null>(null)
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
 
   useEffect(() => {
     fetchPages()
@@ -124,6 +140,45 @@ export default function PageBuilderDashboard() {
     } catch (error) {
       console.error("Failed to fetch categories:", error)
     }
+  }
+
+  async function fetchSyncPreview() {
+    setSyncLoading(true)
+    try {
+      const res = await fetch("/api/admin/page-builder/sync")
+      if (res.ok) {
+        const data = await res.json()
+        setSyncPreview(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch sync preview:", error)
+    } finally {
+      setSyncLoading(false)
+    }
+  }
+
+  async function syncPages() {
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/admin/page-builder/sync", {
+        method: "POST",
+      })
+
+      if (res.ok) {
+        setSyncOpen(false)
+        setSyncPreview(null)
+        fetchPages() // Refresh the page list
+      }
+    } catch (error) {
+      console.error("Failed to sync pages:", error)
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  function handleSyncOpen() {
+    setSyncOpen(true)
+    fetchSyncPreview()
   }
 
   async function createPage() {
@@ -194,126 +249,215 @@ export default function PageBuilderDashboard() {
           </p>
         </div>
 
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button className="flex items-center gap-2">
-              <Plus className="w-4 h-4" />
-              New Page
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
-            <DialogHeader>
-              <DialogTitle className="text-white">Create New Page</DialogTitle>
-              <DialogDescription>
-                Add a new page configuration to manage its content zones.
-              </DialogDescription>
-            </DialogHeader>
+        <div className="flex items-center gap-2">
+          {/* Sync Pages Button */}
+          <Button variant="outline" onClick={handleSyncOpen} className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Sync Pages
+          </Button>
 
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Page Type</Label>
-                <Select
-                  value={newPage.pageType}
-                  onValueChange={(value: PageTypeValue) =>
-                    setNewPage({ ...newPage, pageType: value })
-                  }
-                >
-                  <SelectTrigger className="bg-zinc-800 border-zinc-700">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-zinc-800 border-zinc-700">
-                    <SelectItem value="HOMEPAGE">Homepage</SelectItem>
-                    <SelectItem value="CATEGORY">Category Page</SelectItem>
-                    <SelectItem value="STOCK">Stock Page</SelectItem>
-                    <SelectItem value="CUSTOM">Custom Page</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Create Page Dialog */}
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                New Page
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-zinc-900 border-zinc-800">
+              <DialogHeader>
+                <DialogTitle className="text-white">Create New Page</DialogTitle>
+                <DialogDescription>
+                  Add a new page configuration to manage its content zones.
+                </DialogDescription>
+              </DialogHeader>
 
-              {newPage.pageType === "CATEGORY" && (
+              <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>Category</Label>
+                  <Label>Page Type</Label>
                   <Select
-                    value={newPage.categoryId}
-                    onValueChange={(value) =>
-                      setNewPage({
-                        ...newPage,
-                        categoryId: value,
-                        name: `Category: ${categories.find((c) => c.id === value)?.name || ""}`,
-                        slug: `category-${categories.find((c) => c.id === value)?.slug || ""}`,
-                      })
+                    value={newPage.pageType}
+                    onValueChange={(value: PageTypeValue) =>
+                      setNewPage({ ...newPage, pageType: value })
                     }
                   >
                     <SelectTrigger className="bg-zinc-800 border-zinc-700">
-                      <SelectValue placeholder="Select a category" />
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-800 border-zinc-700">
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="HOMEPAGE">Homepage</SelectItem>
+                      <SelectItem value="CATEGORY">Category Page</SelectItem>
+                      <SelectItem value="STOCK">Stock Page</SelectItem>
+                      <SelectItem value="CUSTOM">Custom Page</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              )}
 
-              {newPage.pageType === "STOCK" && (
+                {newPage.pageType === "CATEGORY" && (
+                  <div className="space-y-2">
+                    <Label>Category</Label>
+                    <Select
+                      value={newPage.categoryId}
+                      onValueChange={(value) =>
+                        setNewPage({
+                          ...newPage,
+                          categoryId: value,
+                          name: `Category: ${categories.find((c) => c.id === value)?.name || ""}`,
+                          slug: `category-${categories.find((c) => c.id === value)?.slug || ""}`,
+                        })
+                      }
+                    >
+                      <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-800 border-zinc-700">
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {newPage.pageType === "STOCK" && (
+                  <div className="space-y-2">
+                    <Label>Stock Symbol</Label>
+                    <Input
+                      value={newPage.stockSymbol}
+                      onChange={(e) =>
+                        setNewPage({
+                          ...newPage,
+                          stockSymbol: e.target.value.toUpperCase(),
+                          name: `Stock: ${e.target.value.toUpperCase()}`,
+                          slug: `stock-${e.target.value.toLowerCase()}`,
+                        })
+                      }
+                      placeholder="e.g., AAPL, GOOGL"
+                      className="bg-zinc-800 border-zinc-700"
+                    />
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <Label>Stock Symbol</Label>
+                  <Label>Page Name</Label>
                   <Input
-                    value={newPage.stockSymbol}
+                    value={newPage.name}
                     onChange={(e) =>
                       setNewPage({
                         ...newPage,
-                        stockSymbol: e.target.value.toUpperCase(),
-                        name: `Stock: ${e.target.value.toUpperCase()}`,
-                        slug: `stock-${e.target.value.toLowerCase()}`,
+                        name: e.target.value,
+                        slug: generateSlug(e.target.value),
                       })
                     }
-                    placeholder="e.g., AAPL, GOOGL"
+                    placeholder="e.g., Homepage, US Markets Category"
                     className="bg-zinc-800 border-zinc-700"
                   />
                 </div>
-              )}
 
-              <div className="space-y-2">
-                <Label>Page Name</Label>
-                <Input
-                  value={newPage.name}
-                  onChange={(e) =>
-                    setNewPage({
-                      ...newPage,
-                      name: e.target.value,
-                      slug: generateSlug(e.target.value),
-                    })
-                  }
-                  placeholder="e.g., Homepage, US Markets Category"
-                  className="bg-zinc-800 border-zinc-700"
-                />
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input
+                    value={newPage.slug}
+                    onChange={(e) => setNewPage({ ...newPage, slug: e.target.value })}
+                    placeholder="e.g., homepage, us-markets"
+                    className="bg-zinc-800 border-zinc-700"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input
-                  value={newPage.slug}
-                  onChange={(e) => setNewPage({ ...newPage, slug: e.target.value })}
-                  placeholder="e.g., homepage, us-markets"
-                  className="bg-zinc-800 border-zinc-700"
-                />
-              </div>
-            </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={createPage} disabled={!newPage.name || !newPage.slug}>
+                  Create Page
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={createPage} disabled={!newPage.name || !newPage.slug}>
-                Create Page
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          {/* Sync Pages Dialog */}
+          <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
+            <DialogContent className="bg-zinc-900 border-zinc-800">
+              <DialogHeader>
+                <DialogTitle className="text-white">Sync Page Definitions</DialogTitle>
+                <DialogDescription>
+                  Automatically create page definitions for all categories in your database.
+                </DialogDescription>
+              </DialogHeader>
+
+              {syncLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
+                </div>
+              ) : syncPreview ? (
+                <div className="space-y-4 py-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div className="p-4 bg-zinc-800 rounded-lg">
+                      <div className="text-2xl font-bold text-white">{syncPreview.discovered}</div>
+                      <div className="text-sm text-zinc-400">Discovered</div>
+                    </div>
+                    <div className="p-4 bg-zinc-800 rounded-lg">
+                      <div className="text-2xl font-bold text-green-500">{syncPreview.existing}</div>
+                      <div className="text-sm text-zinc-400">Existing</div>
+                    </div>
+                    <div className="p-4 bg-zinc-800 rounded-lg">
+                      <div className="text-2xl font-bold text-yellow-500">{syncPreview.missing}</div>
+                      <div className="text-sm text-zinc-400">Missing</div>
+                    </div>
+                  </div>
+
+                  {syncPreview.missing === 0 ? (
+                    <div className="text-center py-4">
+                      <Check className="w-12 h-12 mx-auto mb-2 text-green-500" />
+                      <p className="text-zinc-300">All pages are synced!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-zinc-400">Pages to create:</p>
+                      <div className="max-h-40 overflow-y-auto space-y-1">
+                        {syncPreview.missingPages.map((page) => (
+                          <div
+                            key={page.slug}
+                            className="flex items-center gap-2 text-sm p-2 bg-zinc-800 rounded"
+                          >
+                            <FolderOpen className="w-4 h-4 text-green-500" />
+                            <span className="text-white">{page.name}</span>
+                            <span className="text-zinc-500">/{page.slug}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSyncOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={syncPages}
+                  disabled={syncing || !syncPreview || syncPreview.missing === 0}
+                >
+                  {syncing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Create {syncPreview?.missing || 0} Pages
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats */}
