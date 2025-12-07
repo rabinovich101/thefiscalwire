@@ -119,7 +119,9 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx -e:*)",
       "Bash(npm run test:run:*)",
       "Bash(npm test:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:context7.com)",
+      "Bash(claude mcp add:*)"
     ],
     "deny": [],
     "ask": []
