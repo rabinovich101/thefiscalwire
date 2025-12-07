@@ -5,6 +5,7 @@ import {
   syncAllPages,
   syncZonesToExistingPages,
   cleanupNonArticlePages,
+  cleanupInvalidCategoryPages,
 } from "@/lib/page-builder-auto"
 
 // GET: Returns sync status (discovered/existing/missing counts)
@@ -24,7 +25,7 @@ export async function GET() {
   }
 }
 
-// POST: Syncs page builder - creates missing pages, syncs zones, removes non-article pages
+// POST: Syncs page builder - creates missing pages, syncs zones, removes invalid pages
 export async function POST() {
   const session = await auth()
 
@@ -36,16 +37,22 @@ export async function POST() {
     // Step 1: Remove pages that don't support articles (STATIC, MARKETS, STOCK)
     const cleanupResult = await cleanupNonArticlePages()
 
-    // Step 2: Create missing pages (this will also create zones for new pages)
+    // Step 2: Remove CATEGORY pages with invalid slugs (e.g., /technology when only /tech exists)
+    const invalidCategoryCleanup = await cleanupInvalidCategoryPages()
+
+    // Step 3: Create missing pages (this will also create zones for new pages)
     const pagesResult = await syncAllPages()
 
-    // Step 3: Sync zones to existing pages that don't have zones
+    // Step 4: Sync zones to existing pages that don't have zones
     const zonesResult = await syncZonesToExistingPages()
 
     return NextResponse.json({
-      // Cleanup results
+      // Non-article page cleanup results
       removed: cleanupResult.removed,
       removedPages: cleanupResult.pages,
+      // Invalid category page cleanup results
+      invalidCategoryRemoved: invalidCategoryCleanup.removed,
+      invalidCategoryPages: invalidCategoryCleanup.pages,
       // Create results
       created: pagesResult.created,
       createdPages: pagesResult.pages,

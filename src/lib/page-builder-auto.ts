@@ -385,17 +385,86 @@ export async function cleanupNonArticlePages(): Promise<{
 }
 
 /**
+ * Removes CATEGORY pages that don't match any valid database category slug
+ * This cleans up pages like /technology when only /tech exists as a category
+ * Also removes pages like /crypto-markets when only /crypto exists
+ */
+export async function cleanupInvalidCategoryPages(): Promise<{
+  removed: number
+  pages: { name: string; slug: string; reason: string }[]
+}> {
+  // Get all valid category slugs from database
+  const validCategories = await prisma.category.findMany({
+    select: { slug: true },
+  })
+  const validCategorySlugs = new Set(validCategories.map((c) => c.slug))
+
+  // Get all CATEGORY pages
+  const categoryPages = await prisma.pageDefinition.findMany({
+    where: {
+      pageType: "CATEGORY",
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      categoryId: true,
+      category: {
+        select: { slug: true },
+      },
+    },
+  })
+
+  // Find invalid pages:
+  // 1. Pages where slug doesn't match any valid category slug
+  // 2. Pages that have a categoryId but that category no longer exists
+  const invalidPages = categoryPages.filter((page) => {
+    // Check if the page slug matches a valid category
+    const slugMatchesCategory = validCategorySlugs.has(page.slug)
+
+    // Check if the linked category still exists
+    const linkedCategoryExists = page.categoryId ? page.category !== null : true
+
+    // Page is invalid if slug doesn't match OR linked category doesn't exist
+    return !slugMatchesCategory || !linkedCategoryExists
+  })
+
+  if (invalidPages.length === 0) {
+    return { removed: 0, pages: [] }
+  }
+
+  // Delete invalid pages
+  const pageIds = invalidPages.map((p) => p.id)
+  await prisma.pageDefinition.deleteMany({
+    where: { id: { in: pageIds } },
+  })
+
+  return {
+    removed: invalidPages.length,
+    pages: invalidPages.map((p) => ({
+      name: p.name,
+      slug: p.slug,
+      reason: !validCategorySlugs.has(p.slug)
+        ? `Slug "${p.slug}" doesn't match any database category`
+        : `Linked category no longer exists`,
+    })),
+  }
+}
+
+/**
  * Gets sync status - counts of discovered, existing, and missing pages
  * Optimized to use fewer queries
  */
 export async function getSyncStatus() {
-  // Fetch discovered pages and existing pages with zone count in parallel
-  const [discovered, existingWithZoneInfo] = await Promise.all([
+  // Fetch discovered pages, existing pages, and valid categories in parallel
+  const [discovered, existingWithZoneInfo, validCategories] = await Promise.all([
     discoverAllPages(),
     getExistingPagesWithZoneCount(),
+    prisma.category.findMany({ select: { slug: true } }),
   ])
 
   const existingSlugs = new Set(existingWithZoneInfo.map((p) => p.slug))
+  const validCategorySlugs = new Set(validCategories.map((c) => c.slug))
   const missing = discovered.filter((page) => !existingSlugs.has(page.slug))
 
   // Filter to only article-capable pages
@@ -406,6 +475,11 @@ export async function getSyncStatus() {
   // Find non-article pages that will be removed
   const nonArticlePages = existingWithZoneInfo.filter(
     (p) => !ARTICLE_PAGE_TYPES.includes(p.pageType as ArticlePageType)
+  )
+
+  // Find CATEGORY pages with invalid slugs (don't match any database category)
+  const invalidCategoryPages = articlePages.filter(
+    (p) => p.pageType === "CATEGORY" && !validCategorySlugs.has(p.slug)
   )
 
   // Find pages without zones from article pages only
@@ -427,6 +501,13 @@ export async function getSyncStatus() {
       name: p.name,
       slug: p.slug,
       pageType: p.pageType,
+    })),
+    // Invalid category pages that will be cleaned up
+    invalidCategoryPages: invalidCategoryPages.length,
+    invalidCategoryPagesList: invalidCategoryPages.map((p) => ({
+      name: p.name,
+      slug: p.slug,
+      reason: `Slug "${p.slug}" doesn't match any database category`,
     })),
   }
 }
