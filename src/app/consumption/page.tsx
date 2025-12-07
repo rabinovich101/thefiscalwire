@@ -24,8 +24,8 @@ const PAGE_SIZE = 8;
 
 export default async function ConsumptionPage() {
   const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory("consumer", PAGE_SIZE),
-    getArticleCountByCategory("consumer"),
+    getArticlesByCategory("consumption", PAGE_SIZE),
+    getArticleCountByCategory("consumption"),
     getTrendingStories(8),
   ]);
 
@@ -58,7 +58,7 @@ export default async function ConsumptionPage() {
               <div className="lg:col-span-2">
                 <LoadMoreArticles
                   initialArticles={articles}
-                  category="consumer"
+                  category="consumption"
                   initialTotal={totalCount}
                   pageSize={PAGE_SIZE}
                 />

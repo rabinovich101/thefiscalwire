@@ -24,8 +24,8 @@ const PAGE_SIZE = 8;
 
 export default async function CryptoPage() {
   const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory("crypto-markets", PAGE_SIZE),
-    getArticleCountByCategory("crypto-markets"),
+    getArticlesByCategory("crypto", PAGE_SIZE),
+    getArticleCountByCategory("crypto"),
     getTrendingStories(8),
   ]);
 
@@ -58,7 +58,7 @@ export default async function CryptoPage() {
               <div className="lg:col-span-2">
                 <LoadMoreArticles
                   initialArticles={articles}
-                  category="crypto-markets"
+                  category="crypto"
                   initialTotal={totalCount}
                   pageSize={PAGE_SIZE}
                 />

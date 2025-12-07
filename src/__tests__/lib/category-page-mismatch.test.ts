@@ -4,12 +4,12 @@
  * This test suite verifies that dedicated category pages query for the correct
  * category slugs that exist in the database.
  *
- * ISSUE DETECTED:
- * Several dedicated category pages are querying for category slugs that don't exist:
- * 1. /consumption queries 'consumer' instead of 'consumption'
- * 2. /crypto queries 'crypto-markets' instead of 'crypto'
- * 3. /health-science queries 'healthcare' instead of 'health-science'
- * 4. /tech queries 'technology' instead of 'tech'
+ * ISSUE FIXED:
+ * The following pages were fixed to use correct category slugs:
+ * 1. /consumption now queries 'consumption' (was 'consumer')
+ * 2. /crypto now queries 'crypto' (was 'crypto-markets')
+ * 3. /health-science now queries 'health-science' (was 'healthcare')
+ * 4. /tech now queries 'tech' (was 'technology')
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -88,21 +88,10 @@ describe('Category Page Mismatch Detection', () => {
   describe('Consumption Page (/consumption)', () => {
     const pageFile = path.join(appDir, 'consumption/page.tsx');
 
-    it('[EXPECTED FAILURE - BUG EXISTS] should query for "consumption" category slug', () => {
+    it('should query for "consumption" category slug', () => {
       const content = fs.readFileSync(pageFile, 'utf-8');
       const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test SHOULD fail with current code - it proves the bug exists
-      // After fix: this test should pass
       expect(queriedSlug).toBe('consumption');
-    });
-
-    it('[BUG CONFIRMATION] page currently queries "consumer" (WRONG)', () => {
-      const content = fs.readFileSync(pageFile, 'utf-8');
-      const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test documents the bug - it PASSES now, will FAIL after the fix
-      expect(queriedSlug).toBe('consumer');
     });
 
     it('slug "consumer" does NOT exist in database', () => {
@@ -117,21 +106,10 @@ describe('Category Page Mismatch Detection', () => {
   describe('Crypto Page (/crypto)', () => {
     const pageFile = path.join(appDir, 'crypto/page.tsx');
 
-    it('[EXPECTED FAILURE - BUG EXISTS] should query for "crypto" category slug', () => {
+    it('should query for "crypto" category slug', () => {
       const content = fs.readFileSync(pageFile, 'utf-8');
       const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test SHOULD fail with current code - it proves the bug exists
-      // After fix: this test should pass
       expect(queriedSlug).toBe('crypto');
-    });
-
-    it('[BUG CONFIRMATION] page currently queries "crypto-markets" (WRONG)', () => {
-      const content = fs.readFileSync(pageFile, 'utf-8');
-      const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test documents the bug - it PASSES now, will FAIL after the fix
-      expect(queriedSlug).toBe('crypto-markets');
     });
 
     it('slug "crypto-markets" does NOT exist in database', () => {
@@ -146,21 +124,10 @@ describe('Category Page Mismatch Detection', () => {
   describe('Health & Science Page (/health-science)', () => {
     const pageFile = path.join(appDir, 'health-science/page.tsx');
 
-    it('[EXPECTED FAILURE - BUG EXISTS] should query for "health-science" category slug', () => {
+    it('should query for "health-science" category slug', () => {
       const content = fs.readFileSync(pageFile, 'utf-8');
       const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test SHOULD fail with current code - it proves the bug exists
-      // After fix: this test should pass
       expect(queriedSlug).toBe('health-science');
-    });
-
-    it('[BUG CONFIRMATION] page currently queries "healthcare" (WRONG)', () => {
-      const content = fs.readFileSync(pageFile, 'utf-8');
-      const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test documents the bug - it PASSES now, will FAIL after the fix
-      expect(queriedSlug).toBe('healthcare');
     });
 
     it('slug "healthcare" does NOT exist in database', () => {
@@ -175,21 +142,10 @@ describe('Category Page Mismatch Detection', () => {
   describe('Tech Page (/tech)', () => {
     const pageFile = path.join(appDir, 'tech/page.tsx');
 
-    it('[EXPECTED FAILURE - BUG EXISTS] should query for "tech" category slug', () => {
+    it('should query for "tech" category slug', () => {
       const content = fs.readFileSync(pageFile, 'utf-8');
       const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test SHOULD fail with current code - it proves the bug exists
-      // After fix: this test should pass
       expect(queriedSlug).toBe('tech');
-    });
-
-    it('[BUG CONFIRMATION] page currently queries "technology" (WRONG)', () => {
-      const content = fs.readFileSync(pageFile, 'utf-8');
-      const queriedSlug = extractCategorySlugFromPage(content);
-
-      // This test documents the bug - it PASSES now, will FAIL after the fix
-      expect(queriedSlug).toBe('technology');
     });
 
     it('slug "technology" does NOT exist in database', () => {
@@ -256,18 +212,11 @@ describe('Category Page Mismatch Detection', () => {
         }
       }
 
-      // Document the expected mismatches
+      // Document any remaining mismatches
       console.log('Detected mismatches:', JSON.stringify(mismatches, null, 2));
 
-      // We expect exactly 4 mismatches based on the issue description
-      expect(mismatches).toHaveLength(4);
-
-      // Verify the specific mismatches
-      const mismatchMap = new Map(mismatches.map(m => [m.folder, m.actual]));
-      expect(mismatchMap.get('consumption')).toBe('consumer');
-      expect(mismatchMap.get('crypto')).toBe('crypto-markets');
-      expect(mismatchMap.get('health-science')).toBe('healthcare');
-      expect(mismatchMap.get('tech')).toBe('technology');
+      // After fixes, we expect 0 mismatches
+      expect(mismatches).toHaveLength(0);
     });
   });
 

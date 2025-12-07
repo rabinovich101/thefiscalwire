@@ -24,8 +24,8 @@ const PAGE_SIZE = 8;
 
 export default async function TechPage() {
   const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory("technology", PAGE_SIZE),
-    getArticleCountByCategory("technology"),
+    getArticlesByCategory("tech", PAGE_SIZE),
+    getArticleCountByCategory("tech"),
     getTrendingStories(8),
   ]);
 
@@ -58,7 +58,7 @@ export default async function TechPage() {
               <div className="lg:col-span-2">
                 <LoadMoreArticles
                   initialArticles={articles}
-                  category="technology"
+                  category="tech"
                   initialTotal={totalCount}
                   pageSize={PAGE_SIZE}
                 />

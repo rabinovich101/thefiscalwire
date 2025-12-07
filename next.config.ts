@@ -114,6 +114,48 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.gravatar.com",
       },
+      // TownNews CDN (local news sources)
+      {
+        protocol: "https",
+        hostname: "*.townnews.com",
+      },
+      {
+        protocol: "https",
+        hostname: "bloximages.chicago2.vip.townnews.com",
+      },
+      // InvestorPlace and other financial news
+      {
+        protocol: "https",
+        hostname: "investorplace.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.investorplace.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.benzinga.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.seekingalpha.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.fool.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.thestreet.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.barrons.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.investopedia.com",
+      },
       // Additional trusted CDNs
       {
         protocol: "https",

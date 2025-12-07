@@ -93,7 +93,51 @@ Detect recently changed code files and generate comprehensive, high-quality test
 
 4. Report coverage for the changed files specifically
 
-## PHASE 4: QUALITY REQUIREMENTS
+## PHASE 4: END-TO-END & RUNTIME TESTING
+
+After unit tests pass, perform runtime verification to catch issues that static tests miss:
+
+### End-to-End Tests with Playwright:
+```typescript
+// Test that pages actually render with real data:
+// 1. Navigate to each affected page
+// 2. Verify page loads without 500 errors
+// 3. Check critical elements are visible
+// 4. Verify no console errors (especially image/resource errors)
+```
+
+**Steps:**
+1. Use `mcp__playwright__browser_navigate` to visit affected pages
+2. Use `mcp__playwright__browser_console_messages` to check for errors
+3. Use `mcp__playwright__browser_snapshot` to verify page rendered correctly
+
+**Common runtime issues to catch:**
+- External image domains not whitelisted in `next.config.js`
+- Database query errors with real data
+- Missing environment variables
+- API rate limits or timeouts
+- Hydration mismatches
+
+### Runtime Database Testing:
+```typescript
+// Verify database queries return expected results:
+// 1. Query for data that should exist
+// 2. Verify relationships work correctly
+// 3. Check that category slugs match between code and database
+```
+
+**Steps:**
+1. Run database queries with `npx tsx` to verify data exists
+2. Check that category pages query for slugs that exist in the Category table
+3. Verify article relationships resolve correctly
+
+### When to Run E2E Tests:
+- After ANY change to pages or components that display data
+- After changes to database schema or seeds
+- After changes to `next.config.js`
+- When unit tests pass but user reports page doesn't work
+
+## PHASE 5: QUALITY REQUIREMENTS
 
 You MUST ensure:
 - ✅ Minimum 3 test cases per test file
@@ -125,6 +169,12 @@ Files Tested: [count]
 Total Test Cases: [count]
 Passing: [count] ✅
 Failing: [count] ❌
+
+🌐 E2E/RUNTIME VERIFICATION
+Pages Checked: [count]
+Runtime Errors: [count]
+Console Errors: [list any found]
+
 Overall Status: [COMPLETE | NEEDS ATTENTION]
 ═══════════════════════════════════════
 ```
@@ -137,5 +187,6 @@ Overall Status: [COMPLETE | NEEDS ATTENTION]
 - Be clear: Explain what each test verifies and why
 - Be efficient: Reuse test utilities and setup code when appropriate
 - Follow project conventions: Check for existing test patterns in the codebase and match them
+- **ALWAYS run E2E verification**: Unit tests passing is NOT enough - you MUST verify pages actually render in the browser without errors. Use Playwright to navigate to affected pages and check for runtime errors.
 
 If you encounter a situation where tests cannot pass due to a fundamental code issue, clearly explain the problem and propose a solution rather than writing tests that ignore the issue.
