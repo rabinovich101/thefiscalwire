@@ -624,6 +624,93 @@ export async function populateZonesWithArticles(): Promise<{
 }
 
 /**
+ * Clears all placements and repopulates zones with correct articles
+ * This should be used when auto-fill logic changes to refresh all content
+ */
+export async function clearAndRepopulateZones(): Promise<{
+  cleared: number
+  populated: number
+  zones: { pageName: string; zoneName: string; placementsCreated: number }[]
+}> {
+  // Find all zones on article pages
+  const zones = await prisma.pageZone.findMany({
+    where: {
+      isEnabled: true,
+      autoFillRules: { not: Prisma.JsonNull },
+      page: {
+        pageType: { in: [...ARTICLE_PAGE_TYPES] },
+        isActive: true,
+      },
+    },
+    include: {
+      page: { select: { name: true, slug: true } },
+      zoneDefinition: { select: { name: true, maxItems: true } },
+    },
+  })
+
+  if (zones.length === 0) {
+    return { cleared: 0, populated: 0, zones: [] }
+  }
+
+  const results: { pageName: string; zoneName: string; placementsCreated: number }[] = []
+  let totalCleared = 0
+  let totalPopulated = 0
+
+  await prisma.$transaction(
+    async (tx) => {
+      // Step 1: Clear all existing placements for these zones
+      for (const zone of zones) {
+        const deleted = await tx.contentPlacement.deleteMany({
+          where: { zoneId: zone.id },
+        })
+        totalCleared += deleted.count
+      }
+
+      // Step 2: Repopulate each zone with fresh articles
+      for (const zone of zones) {
+        const autoFillRules = zone.autoFillRules as unknown as AutoFillConfig
+
+        if (!autoFillRules || autoFillRules.source !== "articles") {
+          continue
+        }
+
+        // Resolve auto-fill rules to get matching articles
+        const resolvedArticles = await resolveAutoFillRules(autoFillRules)
+
+        if (resolvedArticles.length === 0) {
+          continue
+        }
+
+        // Calculate max items to add (respect zone maxItems)
+        const maxItems = zone.zoneDefinition?.maxItems || 10
+        const articlesToAdd = resolvedArticles.slice(0, maxItems)
+
+        // Create placement records
+        const placementData = articlesToAdd.map((article, index) => ({
+          zoneId: zone.id,
+          contentType: "ARTICLE" as const,
+          articleId: article.id,
+          position: index,
+          isPinned: false,
+        }))
+
+        await tx.contentPlacement.createMany({ data: placementData })
+
+        results.push({
+          pageName: zone.page.name,
+          zoneName: zone.zoneDefinition?.name || "Unknown",
+          placementsCreated: articlesToAdd.length,
+        })
+        totalPopulated += articlesToAdd.length
+      }
+    },
+    { timeout: 60000 }
+  )
+
+  return { cleared: totalCleared, populated: totalPopulated, zones: results }
+}
+
+/**
  * Counts zones that need article population (have auto-fill rules but no placements)
  */
 export async function getZonesNeedingArticles(): Promise<{

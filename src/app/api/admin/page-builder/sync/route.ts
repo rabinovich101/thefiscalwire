@@ -8,6 +8,7 @@ import {
   cleanupInvalidCategoryPages,
   fixZonesAutoFillRules,
   populateZonesWithArticles,
+  clearAndRepopulateZones,
 } from "@/lib/page-builder-auto"
 
 // GET: Returns sync status (discovered/existing/missing counts)
@@ -77,5 +78,26 @@ export async function POST() {
   } catch (error) {
     console.error("Sync pages error:", error)
     return NextResponse.json({ error: "Failed to sync pages" }, { status: 500 })
+  }
+}
+
+// PUT: Refresh all placements - clear and repopulate zones with correct articles
+export async function PUT() {
+  const session = await auth()
+
+  if (!session?.user || session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  try {
+    const result = await clearAndRepopulateZones()
+    return NextResponse.json({
+      cleared: result.cleared,
+      populated: result.populated,
+      zones: result.zones,
+    })
+  } catch (error) {
+    console.error("Refresh zones error:", error)
+    return NextResponse.json({ error: "Failed to refresh zones" }, { status: 500 })
   }
 }
