@@ -399,14 +399,15 @@ export default function PageBuilderDashboard() {
                   <Label>Category</Label>
                   <Select
                     value={newPage.categoryId}
-                    onValueChange={(value) =>
+                    onValueChange={(value) => {
+                      const category = categories.find((c) => c.id === value)
                       setNewPage({
                         ...newPage,
                         categoryId: value,
-                        name: `Category: ${categories.find((c) => c.id === value)?.name || ""}`,
-                        slug: `category-${categories.find((c) => c.id === value)?.slug || ""}`,
+                        name: category?.name || "",
+                        slug: category?.slug || "",
                       })
-                    }
+                    }}
                   >
                     <SelectTrigger className="bg-zinc-800 border-zinc-700">
                       <SelectValue placeholder="Select a category" />
