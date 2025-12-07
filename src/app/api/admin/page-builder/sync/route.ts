@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { getSyncStatus, syncAllPages, syncZonesToExistingPages } from "@/lib/page-builder-auto"
+import {
+  getSyncStatus,
+  syncAllPages,
+  syncZonesToExistingPages,
+  cleanupNonArticlePages,
+} from "@/lib/page-builder-auto"
 
 // GET: Returns sync status (discovered/existing/missing counts)
 export async function GET() {
@@ -19,7 +24,7 @@ export async function GET() {
   }
 }
 
-// POST: Creates all missing pages AND syncs zones to existing pages
+// POST: Syncs page builder - creates missing pages, syncs zones, removes non-article pages
 export async function POST() {
   const session = await auth()
 
@@ -28,15 +33,23 @@ export async function POST() {
   }
 
   try {
-    // First, create missing pages (this will also create zones for new pages)
+    // Step 1: Remove pages that don't support articles (STATIC, MARKETS, STOCK)
+    const cleanupResult = await cleanupNonArticlePages()
+
+    // Step 2: Create missing pages (this will also create zones for new pages)
     const pagesResult = await syncAllPages()
 
-    // Then, sync zones to existing pages that don't have zones
+    // Step 3: Sync zones to existing pages that don't have zones
     const zonesResult = await syncZonesToExistingPages()
 
     return NextResponse.json({
+      // Cleanup results
+      removed: cleanupResult.removed,
+      removedPages: cleanupResult.pages,
+      // Create results
       created: pagesResult.created,
-      pages: pagesResult.pages,
+      createdPages: pagesResult.pages,
+      // Zone sync results
       zonesSynced: zonesResult.synced,
       pagesWithNewZones: zonesResult.pages,
     })
