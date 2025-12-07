@@ -3,6 +3,7 @@ import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { rateLimitMiddleware } from '@/lib/rate-limit'
 import { validateSearchParams, articleQuerySchema, validationErrorResponse } from '@/lib/validations'
+import { getCategoryArticlesWithPlacements } from '@/lib/data'
 
 // Category colors map
 const categoryColors: Record<string, string> = {
@@ -75,7 +76,26 @@ export async function GET(request: NextRequest) {
   const { category, offset, limit, sector, stock, market, sentiment, businessType } = validation.data
 
   try {
+    // Check if this is a simple category query (no analysis filters)
+    // If so, use page builder placements for ordering
+    const hasAnalysisFilters = sector || stock || market || sentiment || businessType
 
+    if (category && !hasAnalysisFilters) {
+      // Use page builder placements for category queries
+      const result = await getCategoryArticlesWithPlacements(category, limit, offset)
+
+      return NextResponse.json({
+        articles: result.articles,
+        pagination: {
+          offset,
+          limit,
+          total: result.total,
+          hasMore: offset + result.articles.length < result.total,
+        },
+      })
+    }
+
+    // For queries with analysis filters or no category, use traditional query
     // Build where clause with proper Prisma types
     const where: Prisma.ArticleWhereInput = {}
     if (category) {
@@ -84,7 +104,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Add analysis filters
-    if (sector || stock || market || sentiment || businessType) {
+    if (hasAnalysisFilters) {
       const analysisFilter: Prisma.ArticleAnalysisWhereInput = {}
 
       if (sector) {

@@ -9,8 +9,7 @@ import { TrendingSidebar } from "@/components/home/TrendingSidebar";
 import { MarketMovers } from "@/components/home/MarketMovers";
 import { LoadMoreArticles } from "@/components/home/LoadMoreArticles";
 import {
-  getArticlesByCategory,
-  getArticleCountByCategory,
+  getCategoryArticlesWithPlacements,
   getTrendingStories,
 } from "@/lib/data";
 import { Building2 } from "lucide-react";
@@ -23,11 +22,12 @@ export const metadata: Metadata = {
 const PAGE_SIZE = 8;
 
 export default async function EconomyPage() {
-  const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory("economy", PAGE_SIZE),
-    getArticleCountByCategory("economy"),
+  const [articleData, trendingStories] = await Promise.all([
+    getCategoryArticlesWithPlacements("economy", PAGE_SIZE, 0),
     getTrendingStories(8),
   ]);
+
+  const { articles, total: totalCount } = articleData;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

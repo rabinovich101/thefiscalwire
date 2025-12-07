@@ -10,8 +10,7 @@ import { TrendingSidebar } from "@/components/home/TrendingSidebar";
 import { MarketMovers } from "@/components/home/MarketMovers";
 import { LoadMoreArticles } from "@/components/home/LoadMoreArticles";
 import {
-  getArticlesByCategory,
-  getArticleCountByCategory,
+  getCategoryArticlesWithPlacements,
   getTrendingStories,
   getCategoryBySlug,
   getCategoryPageContent,
@@ -117,11 +116,12 @@ export default async function CategoryPage({ params }: PageProps) {
   // Try to get page builder content
   const pageContent = await getCategoryPageContent(slug);
 
-  const [articles, totalCount, trendingStories] = await Promise.all([
-    getArticlesByCategory(slug, PAGE_SIZE),
-    getArticleCountByCategory(slug),
+  const [articleData, trendingStories] = await Promise.all([
+    getCategoryArticlesWithPlacements(slug, PAGE_SIZE, 0),
     getTrendingStories(8),
   ]);
+
+  const { articles, total: totalCount } = articleData;
 
   const Icon = categoryIcons[slug] || TrendingUp;
   const description = categoryDescriptions[slug] || `Latest ${category.name} news and analysis.`;

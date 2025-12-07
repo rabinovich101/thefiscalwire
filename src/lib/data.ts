@@ -596,5 +596,149 @@ export async function getCategoryPageContent(
   return getPageContent('category-template')
 }
 
+// ============================================
+// Category Articles with Page Builder Support
+// ============================================
+
+/**
+ * Gets articles for a category page using page builder placements for ordering.
+ * Falls back to chronological order if no page builder configuration exists.
+ *
+ * @param categorySlug - The category slug (e.g., "crypto", "tech")
+ * @param limit - Number of articles to return
+ * @param offset - Number of articles to skip (for pagination)
+ * @returns Articles in page builder order (if configured), then chronological
+ */
+export async function getCategoryArticlesWithPlacements(
+  categorySlug: string,
+  limit: number,
+  offset: number = 0
+): Promise<{
+  articles: Article[]
+  total: number
+  hasPageBuilder: boolean
+}> {
+  // 1. Find the category page definition with placements
+  const categoryPage = await prisma.pageDefinition.findFirst({
+    where: {
+      isActive: true,
+      pageType: 'CATEGORY',
+      category: { slug: categorySlug },
+    },
+    include: {
+      zones: {
+        where: {
+          isEnabled: true,
+        },
+        include: {
+          placements: {
+            where: {
+              contentType: 'ARTICLE',
+              articleId: { not: null },
+              // Filter by valid date range
+              OR: [
+                { startDate: null, endDate: null },
+                { startDate: null, endDate: { gte: new Date() } },
+                { startDate: { lte: new Date() }, endDate: null },
+                { startDate: { lte: new Date() }, endDate: { gte: new Date() } },
+              ],
+            },
+            orderBy: { position: 'asc' },
+            include: {
+              article: {
+                include: {
+                  author: true,
+                  category: true,
+                }
+              }
+            }
+          },
+          zoneDefinition: true,
+        }
+      }
+    }
+  })
+
+  // 2. If no page builder config or no zones, fall back to default behavior
+  if (!categoryPage || categoryPage.zones.length === 0) {
+    const [articles, total] = await Promise.all([
+      getArticlesByCategoryWithOffset(categorySlug, limit, offset),
+      getArticleCountByCategory(categorySlug),
+    ])
+    return { articles, total, hasPageBuilder: false }
+  }
+
+  // 3. Collect all placed articles (maintaining position order)
+  // Deduplicate articles that might be in multiple zones
+  const seenArticleIds = new Set<string>()
+  const placedArticles: PrismaArticleWithRelations[] = []
+
+  for (const zone of categoryPage.zones) {
+    for (const placement of zone.placements) {
+      if (placement.article && !seenArticleIds.has(placement.article.id)) {
+        seenArticleIds.add(placement.article.id)
+        placedArticles.push(placement.article as PrismaArticleWithRelations)
+      }
+    }
+  }
+
+  // 4. If no placements exist, fall back to default behavior
+  if (placedArticles.length === 0) {
+    const [articles, total] = await Promise.all([
+      getArticlesByCategoryWithOffset(categorySlug, limit, offset),
+      getArticleCountByCategory(categorySlug),
+    ])
+    return { articles, total, hasPageBuilder: false }
+  }
+
+  // 5. Get additional articles not in placements (for infinite scroll)
+  const additionalArticles = await prisma.article.findMany({
+    where: {
+      categories: { some: { slug: categorySlug } },
+      id: { notIn: Array.from(seenArticleIds) }
+    },
+    include: { author: true, category: true },
+    orderBy: { publishedAt: 'desc' },
+  })
+
+  // 6. Combine: placed articles first (in position order), then chronological
+  const allArticles = [...placedArticles, ...additionalArticles]
+  const paginatedArticles = allArticles.slice(offset, offset + limit)
+
+  return {
+    articles: paginatedArticles.map(transformArticle),
+    total: allArticles.length,
+    hasPageBuilder: true,
+  }
+}
+
+/**
+ * Helper function to get articles by category with offset support
+ */
+async function getArticlesByCategoryWithOffset(
+  categorySlug: string,
+  limit: number,
+  offset: number
+): Promise<Article[]> {
+  const articles = await prisma.article.findMany({
+    where: {
+      categories: {
+        some: {
+          slug: categorySlug,
+        },
+      },
+    },
+    include: {
+      author: true,
+      category: true,
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+    skip: offset,
+  })
+
+  return articles.map(transformArticle)
+}
+
 // Export category colors for use in components
 export { categoryColors }
