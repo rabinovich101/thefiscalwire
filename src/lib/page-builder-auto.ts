@@ -624,15 +624,50 @@ export async function populateZonesWithArticles(): Promise<{
 }
 
 /**
+ * Counts zones that need article population (have auto-fill rules but no placements)
+ */
+export async function getZonesNeedingArticles(): Promise<{
+  count: number
+  zones: Array<{ pageName: string; pageSlug: string; zoneName: string }>
+}> {
+  // Find all enabled zones with auto-fill rules that have no placements
+  const zones = await prisma.pageZone.findMany({
+    where: {
+      isEnabled: true,
+      autoFillRules: { not: Prisma.JsonNull },
+      page: {
+        pageType: { in: [...ARTICLE_PAGE_TYPES] },
+        isActive: true,
+      },
+      placements: { none: {} },
+    },
+    include: {
+      page: { select: { name: true, slug: true } },
+      zoneDefinition: { select: { name: true } },
+    },
+  })
+
+  return {
+    count: zones.length,
+    zones: zones.map((z) => ({
+      pageName: z.page.name,
+      pageSlug: z.page.slug,
+      zoneName: z.zoneDefinition?.name || "Unknown",
+    })),
+  }
+}
+
+/**
  * Gets sync status - counts of discovered, existing, and missing pages
  * Optimized to use fewer queries
  */
 export async function getSyncStatus() {
-  // Fetch discovered pages, existing pages, and valid categories in parallel
-  const [discovered, existingWithZoneInfo, validCategories] = await Promise.all([
+  // Fetch discovered pages, existing pages, valid categories, and zones needing articles in parallel
+  const [discovered, existingWithZoneInfo, validCategories, zonesNeedingArticles] = await Promise.all([
     discoverAllPages(),
     getExistingPagesWithZoneCount(),
     prisma.category.findMany({ select: { slug: true } }),
+    getZonesNeedingArticles(),
   ])
 
   const existingSlugs = new Set(existingWithZoneInfo.map((p) => p.slug))
@@ -681,5 +716,8 @@ export async function getSyncStatus() {
       slug: p.slug,
       reason: `Slug "${p.slug}" doesn't match any database category`,
     })),
+    // Zones needing article population
+    zonesNeedingArticles: zonesNeedingArticles.count,
+    zonesNeedingArticlesList: zonesNeedingArticles.zones,
   }
 }

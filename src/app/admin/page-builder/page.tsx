@@ -53,6 +53,8 @@ interface SyncStatus {
   pagesWithoutZonesList: Array<{ name: string; slug: string }>
   invalidCategoryPages: number
   invalidCategoryPagesList: Array<{ name: string; slug: string; reason: string }>
+  zonesNeedingArticles: number
+  zonesNeedingArticlesList: Array<{ pageName: string; pageSlug: string; zoneName: string }>
 }
 
 interface PageDefinition {
@@ -275,7 +277,7 @@ export default function PageBuilderDashboard() {
                   </div>
                 ) : syncStatus ? (
                   <>
-                    <div className="grid grid-cols-5 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <div className="bg-zinc-800 rounded-lg p-3 text-center">
                         <div className="text-xl font-bold text-white">{syncStatus.discovered}</div>
                         <div className="text-xs text-zinc-400">Discovered</div>
@@ -288,6 +290,8 @@ export default function PageBuilderDashboard() {
                         <div className="text-xl font-bold text-yellow-500">{syncStatus.missing}</div>
                         <div className="text-xs text-zinc-400">To Create</div>
                       </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-3">
                       <div className="bg-zinc-800 rounded-lg p-3 text-center">
                         <div className="text-xl font-bold text-red-500">{syncStatus.invalidCategoryPages || 0}</div>
                         <div className="text-xs text-zinc-400">To Remove</div>
@@ -295,6 +299,10 @@ export default function PageBuilderDashboard() {
                       <div className="bg-zinc-800 rounded-lg p-3 text-center">
                         <div className="text-xl font-bold text-orange-500">{syncStatus.pagesWithoutZones}</div>
                         <div className="text-xs text-zinc-400">Need Zones</div>
+                      </div>
+                      <div className="bg-zinc-800 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-blue-500">{syncStatus.zonesNeedingArticles || 0}</div>
+                        <div className="text-xs text-zinc-400">Need Articles</div>
                       </div>
                     </div>
 
@@ -348,9 +356,28 @@ export default function PageBuilderDashboard() {
                       </div>
                     )}
 
-                    {syncStatus.missing === 0 && syncStatus.pagesWithoutZones === 0 && (syncStatus.invalidCategoryPages || 0) === 0 && (
+                    {(syncStatus.zonesNeedingArticles || 0) > 0 && (
+                      <div className="bg-blue-950/50 border border-blue-900/50 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-blue-400 mb-2">Zones to be populated with articles:</h4>
+                        <ul className="space-y-1 max-h-40 overflow-y-auto">
+                          {syncStatus.zonesNeedingArticlesList?.slice(0, 10).map((zone, i) => (
+                            <li key={i} className="text-sm text-blue-300">
+                              {zone.pageName} <span className="text-blue-500">/{zone.pageSlug}</span>
+                              <span className="text-blue-400 text-xs ml-2">• {zone.zoneName}</span>
+                            </li>
+                          ))}
+                          {(syncStatus.zonesNeedingArticles || 0) > 10 && (
+                            <li className="text-sm text-blue-500">
+                              ... and {syncStatus.zonesNeedingArticles - 10} more zones
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {syncStatus.missing === 0 && syncStatus.pagesWithoutZones === 0 && (syncStatus.invalidCategoryPages || 0) === 0 && (syncStatus.zonesNeedingArticles || 0) === 0 && (
                       <div className="text-center py-4 text-green-500">
-                        All pages are fully synced with zones!
+                        All pages are fully synced with zones and articles!
                       </div>
                     )}
                   </>
@@ -363,7 +390,7 @@ export default function PageBuilderDashboard() {
                 </Button>
                 <Button
                   onClick={handleSync}
-                  disabled={syncing || !syncStatus || (syncStatus.missing === 0 && syncStatus.pagesWithoutZones === 0 && (syncStatus.invalidCategoryPages || 0) === 0)}
+                  disabled={syncing || !syncStatus || (syncStatus.missing === 0 && syncStatus.pagesWithoutZones === 0 && (syncStatus.invalidCategoryPages || 0) === 0 && (syncStatus.zonesNeedingArticles || 0) === 0)}
                 >
                   {syncing ? (
                     <>
@@ -377,10 +404,12 @@ export default function PageBuilderDashboard() {
                         const toCreate = syncStatus?.missing || 0
                         const toRemove = syncStatus?.invalidCategoryPages || 0
                         const needZones = syncStatus?.pagesWithoutZones || 0
-                        const total = toCreate + toRemove + needZones
-                        if (total === 0) return "Sync 0 Items"
-                        if (toRemove > 0 && toCreate === 0 && needZones === 0) return `Remove ${toRemove} Invalid Pages`
-                        if (toCreate > 0 && toRemove === 0 && needZones === 0) return `Create ${toCreate} Pages`
+                        const needArticles = syncStatus?.zonesNeedingArticles || 0
+                        const total = toCreate + toRemove + needZones + needArticles
+                        if (total === 0) return "All Synced"
+                        if (needArticles > 0 && toCreate === 0 && toRemove === 0 && needZones === 0) return `Populate ${needArticles} Zones`
+                        if (toRemove > 0 && toCreate === 0 && needZones === 0 && needArticles === 0) return `Remove ${toRemove} Invalid Pages`
+                        if (toCreate > 0 && toRemove === 0 && needZones === 0 && needArticles === 0) return `Create ${toCreate} Pages`
                         return `Sync ${total} Items`
                       })()}
                     </>
