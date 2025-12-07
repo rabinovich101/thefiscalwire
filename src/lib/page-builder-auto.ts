@@ -10,6 +10,7 @@
 
 import prisma from "@/lib/prisma"
 import { Prisma, PrismaClient } from "@prisma/client"
+import { resolveAutoFillRules, AutoFillConfig } from "@/lib/auto-fill"
 
 // Required zone slugs - must exist in database
 const REQUIRED_ZONE_SLUGS = ["hero-featured", "article-grid", "trending-sidebar"] as const
@@ -452,6 +453,102 @@ export async function cleanupInvalidCategoryPages(): Promise<{
         : `Linked category no longer exists`,
     })),
   }
+}
+
+/**
+ * Populates zones with initial ContentPlacement records based on auto-fill rules
+ * This creates actual placements so articles appear in the Page Builder admin UI
+ */
+export async function populateZonesWithArticles(): Promise<{
+  populated: number
+  zones: { pageName: string; zoneName: string; placementsCreated: number }[]
+}> {
+  // Find all enabled zones that have auto-fill rules configured on article pages
+  const zones = await prisma.pageZone.findMany({
+    where: {
+      isEnabled: true,
+      autoFillRules: { not: Prisma.JsonNull },
+      page: {
+        pageType: { in: [...ARTICLE_PAGE_TYPES] },
+        isActive: true,
+      },
+    },
+    include: {
+      page: { select: { name: true, slug: true } },
+      zoneDefinition: { select: { name: true, maxItems: true } },
+      placements: { select: { articleId: true, position: true } },
+    },
+  })
+
+  if (zones.length === 0) {
+    return { populated: 0, zones: [] }
+  }
+
+  const results: { pageName: string; zoneName: string; placementsCreated: number }[] = []
+  let totalPopulated = 0
+
+  // Use transaction for data consistency
+  await prisma.$transaction(
+    async (tx) => {
+      for (const zone of zones) {
+        const autoFillRules = zone.autoFillRules as unknown as AutoFillConfig
+
+        // Skip if rules are invalid or not for articles
+        if (!autoFillRules || autoFillRules.source !== "articles") {
+          continue
+        }
+
+        // Get IDs of articles already placed in this zone
+        const existingArticleIds = new Set(
+          zone.placements.filter((p) => p.articleId).map((p) => p.articleId!)
+        )
+
+        // Resolve auto-fill rules to get matching articles
+        const resolvedArticles = await resolveAutoFillRules(autoFillRules)
+
+        // Filter out articles already placed in this zone
+        const newArticles = resolvedArticles.filter((article) => !existingArticleIds.has(article.id))
+
+        if (newArticles.length === 0) {
+          continue
+        }
+
+        // Calculate max items to add (respect zone maxItems)
+        const maxItems = zone.zoneDefinition?.maxItems || 10
+        const currentCount = zone.placements.length
+        const remainingSlots = Math.max(0, maxItems - currentCount)
+        const articlesToAdd = newArticles.slice(0, remainingSlots)
+
+        if (articlesToAdd.length === 0) {
+          continue
+        }
+
+        // Find the next available position
+        const maxPosition = zone.placements.reduce((max, p) => Math.max(max, p.position), -1)
+
+        // Create placement records
+        const placementData = articlesToAdd.map((article, index) => ({
+          zoneId: zone.id,
+          contentType: "ARTICLE" as const,
+          articleId: article.id,
+          position: maxPosition + 1 + index,
+          isPinned: false,
+        }))
+
+        await tx.contentPlacement.createMany({ data: placementData })
+
+        results.push({
+          pageName: zone.page.name,
+          zoneName: zone.zoneDefinition?.name || "Unknown",
+          placementsCreated: articlesToAdd.length,
+        })
+        totalPopulated += articlesToAdd.length
+      }
+    },
+    { timeout: 60000 }
+  )
+
+  return { populated: totalPopulated, zones: results }
 }
 
 /**

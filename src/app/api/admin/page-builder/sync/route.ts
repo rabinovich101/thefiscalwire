@@ -6,6 +6,7 @@ import {
   syncZonesToExistingPages,
   cleanupNonArticlePages,
   cleanupInvalidCategoryPages,
+  populateZonesWithArticles,
 } from "@/lib/page-builder-auto"
 
 // GET: Returns sync status (discovered/existing/missing counts)
@@ -46,6 +47,9 @@ export async function POST() {
     // Step 4: Sync zones to existing pages that don't have zones
     const zonesResult = await syncZonesToExistingPages()
 
+    // Step 5: Populate zones with initial articles based on auto-fill rules
+    const populateResult = await populateZonesWithArticles()
+
     return NextResponse.json({
       // Non-article page cleanup results
       removed: cleanupResult.removed,
@@ -59,6 +63,9 @@ export async function POST() {
       // Zone sync results
       zonesSynced: zonesResult.synced,
       pagesWithNewZones: zonesResult.pages,
+      // Article population results
+      articlesPopulated: populateResult.populated,
+      populatedZones: populateResult.zones,
     })
   } catch (error) {
     console.error("Sync pages error:", error)
