@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
-import { getSyncStatus, syncAllPages } from "@/lib/page-builder-auto"
+import { getSyncStatus, syncAllPages, syncZonesToExistingPages } from "@/lib/page-builder-auto"
 
 // GET: Returns sync status (discovered/existing/missing counts)
 export async function GET() {
@@ -19,7 +19,7 @@ export async function GET() {
   }
 }
 
-// POST: Creates all missing pages
+// POST: Creates all missing pages AND syncs zones to existing pages
 export async function POST() {
   const session = await auth()
 
@@ -28,8 +28,18 @@ export async function POST() {
   }
 
   try {
-    const result = await syncAllPages()
-    return NextResponse.json(result)
+    // First, create missing pages (this will also create zones for new pages)
+    const pagesResult = await syncAllPages()
+
+    // Then, sync zones to existing pages that don't have zones
+    const zonesResult = await syncZonesToExistingPages()
+
+    return NextResponse.json({
+      created: pagesResult.created,
+      pages: pagesResult.pages,
+      zonesSynced: zonesResult.synced,
+      pagesWithNewZones: zonesResult.pages,
+    })
   } catch (error) {
     console.error("Sync pages error:", error)
     return NextResponse.json({ error: "Failed to sync pages" }, { status: 500 })

@@ -49,6 +49,8 @@ interface SyncStatus {
   existing: number
   missing: number
   missingPages: Array<{ name: string; slug: string }>
+  pagesWithoutZones: number
+  pagesWithoutZonesList: Array<{ name: string; slug: string }>
 }
 
 interface PageDefinition {
@@ -271,7 +273,7 @@ export default function PageBuilderDashboard() {
                   </div>
                 ) : syncStatus ? (
                   <>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
                       <div className="bg-zinc-800 rounded-lg p-4 text-center">
                         <div className="text-2xl font-bold text-white">{syncStatus.discovered}</div>
                         <div className="text-sm text-zinc-400">Discovered</div>
@@ -282,7 +284,11 @@ export default function PageBuilderDashboard() {
                       </div>
                       <div className="bg-zinc-800 rounded-lg p-4 text-center">
                         <div className="text-2xl font-bold text-yellow-500">{syncStatus.missing}</div>
-                        <div className="text-sm text-zinc-400">Missing</div>
+                        <div className="text-sm text-zinc-400">Missing Pages</div>
+                      </div>
+                      <div className="bg-zinc-800 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-orange-500">{syncStatus.pagesWithoutZones}</div>
+                        <div className="text-sm text-zinc-400">Need Zones</div>
                       </div>
                     </div>
 
@@ -299,9 +305,27 @@ export default function PageBuilderDashboard() {
                       </div>
                     )}
 
-                    {syncStatus.missing === 0 && (
+                    {syncStatus.pagesWithoutZones > 0 && (
+                      <div className="bg-zinc-800 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-white mb-2">Pages needing zones with auto-fill:</h4>
+                        <ul className="space-y-1 max-h-40 overflow-y-auto">
+                          {syncStatus.pagesWithoutZonesList.slice(0, 10).map((page, i) => (
+                            <li key={i} className="text-sm text-zinc-400">
+                              {page.name} <span className="text-zinc-600">({page.slug})</span>
+                            </li>
+                          ))}
+                          {syncStatus.pagesWithoutZones > 10 && (
+                            <li className="text-sm text-zinc-500">
+                              ... and {syncStatus.pagesWithoutZones - 10} more
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {syncStatus.missing === 0 && syncStatus.pagesWithoutZones === 0 && (
                       <div className="text-center py-4 text-green-500">
-                        All pages are synced!
+                        All pages are fully synced with zones!
                       </div>
                     )}
                   </>
@@ -314,7 +338,7 @@ export default function PageBuilderDashboard() {
                 </Button>
                 <Button
                   onClick={handleSync}
-                  disabled={syncing || !syncStatus || syncStatus.missing === 0}
+                  disabled={syncing || !syncStatus || (syncStatus.missing === 0 && syncStatus.pagesWithoutZones === 0)}
                 >
                   {syncing ? (
                     <>
@@ -324,7 +348,9 @@ export default function PageBuilderDashboard() {
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Sync {syncStatus?.missing || 0} Pages
+                      {syncStatus?.missing === 0 && syncStatus?.pagesWithoutZones > 0
+                        ? `Sync Zones to ${syncStatus.pagesWithoutZones} Pages`
+                        : `Sync ${(syncStatus?.missing || 0) + (syncStatus?.pagesWithoutZones || 0)} Items`}
                     </>
                   )}
                 </Button>
