@@ -11,9 +11,7 @@ import {
   Settings,
   ChevronRight,
   Clock,
-  Layers,
-  RefreshCw,
-  Check,
+  Layers
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,13 +41,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-type PageTypeValue = "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM"
-
 interface PageDefinition {
   id: string
   name: string
   slug: string
-  pageType: PageTypeValue
+  pageType: "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM"
   isActive: boolean
   category?: { id: string; name: string; slug: string } | null
   stockSymbol?: string | null
@@ -70,14 +66,14 @@ interface Category {
   slug: string
 }
 
-const pageTypeIcons: Record<PageTypeValue, typeof Home> = {
+const pageTypeIcons = {
   HOMEPAGE: Home,
   CATEGORY: FolderOpen,
   STOCK: TrendingUp,
   CUSTOM: Settings,
 }
 
-const pageTypeColors: Record<PageTypeValue, string> = {
+const pageTypeColors = {
   HOMEPAGE: "bg-blue-500",
   CATEGORY: "bg-green-500",
   STOCK: "bg-purple-500",
@@ -92,18 +88,10 @@ export default function PageBuilderDashboard() {
   const [newPage, setNewPage] = useState({
     name: "",
     slug: "",
-    pageType: "CUSTOM" as PageTypeValue,
+    pageType: "CUSTOM" as "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM",
     categoryId: "",
     stockSymbol: "",
   })
-  const [syncOpen, setSyncOpen] = useState(false)
-  const [syncStatus, setSyncStatus] = useState<{
-    discovered: number
-    existing: number
-    missing: number
-  } | null>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [syncResult, setSyncResult] = useState<{ created: number; pages: string[] } | null>(null)
 
   useEffect(() => {
     fetchPages()
@@ -134,42 +122,6 @@ export default function PageBuilderDashboard() {
     } catch (error) {
       console.error("Failed to fetch categories:", error)
     }
-  }
-
-  async function fetchSyncStatus() {
-    try {
-      const res = await fetch("/api/admin/page-builder/sync")
-      if (res.ok) {
-        const data = await res.json()
-        setSyncStatus(data)
-      }
-    } catch (error) {
-      console.error("Failed to fetch sync status:", error)
-    }
-  }
-
-  async function handleSync() {
-    setSyncing(true)
-    setSyncResult(null)
-    try {
-      const res = await fetch("/api/admin/page-builder/sync", { method: "POST" })
-      if (res.ok) {
-        const data = await res.json()
-        setSyncResult(data)
-        fetchPages()
-        fetchSyncStatus()
-      }
-    } catch (error) {
-      console.error("Failed to sync pages:", error)
-    } finally {
-      setSyncing(false)
-    }
-  }
-
-  function openSyncDialog() {
-    setSyncResult(null)
-    fetchSyncStatus()
-    setSyncOpen(true)
   }
 
   async function createPage() {
@@ -240,19 +192,13 @@ export default function PageBuilderDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={openSyncDialog} className="flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" />
-            Sync Pages
-          </Button>
-
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                New Page
-              </Button>
-            </DialogTrigger>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger asChild>
+            <Button className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Page
+            </Button>
+          </DialogTrigger>
           <DialogContent className="bg-zinc-900 border-zinc-800">
             <DialogHeader>
               <DialogTitle className="text-white">Create New Page</DialogTitle>
@@ -266,7 +212,7 @@ export default function PageBuilderDashboard() {
                 <Label>Page Type</Label>
                 <Select
                   value={newPage.pageType}
-                  onValueChange={(value: PageTypeValue) =>
+                  onValueChange={(value: "HOMEPAGE" | "CATEGORY" | "STOCK" | "CUSTOM") =>
                     setNewPage({ ...newPage, pageType: value })
                   }
                 >
@@ -362,76 +308,6 @@ export default function PageBuilderDashboard() {
               </Button>
               <Button onClick={createPage} disabled={!newPage.name || !newPage.slug}>
                 Create Page
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Sync Dialog */}
-        <Dialog open={syncOpen} onOpenChange={setSyncOpen}>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
-            <DialogHeader>
-              <DialogTitle className="text-white">Sync Pages</DialogTitle>
-              <DialogDescription>
-                Auto-discover and create missing page configurations from your database content.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="py-4 space-y-4">
-              {syncStatus && (
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div className="p-3 bg-zinc-800 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-400">{syncStatus.discovered}</div>
-                    <div className="text-xs text-zinc-400">Discovered</div>
-                  </div>
-                  <div className="p-3 bg-zinc-800 rounded-lg">
-                    <div className="text-2xl font-bold text-green-400">{syncStatus.existing}</div>
-                    <div className="text-xs text-zinc-400">Existing</div>
-                  </div>
-                  <div className="p-3 bg-zinc-800 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-400">{syncStatus.missing}</div>
-                    <div className="text-xs text-zinc-400">Missing</div>
-                  </div>
-                </div>
-              )}
-
-              {syncResult && (
-                <div className="p-3 bg-green-900/30 border border-green-800 rounded-lg">
-                  <div className="flex items-center gap-2 text-green-400 font-medium mb-2">
-                    <Check className="w-4 h-4" />
-                    Created {syncResult.created} pages
-                  </div>
-                  {syncResult.pages.length > 0 && (
-                    <div className="text-sm text-zinc-400 space-y-1">
-                      {syncResult.pages.map((name, i) => (
-                        <div key={i}>• {name}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setSyncOpen(false)}>
-                Close
-              </Button>
-              <Button
-                onClick={handleSync}
-                disabled={syncing || !syncStatus || syncStatus.missing === 0}
-              >
-                {syncing ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Syncing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Sync {syncStatus?.missing || 0} Pages
-                  </>
-                )}
               </Button>
             </DialogFooter>
           </DialogContent>
