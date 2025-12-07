@@ -259,7 +259,7 @@ interface AutoFillConfig {
     isFeatured?: boolean
     isBreaking?: boolean
     tags?: string[]
-    maxAge?: "24h" | "7d" | "30d" | ""
+    maxAge?: "24h" | "7d" | "30d"
   }
   sort?: "publishedAt" | "createdAt" | "title"
   order?: "asc" | "desc"
