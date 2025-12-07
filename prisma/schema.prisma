@@ -278,6 +278,8 @@ enum PageType {
   HOMEPAGE
   CATEGORY
   STOCK
+  MARKETS      // Markets sub-pages (bonds, forex, etc.)
+  STATIC       // Static content pages (about, contact, etc.)
   CUSTOM
 }
 
