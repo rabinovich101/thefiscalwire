@@ -393,45 +393,48 @@ export async function cleanupInvalidCategoryPages(): Promise<{
   removed: number
   pages: { name: string; slug: string; reason: string }[]
 }> {
-  // Get all valid category slugs from database
-  const validCategories = await prisma.category.findMany({
-    select: { slug: true },
-  })
-  const validCategorySlugs = new Set(validCategories.map((c) => c.slug))
-
-  // Get all CATEGORY pages
-  const categoryPages = await prisma.pageDefinition.findMany({
-    where: {
-      pageType: "CATEGORY",
-    },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      categoryId: true,
-      category: {
-        select: { slug: true },
+  // Get all valid category slugs and CATEGORY pages in parallel for better performance
+  const [validCategories, categoryPages] = await Promise.all([
+    prisma.category.findMany({
+      select: { slug: true },
+    }),
+    prisma.pageDefinition.findMany({
+      where: {
+        pageType: "CATEGORY",
       },
-    },
-  })
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        categoryId: true,
+        category: {
+          select: { slug: true },
+        },
+      },
+    }),
+  ])
+
+  const validCategorySlugs = new Set(validCategories.map((c) => c.slug))
 
   // Find invalid pages:
   // 1. Pages where slug doesn't match any valid category slug
-  // 2. Pages that have a categoryId but that category no longer exists
+  // 2. Pages that have a categoryId but that category no longer exists (orphaned reference)
   const invalidPages = categoryPages.filter((page) => {
-    // Check if the page slug matches a valid category
-    const slugMatchesCategory = validCategorySlugs.has(page.slug)
+    const hasMatchingCategorySlug = validCategorySlugs.has(page.slug)
+    const hasOrphanedCategoryReference = page.categoryId !== null && page.category === null
 
-    // Check if the linked category still exists
-    const linkedCategoryExists = page.categoryId ? page.category !== null : true
-
-    // Page is invalid if slug doesn't match OR linked category doesn't exist
-    return !slugMatchesCategory || !linkedCategoryExists
+    return !hasMatchingCategorySlug || hasOrphanedCategoryReference
   })
 
   if (invalidPages.length === 0) {
     return { removed: 0, pages: [] }
   }
+
+  // Log for debugging in production
+  console.log(
+    `[cleanupInvalidCategoryPages] Removing ${invalidPages.length} invalid pages:`,
+    invalidPages.map((p) => ({ slug: p.slug, reason: !validCategorySlugs.has(p.slug) ? "no-matching-category" : "orphaned-reference" }))
+  )
 
   // Delete invalid pages
   const pageIds = invalidPages.map((p) => p.id)
