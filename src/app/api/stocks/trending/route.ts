@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getTrendingStocks, getMostActiveStocks, getTopGainers, getTopLosers } from "@/lib/yahoo-finance";
+import { rateLimitMiddleware } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = rateLimitMiddleware(request, 'market');
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     // Fetch all data in parallel
     const [trending, mostActive, gainers, losers] = await Promise.all([

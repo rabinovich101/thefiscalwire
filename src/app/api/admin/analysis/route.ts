@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 
 // Force dynamic
 export const dynamic = 'force-dynamic';
@@ -26,9 +27,8 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    // Build where clause
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: Record<string, any> = {};
+    // Build where clause with proper Prisma types
+    const where: Prisma.ArticleAnalysisWhereInput = {};
 
     if (sector) {
       where.primarySector = sector;

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
+import { rateLimitMiddleware } from '@/lib/rate-limit'
+import { validateSearchParams, articleQuerySchema, validationErrorResponse } from '@/lib/validations'
 
 // Category colors map
 const categoryColors: Record<string, string> = {
@@ -59,22 +62,22 @@ function transformArticle(article: PrismaArticle) {
 }
 
 export async function GET(request: NextRequest) {
+  // Apply rate limiting
+  const rateLimitResponse = rateLimitMiddleware(request, 'public')
+  if (rateLimitResponse) return rateLimitResponse
+
+  // Validate input
+  const validation = validateSearchParams(request.nextUrl.searchParams, articleQuerySchema)
+  if (!validation.success) {
+    return validationErrorResponse(validation.error)
+  }
+
+  const { category, offset, limit, sector, stock, market, sentiment, businessType } = validation.data
+
   try {
-    const searchParams = request.nextUrl.searchParams
-    const category = searchParams.get('category')
-    const offset = parseInt(searchParams.get('offset') || '0')
-    const limit = parseInt(searchParams.get('limit') || '8')
 
-    // Analysis filter parameters
-    const sector = searchParams.get('sector')
-    const stock = searchParams.get('stock')
-    const market = searchParams.get('market')
-    const sentiment = searchParams.get('sentiment')
-    const businessType = searchParams.get('businessType')
-
-    // Build where clause
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: Record<string, any> = {}
+    // Build where clause with proper Prisma types
+    const where: Prisma.ArticleWhereInput = {}
     if (category) {
       // Use many-to-many relation - articles can belong to multiple categories
       where.categories = { some: { slug: category } }
@@ -82,27 +85,29 @@ export async function GET(request: NextRequest) {
 
     // Add analysis filters
     if (sector || stock || market || sentiment || businessType) {
-      where.analysis = {}
+      const analysisFilter: Prisma.ArticleAnalysisWhereInput = {}
 
       if (sector) {
-        where.analysis.primarySector = sector
+        analysisFilter.primarySector = sector
       }
 
       if (stock) {
-        where.analysis.mentionedStocks = { has: stock.toUpperCase() }
+        analysisFilter.mentionedStocks = { has: stock.toUpperCase() }
       }
 
       if (market) {
-        where.analysis.markets = { has: market }
+        analysisFilter.markets = { has: market }
       }
 
       if (sentiment) {
-        where.analysis.sentiment = sentiment
+        analysisFilter.sentiment = sentiment
       }
 
       if (businessType) {
-        where.analysis.businessType = businessType
+        analysisFilter.businessType = businessType
       }
+
+      where.analysis = analysisFilter
     }
 
     // Get total count for pagination info

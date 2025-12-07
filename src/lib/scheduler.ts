@@ -55,13 +55,17 @@ async function triggerImport(): Promise<void> {
       : 'http://localhost:3000';
 
     const secret = process.env.CRON_SECRET;
-    const url = secret
-      ? `${baseUrl}/api/cron/import-news?secret=${secret}`
-      : `${baseUrl}/api/cron/import-news`;
+    const url = `${baseUrl}/api/cron/import-news`;
 
-    console.log(`[Scheduler] Calling ${baseUrl}/api/cron/import-news`);
+    console.log(`[Scheduler] Calling ${url}`);
 
-    const response = await fetch(url);
+    // Use Authorization header instead of query params for security
+    const headers: HeadersInit = {};
+    if (secret) {
+      headers['Authorization'] = `Bearer ${secret}`;
+    }
+
+    const response = await fetch(url, { headers });
     const data = await response.json();
 
     if (response.ok) {

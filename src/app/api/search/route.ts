@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { rateLimitMiddleware } from "@/lib/rate-limit";
+import { validateSearchParams, searchQuerySchema, validationErrorResponse } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const query = searchParams.get("q");
-  const limit = parseInt(searchParams.get("limit") || "10");
+  // Apply rate limiting for public search endpoint
+  const rateLimitResponse = rateLimitMiddleware(request, 'public');
+  if (rateLimitResponse) return rateLimitResponse;
+
+  // Validate input
+  const validation = validateSearchParams(request.nextUrl.searchParams, searchQuerySchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.error);
+  }
+
+  const { q: query, limit } = validation.data;
 
   if (!query || query.trim().length < 2) {
     return NextResponse.json({ articles: [] });
@@ -37,7 +47,7 @@ export async function GET(request: NextRequest) {
       orderBy: {
         publishedAt: "desc",
       },
-      take: limit,
+      take: Math.min(limit, 50), // Cap at 50 results
     });
 
     return NextResponse.json({ articles });

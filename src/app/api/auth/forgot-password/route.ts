@@ -2,17 +2,23 @@ import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 import { generatePasswordResetToken } from "@/lib/tokens"
 import { sendPasswordResetEmail } from "@/lib/email"
+import { rateLimitMiddleware } from "@/lib/rate-limit"
+import { validateBody, forgotPasswordSchema, validationErrorResponse } from "@/lib/validations"
 
 export async function POST(request: Request) {
-  try {
-    const { email } = await request.json()
+  // Apply strict rate limiting for auth endpoints
+  const rateLimitResponse = rateLimitMiddleware(request, 'auth')
+  if (rateLimitResponse) return rateLimitResponse
 
-    if (!email) {
-      return NextResponse.json(
-        { error: "Email is required" },
-        { status: 400 }
-      )
-    }
+  // Validate input
+  const validation = await validateBody(request, forgotPasswordSchema)
+  if (!validation.success) {
+    return validationErrorResponse(validation.error)
+  }
+
+  const { email } = validation.data
+
+  try {
 
     // Find the user
     const user = await prisma.user.findUnique({

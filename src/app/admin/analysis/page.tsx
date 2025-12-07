@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link"
 import prisma from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 import { Eye, RefreshCw, TrendingUp, TrendingDown, Minus, Building2, DollarSign, BarChart3 } from "lucide-react"
 import { VALID_SECTORS, VALID_SENTIMENTS, VALID_BUSINESS_TYPES } from "@/lib/article-analyzer"
 
@@ -52,9 +53,8 @@ export default async function AnalysisPage({
   const limit = 20
   const offset = (page - 1) * limit
 
-  // Build where clause for filters
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: Record<string, any> = {}
+  // Build where clause for filters with proper Prisma types
+  const where: Prisma.ArticleAnalysisWhereInput = {}
 
   if (searchParams.sector) {
     where.primarySector = searchParams.sector

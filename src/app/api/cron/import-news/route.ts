@@ -298,14 +298,11 @@ export async function GET(request: Request) {
   // Verify cron secret (for Vercel Cron)
   const authHeader = request.headers.get('authorization');
   const vercelCronHeader = request.headers.get('x-vercel-cron');
-  const url = new URL(request.url);
-  const secretParam = url.searchParams.get('secret');
 
-  // Allow: Vercel Cron header, Authorization header, or secret query param
+  // Allow: Vercel Cron header or Authorization header only (no query params for security)
   const isAuthorized =
     vercelCronHeader === '1' || // Vercel Cron sets this header
     authHeader === `Bearer ${CRON_SECRET}` ||
-    secretParam === CRON_SECRET ||
     // For local development without secret
     (process.env.NODE_ENV === 'development' && !CRON_SECRET);
 

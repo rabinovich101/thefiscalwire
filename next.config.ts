@@ -11,45 +11,121 @@ const nextConfig: NextConfig = {
       // UploadThing for user uploads
       {
         protocol: "https",
+        hostname: "uploadthing.com",
+      },
+      {
+        protocol: "https",
         hostname: "*.uploadthing.com",
       },
       {
         protocol: "https",
         hostname: "utfs.io",
       },
-      // Common news image CDNs
+      // NewsData.io images
+      {
+        protocol: "https",
+        hostname: "newsdata.io",
+      },
       {
         protocol: "https",
         hostname: "*.newsdata.io",
       },
+      // Unsplash for stock images
       {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      // AWS/CloudFront CDNs (common for news sources)
       {
         protocol: "https",
         hostname: "*.cloudfront.net",
       },
       {
         protocol: "https",
-        hostname: "*.amazonaws.com",
-      },
-      // Allow other HTTPS sources for news aggregation (more restrictive than **)
-      {
-        protocol: "https",
-        hostname: "*.com",
+        hostname: "s3.amazonaws.com",
       },
       {
         protocol: "https",
-        hostname: "*.net",
+        hostname: "*.s3.amazonaws.com",
+      },
+      // Common news source image CDNs
+      {
+        protocol: "https",
+        hostname: "media.reuters.com",
       },
       {
         protocol: "https",
-        hostname: "*.org",
+        hostname: "*.reuters.com",
       },
       {
         protocol: "https",
-        hostname: "*.io",
+        hostname: "static.cnbcfm.com",
+      },
+      {
+        protocol: "https",
+        hostname: "image.cnbcfm.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.bloomberg.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.wsj.net",
+      },
+      {
+        protocol: "https",
+        hostname: "*.nytimes.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.ft.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.marketwatch.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.barrons.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.cnn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.foxbusiness.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.yahoo.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.yimg.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
+      },
+      // Gravatar for user avatars
+      {
+        protocol: "https",
+        hostname: "*.gravatar.com",
+      },
+      // Additional trusted CDNs
+      {
+        protocol: "https",
+        hostname: "*.akamaized.net",
+      },
+      {
+        protocol: "https",
+        hostname: "*.fastly.net",
+      },
+      {
+        protocol: "https",
+        hostname: "*.imgix.net",
       },
     ],
     dangerouslyAllowSVG: true,

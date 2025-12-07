@@ -3,24 +3,23 @@ import bcrypt from "bcryptjs"
 import prisma from "@/lib/prisma"
 import { generateVerificationToken } from "@/lib/tokens"
 import { sendVerificationEmail } from "@/lib/email"
+import { rateLimitMiddleware } from "@/lib/rate-limit"
+import { validateBody, signupSchema, validationErrorResponse } from "@/lib/validations"
 
 export async function POST(request: Request) {
+  // Apply strict rate limiting for auth endpoints
+  const rateLimitResponse = rateLimitMiddleware(request, 'auth')
+  if (rateLimitResponse) return rateLimitResponse
+
+  // Validate input
+  const validation = await validateBody(request, signupSchema)
+  if (!validation.success) {
+    return validationErrorResponse(validation.error)
+  }
+
+  const { name, email, password } = validation.data
+
   try {
-    const { name, email, password } = await request.json()
-
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      )
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
-        { status: 400 }
-      )
-    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchStocks } from "@/data/stockSymbols";
+import { rateLimitMiddleware } from "@/lib/rate-limit";
+import { validateSearchParams, stockSearchSchema, validationErrorResponse } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +19,19 @@ interface YahooSearchResponse {
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const query = searchParams.get("q");
+  // Apply rate limiting
+  const rateLimitResponse = rateLimitMiddleware(request, 'market');
+  if (rateLimitResponse) return rateLimitResponse;
 
-    if (!query || query.length < 1) {
-      return NextResponse.json({ results: [] });
-    }
+  // Validate input
+  const validation = validateSearchParams(request.nextUrl.searchParams, stockSearchSchema);
+  if (!validation.success) {
+    return validationErrorResponse(validation.error);
+  }
+
+  const { q: query } = validation.data;
+
+  try {
 
     // Try Yahoo Finance search API first for comprehensive results
     try {

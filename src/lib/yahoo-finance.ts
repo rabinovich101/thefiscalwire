@@ -3,6 +3,57 @@ import YahooFinance from "yahoo-finance2";
 // Create singleton instance
 const yahooFinance = new YahooFinance();
 
+// ============================================================================
+// Yahoo Finance API Types
+// ============================================================================
+
+/** Yahoo Finance quote data structure */
+interface YahooQuote {
+  symbol: string;
+  shortName?: string;
+  longName?: string;
+  regularMarketPrice?: number;
+  regularMarketChange?: number;
+  regularMarketChangePercent?: number;
+  regularMarketVolume?: number;
+  averageDailyVolume3Month?: number;
+  averageDailyVolume10Day?: number;
+  marketCap?: number;
+  fiftyTwoWeekHigh?: number;
+  fiftyTwoWeekLow?: number;
+  fiftyDayAverage?: number;
+  twoHundredDayAverage?: number;
+  trailingPE?: number;
+  forwardPE?: number;
+  epsTrailingTwelveMonths?: number;
+  dividendYield?: number;
+  beta?: number;
+  exchange?: string;
+  quoteType?: string;
+}
+
+/** Yahoo Finance screener result */
+interface YahooScreenerResult {
+  quotes?: YahooQuote[];
+}
+
+/** Yahoo Finance chart data point */
+interface YahooChartQuote {
+  date: Date;
+  close: number | null;
+  volume?: number;
+}
+
+/** Yahoo Finance chart result */
+interface YahooChartResult {
+  quotes?: YahooChartQuote[];
+}
+
+/** Yahoo Finance trending result */
+interface YahooTrendingResult {
+  quotes?: Array<{ symbol: string }>;
+}
+
 export interface MarketQuote {
   symbol: string;
   name: string;
@@ -86,9 +137,8 @@ export async function getQuotes(symbols: string[]): Promise<MarketQuote[]> {
     const yahooSymbols = symbols.map(getYahooSymbol);
     const results = await yahooFinance.quote(yahooSymbols);
 
-    // Handle both single result and array
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const quotesArray: any[] = Array.isArray(results) ? results : [results];
+    // Handle both single result and array, cast to our interface
+    const quotesArray = (Array.isArray(results) ? results : [results]) as unknown as YahooQuote[];
 
     return quotesArray.map((quote) => {
       const displaySymbol = getDisplaySymbol(quote.symbol);
@@ -119,14 +169,12 @@ export async function getMarketIndices(): Promise<MarketQuote[]> {
  */
 export async function getTopGainers(): Promise<MarketQuote[]> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await yahooFinance.screener({
+    const result = await yahooFinance.screener({
       scrIds: "day_gainers",
       count: 5,
-    });
+    }) as YahooScreenerResult;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (result.quotes || []).slice(0, 5).map((quote: any) => ({
+    return (result.quotes || []).slice(0, 5).map((quote: YahooQuote) => ({
       symbol: quote.symbol,
       name: quote.shortName || quote.longName || quote.symbol,
       price: quote.regularMarketPrice || 0,
@@ -144,14 +192,12 @@ export async function getTopGainers(): Promise<MarketQuote[]> {
  */
 export async function getTopLosers(): Promise<MarketQuote[]> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await yahooFinance.screener({
+    const result = await yahooFinance.screener({
       scrIds: "day_losers",
       count: 5,
-    });
+    }) as YahooScreenerResult;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (result.quotes || []).slice(0, 5).map((quote: any) => ({
+    return (result.quotes || []).slice(0, 5).map((quote: YahooQuote) => ({
       symbol: quote.symbol,
       name: quote.shortName || quote.longName || quote.symbol,
       price: quote.regularMarketPrice || 0,
@@ -174,24 +220,21 @@ export async function getChartData(
   try {
     const yahooSymbol = getYahooSymbol(symbol);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await yahooFinance.chart(yahooSymbol, {
+    const result = await yahooFinance.chart(yahooSymbol, {
       period1: getStartDate(period),
       period2: new Date(),
       interval: period === "1d" ? "5m" : period === "5d" ? "15m" : "1d",
-    });
+    }) as YahooChartResult;
 
     if (!result.quotes || result.quotes.length === 0) {
       return [];
     }
 
     return result.quotes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((q: any) => q.close !== null && q.close !== undefined)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((quote: any) => ({
+      .filter((q: YahooChartQuote) => q.close !== null && q.close !== undefined)
+      .map((quote: YahooChartQuote) => ({
         time: formatDate(new Date(quote.date), period),
-        value: quote.close,
+        value: quote.close as number,
         volume: quote.volume,
       }));
   } catch (error) {
@@ -236,8 +279,7 @@ function formatDate(date: Date, period: string): string {
 export async function getTrendingStocks(count: number = 25): Promise<TrendingStock[]> {
   try {
     // Get trending tickers
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const trendingResult: any = await yahooFinance.trendingSymbols("US", { count: count });
+    const trendingResult = await yahooFinance.trendingSymbols("US", { count: count }) as YahooTrendingResult;
 
     const symbols = trendingResult.quotes?.map((q: { symbol: string }) => q.symbol) || [];
 
@@ -247,10 +289,9 @@ export async function getTrendingStocks(count: number = 25): Promise<TrendingSto
 
     // Get detailed quotes for each symbol
     const quotes = await yahooFinance.quote(symbols);
-    const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+    const quotesArray = (Array.isArray(quotes) ? quotes : [quotes]) as unknown as YahooQuote[];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return quotesArray.map((quote: any) => ({
+    return quotesArray.map((quote: YahooQuote) => ({
       symbol: quote.symbol,
       name: quote.shortName || quote.longName || quote.symbol,
       price: quote.regularMarketPrice || 0,
@@ -332,10 +373,9 @@ export async function getHeatmapData(index: "sp500" | "nasdaq"): Promise<Heatmap
     for (let i = 0; i < symbols.length; i += batchSize) {
       const batch = symbols.slice(i, i + batchSize);
       const quotes = await yahooFinance.quote(batch);
-      const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+      const quotesArray = (Array.isArray(quotes) ? quotes : [quotes]) as unknown as YahooQuote[];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mappedQuotes = quotesArray.map((quote: any) => ({
+      const mappedQuotes = quotesArray.map((quote: YahooQuote) => ({
         symbol: quote.symbol,
         name: quote.shortName || quote.longName || quote.symbol,
         price: quote.regularMarketPrice || 0,
@@ -915,14 +955,12 @@ function getSectorForSymbol(symbol: string): string {
 
 export async function getMostActiveStocks(count: number = 10): Promise<TrendingStock[]> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await yahooFinance.screener({
+    const result = await yahooFinance.screener({
       scrIds: "most_actives",
       count: count,
-    });
+    }) as YahooScreenerResult;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (result.quotes || []).slice(0, count).map((quote: any) => ({
+    return (result.quotes || []).slice(0, count).map((quote: YahooQuote) => ({
       symbol: quote.symbol,
       name: quote.shortName || quote.longName || quote.symbol,
       price: quote.regularMarketPrice || 0,
@@ -1043,10 +1081,9 @@ export async function getSectorStocks(sectorId: string): Promise<SectorStock[]> 
     const batch = symbols.slice(i, i + batchSize);
     try {
       const quotes = await yahooFinance.quote(batch);
-      const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+      const quotesArray = (Array.isArray(quotes) ? quotes : [quotes]) as unknown as YahooQuote[];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mappedQuotes = quotesArray.map((quote: any) => ({
+      const mappedQuotes = quotesArray.map((quote: YahooQuote) => ({
         symbol: quote.symbol,
         name: quote.shortName || quote.longName || quote.symbol,
         price: quote.regularMarketPrice || 0,
@@ -1105,16 +1142,14 @@ export async function getAllSectorsPerformance(): Promise<SectorPerformance[]> {
 
         // Fetch detailed quotes from Yahoo Finance
         const quotes = await yahooFinance.quote(symbols);
-        const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+        const quotesArray = (Array.isArray(quotes) ? quotes : [quotes]) as unknown as YahooQuote[];
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const validQuotes = quotesArray.filter((q: any) => q && q.regularMarketPrice);
+        const validQuotes = quotesArray.filter((q: YahooQuote) => q && q.regularMarketPrice);
 
         if (validQuotes.length === 0) continue;
 
         // Calculate metrics
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const stocks = validQuotes.map((q: any) => ({
+        const stocks = validQuotes.map((q: YahooQuote) => ({
           symbol: q.symbol,
           changePercent: q.regularMarketChangePercent || 0,
           marketCap: q.marketCap || 0,
@@ -1215,10 +1250,9 @@ export async function getSectorStocksPaginated(
 
     // Fetch detailed quotes from Yahoo Finance
     const quotes = await yahooFinance.quote(symbols);
-    const quotesArray = Array.isArray(quotes) ? quotes : [quotes];
+    const quotesArray = (Array.isArray(quotes) ? quotes : [quotes]) as unknown as YahooQuote[];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const stocks = quotesArray.map((quote: any) => ({
+    const stocks = quotesArray.map((quote: YahooQuote) => ({
       symbol: quote.symbol,
       name: quote.shortName || quote.longName || quote.symbol,
       price: quote.regularMarketPrice || 0,

@@ -251,9 +251,13 @@ export function StockHeatmap() {
   }, [stocks]);
 
   // Handle click on treemap cell
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleClick = (node: any) => {
-    const symbol = node?.symbol as string | undefined;
+  interface TreemapClickNode {
+    symbol?: string;
+    name?: string;
+    value?: number;
+  }
+  const handleClick = (node: TreemapClickNode) => {
+    const symbol = node?.symbol;
     if (symbol) {
       window.location.href = `/stocks/${symbol}`;
     }

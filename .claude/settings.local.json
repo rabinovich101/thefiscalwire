@@ -116,7 +116,8 @@
       "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx tsx:*)",
       "Bash(git check-ignore:*)",
       "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx prisma migrate:*)",
-      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx -e:*)"
+      "Bash(DATABASE_URL=\"postgresql://postgres:FRwVWSlDNYWvKhXdroKZkgnIbKOLhRjS@mainline.proxy.rlwy.net:23037/railway\" npx tsx -e:*)",
+      "Bash(npm run test:run:*)"
     ],
     "deny": [],
     "ask": []

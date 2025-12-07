@@ -259,13 +259,14 @@ async function importArticle(
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
+  const vercelCronHeader = request.headers.get('x-vercel-cron');
   const url = new URL(request.url);
-  const secretParam = url.searchParams.get('secret');
   const category = url.searchParams.get('category');
 
+  // Allow: Vercel Cron header or Authorization header only (no query params for security)
   const isAuthorized =
+    vercelCronHeader === '1' || // Vercel Cron sets this header
     authHeader === `Bearer ${CRON_SECRET}` ||
-    secretParam === CRON_SECRET ||
     (process.env.NODE_ENV === 'development' && !CRON_SECRET);
 
   if (!isAuthorized && CRON_SECRET) {
