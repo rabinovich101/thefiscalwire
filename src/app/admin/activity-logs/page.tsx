@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import {
   Activity,
   FileInput,
@@ -11,9 +11,10 @@ import {
   ChevronRight,
   RefreshCw,
   Filter,
+  Microscope,
 } from "lucide-react";
 
-type ActivityType = "IMPORT" | "PERPLEXITY_API" | "NEWS_API" | "ERROR" | "SYSTEM";
+type ActivityType = "IMPORT" | "PERPLEXITY_API" | "NEWS_API" | "ERROR" | "SYSTEM" | "ARTICLE_ANALYSIS";
 type ActivityStatus = "SUCCESS" | "ERROR" | "WARNING" | "INFO";
 
 interface ActivityLog {
@@ -59,6 +60,7 @@ const typeIcons: Record<ActivityType, typeof Activity> = {
   NEWS_API: Globe,
   ERROR: AlertCircle,
   SYSTEM: Activity,
+  ARTICLE_ANALYSIS: Microscope,
 };
 
 const typeColors: Record<ActivityType, string> = {
@@ -67,6 +69,7 @@ const typeColors: Record<ActivityType, string> = {
   NEWS_API: "bg-green-500/10 text-green-400 border-green-500/20",
   ERROR: "bg-red-500/10 text-red-400 border-red-500/20",
   SYSTEM: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  ARTICLE_ANALYSIS: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
 };
 
 const statusColors: Record<ActivityStatus, string> = {
@@ -322,9 +325,8 @@ export default function ActivityLogsPage() {
                   const hasDetails = log.details && Object.keys(log.details).length > 0;
 
                   return (
-                    <>
+                    <Fragment key={log.id}>
                       <tr
-                        key={log.id}
                         className={`hover:bg-zinc-800/30 transition-colors ${
                           hasDetails ? "cursor-pointer" : ""
                         }`}
@@ -372,7 +374,7 @@ export default function ActivityLogsPage() {
                         </td>
                       </tr>
                       {isExpanded && log.details && (
-                        <tr key={`${log.id}-details`} className="bg-zinc-800/20">
+                        <tr className="bg-zinc-800/20">
                           <td colSpan={6} className="px-8 py-4">
                             <div className="text-sm">
                               <p className="text-zinc-400 mb-2">Details:</p>
@@ -383,7 +385,7 @@ export default function ActivityLogsPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
