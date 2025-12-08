@@ -43,17 +43,19 @@ interface ArticleEditorProps {
     readTime: number
     isFeatured: boolean
     isBreaking: boolean
-    categoryId: string
+    marketsCategoryId: string
+    businessCategoryId: string
     authorId: string
     tags: { id: string; name: string }[]
     relevantTickers: string[]
   }
-  categories: { id: string; name: string }[]
+  marketsCategories: { id: string; name: string }[]
+  businessCategories: { id: string; name: string }[]
   authors: { id: string; name: string }[]
   tags: { id: string; name: string }[]
 }
 
-export function ArticleEditor({ article, categories, authors, tags }: ArticleEditorProps) {
+export function ArticleEditor({ article, marketsCategories, businessCategories, authors, tags }: ArticleEditorProps) {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
 
@@ -65,7 +67,8 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
     readTime: article?.readTime || 5,
     isFeatured: article?.isFeatured || false,
     isBreaking: article?.isBreaking || false,
-    categoryId: article?.categoryId || categories[0]?.id || "",
+    marketsCategoryId: article?.marketsCategoryId || marketsCategories[0]?.id || "",
+    businessCategoryId: article?.businessCategoryId || businessCategories[0]?.id || "",
     authorId: article?.authorId || authors[0]?.id || "",
     selectedTags: article?.tags.map((t) => t.id) || [],
     relevantTickers: article?.relevantTickers?.join(", ") || "",
@@ -595,21 +598,44 @@ export function ArticleEditor({ article, categories, authors, tags }: ArticleEdi
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6 space-y-4">
             <div>
               <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Category
+                Markets Category <span className="text-red-500">*</span>
               </label>
               <select
-                value={formData.categoryId}
+                value={formData.marketsCategoryId}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, categoryId: e.target.value }))
+                  setFormData((prev) => ({ ...prev, marketsCategoryId: e.target.value }))
                 }
                 className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white"
+                required
               >
-                {categories.map((cat) => (
+                {marketsCategories.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-zinc-500 mt-1">Which market is this article about?</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-400 mb-2">
+                Business Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.businessCategoryId}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, businessCategoryId: e.target.value }))
+                }
+                className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white"
+                required
+              >
+                {businessCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-zinc-500 mt-1">What business sector does this relate to?</p>
             </div>
 
             <div>

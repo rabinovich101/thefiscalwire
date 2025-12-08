@@ -9,7 +9,7 @@ import { DeleteArticleButton } from "@/components/admin/DeleteArticleButton"
 export default async function ArticlesPage() {
   const articles = await prisma.article.findMany({
     orderBy: { createdAt: "desc" },
-    include: { category: true, author: true },
+    include: { category: true, marketsCategory: true, businessCategory: true, author: true },
   })
 
   return (
@@ -33,7 +33,7 @@ export default async function ArticlesPage() {
                 Title
               </th>
               <th className="text-left text-sm font-medium text-zinc-400 px-4 py-3">
-                Category
+                Categories
               </th>
               <th className="text-left text-sm font-medium text-zinc-400 px-4 py-3">
                 Author
@@ -56,11 +56,22 @@ export default async function ArticlesPage() {
                   <span className="text-white font-medium">{article.title}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${article.category.color} text-white`}
-                  >
-                    {article.category.name}
-                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {article.marketsCategory && (
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${article.marketsCategory.color} text-white`}
+                      >
+                        {article.marketsCategory.name}
+                      </span>
+                    )}
+                    {article.businessCategory && (
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${article.businessCategory.color} text-white`}
+                      >
+                        {article.businessCategory.name}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-zinc-400">{article.author.name}</td>
                 <td className="px-4 py-3 text-zinc-400 text-sm">

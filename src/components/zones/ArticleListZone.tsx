@@ -28,15 +28,26 @@ function ArticleListItem({ article }: ArticleListItemProps) {
 
       {/* Content */}
       <div className="flex flex-col justify-center min-w-0 flex-1">
-        {article.category && (
-          <Badge
-            variant="secondary"
-            className="w-fit mb-1.5 text-[10px] font-semibold uppercase text-white border-0"
-            style={{ backgroundColor: article.category.color }}
-          >
-            {article.category.name}
-          </Badge>
-        )}
+        <div className="flex gap-1 mb-1.5">
+          {article.marketsCategory && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-semibold uppercase text-white border-0"
+              style={{ backgroundColor: article.marketsCategory.color }}
+            >
+              {article.marketsCategory.name}
+            </Badge>
+          )}
+          {article.businessCategory && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-semibold uppercase text-white border-0"
+              style={{ backgroundColor: article.businessCategory.color }}
+            >
+              {article.businessCategory.name}
+            </Badge>
+          )}
+        </div>
         <h3 className="text-base font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors">
           {article.title}
         </h3>

@@ -12,7 +12,7 @@ interface EditArticlePageProps {
 export default async function EditArticlePage({ params }: EditArticlePageProps) {
   const { id } = await params
 
-  const [article, categories, authors, tags] = await Promise.all([
+  const [article, allCategories, authors, tags] = await Promise.all([
     prisma.article.findUnique({
       where: { id },
       include: { tags: true },
@@ -26,6 +26,10 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
     notFound()
   }
 
+  // Filter categories by type
+  const marketsCategories = allCategories.filter(c => c.type === "MARKETS")
+  const businessCategories = allCategories.filter(c => c.type === "BUSINESS")
+
   // Transform article data for the editor
   const articleData = {
     id: article.id,
@@ -37,7 +41,8 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
     readTime: article.readTime,
     isFeatured: article.isFeatured,
     isBreaking: article.isBreaking,
-    categoryId: article.categoryId,
+    marketsCategoryId: article.marketsCategoryId || marketsCategories[0]?.id || "",
+    businessCategoryId: article.businessCategoryId || businessCategories[0]?.id || "",
     authorId: article.authorId,
     tags: article.tags,
     relevantTickers: article.relevantTickers,
@@ -46,7 +51,8 @@ export default async function EditArticlePage({ params }: EditArticlePageProps) 
   return (
     <ArticleEditor
       article={articleData}
-      categories={categories}
+      marketsCategories={marketsCategories}
+      businessCategories={businessCategories}
       authors={authors}
       tags={tags}
     />

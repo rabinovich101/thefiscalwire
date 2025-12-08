@@ -36,14 +36,24 @@ export function TrendingSidebarZone({ content, className }: ZoneProps) {
               <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                 {article.title}
               </h3>
-              {article.category && (
-                <Badge
-                  variant="outline"
-                  className="w-fit mt-1.5 text-[10px] font-medium text-muted-foreground border-border/40"
-                >
-                  {article.category.name}
-                </Badge>
-              )}
+              <div className="flex gap-1 mt-1.5">
+                {article.marketsCategory && (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-medium text-muted-foreground border-border/40"
+                  >
+                    {article.marketsCategory.name}
+                  </Badge>
+                )}
+                {article.businessCategory && (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] font-medium text-muted-foreground border-border/40"
+                  >
+                    {article.businessCategory.name}
+                  </Badge>
+                )}
+              </div>
             </div>
           </Link>
         ))}

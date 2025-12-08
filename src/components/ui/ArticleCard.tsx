@@ -60,12 +60,18 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
             onError={handleImageError}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute top-3 left-3">
+          <div className="absolute top-3 left-3 flex gap-1">
             <Badge
               variant="secondary"
-              className={`text-[10px] font-semibold uppercase ${article.categoryColor} text-white border-0`}
+              className={`text-[10px] font-semibold uppercase ${article.marketsCategoryColor} text-white border-0`}
             >
-              {article.category}
+              {article.marketsCategory}
+            </Badge>
+            <Badge
+              variant="secondary"
+              className={`text-[10px] font-semibold uppercase ${article.businessCategoryColor} text-white border-0`}
+            >
+              {article.businessCategory}
             </Badge>
           </div>
           <div className="absolute top-3 right-3">

@@ -15,7 +15,7 @@ export default async function AdminDashboard() {
   const recentArticles = await prisma.article.findMany({
     take: 5,
     orderBy: { createdAt: "desc" },
-    include: { category: true, author: true },
+    include: { category: true, marketsCategory: true, businessCategory: true, author: true },
   })
 
   return (
@@ -86,9 +86,19 @@ export default async function AdminDashboard() {
                   {article.title}
                 </Link>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-zinc-500">
-                    {article.category.name}
-                  </span>
+                  {article.marketsCategory && (
+                    <span className="text-xs text-zinc-500">
+                      {article.marketsCategory.name}
+                    </span>
+                  )}
+                  {article.businessCategory && (
+                    <>
+                      <span className="text-zinc-600">•</span>
+                      <span className="text-xs text-zinc-500">
+                        {article.businessCategory.name}
+                      </span>
+                    </>
+                  )}
                   <span className="text-zinc-600">•</span>
                   <span className="text-xs text-zinc-500">
                     {article.author.name}

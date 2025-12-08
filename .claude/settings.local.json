@@ -122,7 +122,11 @@
       "Bash(echo:*)",
       "WebFetch(domain:context7.com)",
       "Bash(claude mcp add:*)",
-      "mcp__playwright__browser_drag"
+      "mcp__playwright__browser_drag",
+      "Bash(xargs:*)",
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude diff src/components/home/HeroSection.tsx)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx tsx -e:*)",
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude status src/components/home/HeroSection.tsx)"
     ],
     "deny": [],
     "ask": []

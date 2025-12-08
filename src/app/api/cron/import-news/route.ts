@@ -214,26 +214,23 @@ async function importArticle(
       ? analysisResult.mentionedStocks
       : extractTickers(article.content, title);
 
-    // Get categories from AI analysis (or fallback to mapped category)
-    let categoryIds: string[] = [];
+    // Get dual categories from AI analysis
+    const marketsCategorySlug = analysisResult.suggestedMarketsCategory || 'us-markets';
+    const businessCategorySlug = analysisResult.suggestedBusinessCategory || 'economy';
+
+    const marketsCategoryId = await getCategoryId(marketsCategorySlug);
+    const businessCategoryId = await getCategoryId(businessCategorySlug);
+
+    // Get all categories for many-to-many (includes both dual categories plus any additional from suggestedCategories)
+    const categoryIds = new Set<string>([marketsCategoryId, businessCategoryId]);
     if (analysisResult.suggestedCategories && analysisResult.suggestedCategories.length > 0) {
       for (const catSlug of analysisResult.suggestedCategories) {
         const catId = await getCategoryId(catSlug);
-        categoryIds.push(catId);
+        categoryIds.add(catId);
       }
     }
 
-    // Fallback to NewsData category if AI didn't suggest any
-    if (categoryIds.length === 0) {
-      const fallbackSlug = mapCategory(article.category);
-      const fallbackId = await getCategoryId(fallbackSlug);
-      categoryIds.push(fallbackId);
-    }
-
-    // First category is the primary one
-    const primaryCategoryId = categoryIds[0];
-
-    console.log(`[Import] Categories: ${analysisResult.suggestedCategories?.join(', ') || 'fallback'}`);
+    console.log(`[Import] Categories: Markets=${marketsCategorySlug}, Business=${businessCategorySlug}`);
 
     // Step 3: Create article with analysis in a single create
     const newArticle = await prisma.article.create({
@@ -254,10 +251,12 @@ async function importArticle(
         seoKeywords,
         isAiEnhanced,
         authorId,
-        categoryId: primaryCategoryId,
+        // Dual category system
+        marketsCategoryId,
+        businessCategoryId,
         // Connect ALL categories (many-to-many)
         categories: {
-          connect: categoryIds.map(id => ({ id })),
+          connect: Array.from(categoryIds).map(id => ({ id })),
         },
         tags: {
           connect: tagIds.map(id => ({ id })),

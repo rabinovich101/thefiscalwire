@@ -31,6 +31,19 @@ export interface ResolvedArticle {
     slug: string
     color: string
   } | null
+  // Dual category system
+  marketsCategory: {
+    id: string
+    name: string
+    slug: string
+    color: string
+  } | null
+  businessCategory: {
+    id: string
+    name: string
+    slug: string
+    color: string
+  } | null
   author: {
     id: string
     name: string
@@ -130,6 +143,22 @@ async function resolveArticles(config: AutoFillConfig): Promise<ResolvedArticle[
           color: true,
         },
       },
+      marketsCategory: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          color: true,
+        },
+      },
+      businessCategory: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          color: true,
+        },
+      },
       author: {
         select: {
           id: true,
@@ -197,6 +226,22 @@ export async function getZoneContent(
               isFeatured: true,
               isBreaking: true,
               category: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  color: true,
+                },
+              },
+              marketsCategory: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  color: true,
+                },
+              },
+              businessCategory: {
                 select: {
                   id: true,
                   name: true,

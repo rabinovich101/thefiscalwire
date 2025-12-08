@@ -5,15 +5,20 @@ import prisma from "@/lib/prisma"
 import { ArticleEditor } from "@/components/admin/ArticleEditor"
 
 export default async function NewArticlePage() {
-  const [categories, authors, tags] = await Promise.all([
+  const [allCategories, authors, tags] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.author.findMany({ orderBy: { name: "asc" } }),
     prisma.tag.findMany({ orderBy: { name: "asc" } }),
   ])
 
+  // Filter categories by type
+  const marketsCategories = allCategories.filter(c => c.type === "MARKETS")
+  const businessCategories = allCategories.filter(c => c.type === "BUSINESS")
+
   return (
     <ArticleEditor
-      categories={categories}
+      marketsCategories={marketsCategories}
+      businessCategories={businessCategories}
       authors={authors}
       tags={tags}
     />

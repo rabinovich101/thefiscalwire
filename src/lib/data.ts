@@ -6,6 +6,12 @@ export interface Article {
   slug: string
   title: string
   excerpt: string
+  // Dual category system
+  marketsCategory: string
+  marketsCategoryColor: string
+  businessCategory: string
+  businessCategoryColor: string
+  // Keep single category for backward compatibility (uses marketsCategory)
   category: string
   categoryColor: string
   imageUrl: string
@@ -60,6 +66,10 @@ export interface TrendingItem {
   rank: number
   title: string
   category: string
+  marketsCategory: string
+  marketsCategoryColor: string
+  businessCategory: string
+  businessCategoryColor: string
   url: string
 }
 
@@ -130,6 +140,8 @@ interface PrismaArticleWithRelations {
   headings: unknown
   relevantTickers: string[]
   category?: { slug: string; color: string | null } | null
+  marketsCategory?: { slug: string; color: string | null } | null
+  businessCategory?: { slug: string; color: string | null } | null
   author?: { name: string; avatar?: string | null } | null
   tags?: { name: string }[]
   relatedTo?: PrismaArticleWithRelations[]
@@ -137,12 +149,23 @@ interface PrismaArticleWithRelations {
 
 // Transform Prisma article to frontend Article
 function transformArticle(article: PrismaArticleWithRelations): Article {
-  const categorySlug = article.category?.slug || 'markets'
+  // Use dual category system
+  const marketsCategorySlug = article.marketsCategory?.slug || 'us-markets'
+  const businessCategorySlug = article.businessCategory?.slug || 'economy'
+  // Fallback to old category system for backward compatibility
+  const categorySlug = article.category?.slug || marketsCategorySlug
+
   return {
     id: article.id,
     slug: article.slug,
     title: article.title,
     excerpt: article.excerpt,
+    // Dual category system
+    marketsCategory: marketsCategorySlug,
+    marketsCategoryColor: article.marketsCategory?.color || categoryColors[marketsCategorySlug] || 'bg-blue-600',
+    businessCategory: businessCategorySlug,
+    businessCategoryColor: article.businessCategory?.color || categoryColors[businessCategorySlug] || 'bg-green-600',
+    // Backward compatibility (use marketsCategory as primary)
     category: categorySlug,
     categoryColor: article.category?.color || categoryColors[categorySlug] || 'bg-gray-600',
     imageUrl: article.imageUrl,
@@ -177,6 +200,8 @@ export async function getFeaturedArticle(): Promise<Article | null> {
     include: {
       author: true,
       category: true,
+        marketsCategory: true,
+        businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
   })
@@ -187,6 +212,8 @@ export async function getFeaturedArticle(): Promise<Article | null> {
       include: {
         author: true,
         category: true,
+        marketsCategory: true,
+        businessCategory: true,
       },
       orderBy: { publishedAt: 'desc' },
     })
@@ -207,6 +234,8 @@ export async function getSecondaryArticles(limit = 3): Promise<Article[]> {
     include: {
       author: true,
       category: true,
+        marketsCategory: true,
+        businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
@@ -228,6 +257,8 @@ export async function getTopStories(limit = 6): Promise<Article[]> {
     include: {
       author: true,
       category: true,
+        marketsCategory: true,
+        businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
@@ -242,6 +273,8 @@ export async function getAllArticles(): Promise<Article[]> {
     include: {
       author: true,
       category: true,
+        marketsCategory: true,
+        businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
   })
@@ -255,11 +288,15 @@ export async function getArticleBySlug(slug: string): Promise<ArticleDetail | nu
     include: {
       author: true,
       category: true,
+        marketsCategory: true,
+        businessCategory: true,
       tags: true,
       relatedTo: {
         include: {
           author: true,
           category: true,
+        marketsCategory: true,
+        businessCategory: true,
         },
       },
     },
@@ -282,6 +319,8 @@ export async function getRelatedArticles(articleId: string): Promise<Article[]> 
         include: {
           author: true,
           category: true,
+        marketsCategory: true,
+        businessCategory: true,
         },
       },
     },
@@ -302,17 +341,27 @@ export async function getTrendingStories(limit = 8): Promise<TrendingItem[]> {
   const articles = await prisma.article.findMany({
     include: {
       category: true,
+      marketsCategory: true,
+      businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
   })
 
-  return articles.map((article, index) => ({
-    rank: index + 1,
-    title: article.title,
-    category: article.category?.slug || 'markets',
-    url: `/article/${article.slug}`,
-  }))
+  return articles.map((article, index) => {
+    const marketsCategorySlug = article.marketsCategory?.slug || 'us-markets'
+    const businessCategorySlug = article.businessCategory?.slug || 'economy'
+    return {
+      rank: index + 1,
+      title: article.title,
+      category: article.category?.slug || marketsCategorySlug,
+      marketsCategory: marketsCategorySlug,
+      marketsCategoryColor: article.marketsCategory?.color || categoryColors[marketsCategorySlug] || 'bg-blue-600',
+      businessCategory: businessCategorySlug,
+      businessCategoryColor: article.businessCategory?.color || categoryColors[businessCategorySlug] || 'bg-green-600',
+      url: `/article/${article.slug}`,
+    }
+  })
 }
 
 export async function getMarketIndices(): Promise<MarketIndex[]> {
@@ -363,14 +412,26 @@ export async function getCategories() {
 }
 
 export async function getArticlesByCategory(categorySlug: string, limit?: number): Promise<Article[]> {
-  // Use PRIMARY category to ensure correct category badge display
+  // First, get the category to determine its type
+  const category = await prisma.category.findUnique({
+    where: { slug: categorySlug },
+    select: { type: true },
+  })
+
+  // Query based on category type - use marketsCategoryId for MARKETS, businessCategoryId for BUSINESS
+  const whereClause = category?.type === 'MARKETS'
+    ? { marketsCategory: { slug: categorySlug } }
+    : category?.type === 'BUSINESS'
+    ? { businessCategory: { slug: categorySlug } }
+    : { category: { slug: categorySlug } } // Fallback for old data
+
   const articles = await prisma.article.findMany({
-    where: {
-      category: { slug: categorySlug },
-    },
+    where: whereClause,
     include: {
       author: true,
       category: true,
+      marketsCategory: true,
+      businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
@@ -380,11 +441,21 @@ export async function getArticlesByCategory(categorySlug: string, limit?: number
 }
 
 export async function getArticleCountByCategory(categorySlug: string): Promise<number> {
-  // Use PRIMARY category for accurate count (matches display)
+  // First, get the category to determine its type
+  const category = await prisma.category.findUnique({
+    where: { slug: categorySlug },
+    select: { type: true },
+  })
+
+  // Query based on category type
+  const whereClause = category?.type === 'MARKETS'
+    ? { marketsCategory: { slug: categorySlug } }
+    : category?.type === 'BUSINESS'
+    ? { businessCategory: { slug: categorySlug } }
+    : { category: { slug: categorySlug } } // Fallback
+
   return prisma.article.count({
-    where: {
-      category: { slug: categorySlug },
-    },
+    where: whereClause,
   })
 }
 
@@ -490,6 +561,8 @@ function transformZoneContent(item: ResolvedContent): ZoneContent {
       isFeatured: item.isFeatured,
       isBreaking: item.isBreaking,
       category: item.category,
+      marketsCategory: item.marketsCategory,
+      businessCategory: item.businessCategory,
       author: item.author,
     }
   } else {
@@ -612,6 +685,19 @@ export async function getCategoryArticlesWithPlacements(
   // Create date once for consistent filtering
   const now = new Date()
 
+  // Get category type for proper filtering
+  const categoryInfo = await prisma.category.findUnique({
+    where: { slug: categorySlug },
+    select: { type: true },
+  })
+
+  // Build where clause based on category type
+  const categoryWhereClause = categoryInfo?.type === 'MARKETS'
+    ? { marketsCategory: { slug: categorySlug } }
+    : categoryInfo?.type === 'BUSINESS'
+    ? { businessCategory: { slug: categorySlug } }
+    : { category: { slug: categorySlug } } // Fallback
+
   // 1. Find the category page definition with placements
   const categoryPage = await prisma.pageDefinition.findFirst({
     where: {
@@ -643,6 +729,8 @@ export async function getCategoryArticlesWithPlacements(
                 include: {
                   author: true,
                   category: true,
+        marketsCategory: true,
+        businessCategory: true,
                 }
               }
             }
@@ -697,23 +785,20 @@ export async function getCategoryArticlesWithPlacements(
   const additionalOffset = Math.max(0, offset - placedCount)
   const additionalNeeded = Math.max(0, limit - Math.max(0, placedCount - offset))
 
-  // Use PRIMARY category for additional articles to ensure correct category badge
-  // This prevents articles with different primary categories from appearing
+  // Use the appropriate category field based on category type
   const [additionalArticles, totalCategoryArticles] = await Promise.all([
     prisma.article.findMany({
       where: {
-        category: { slug: categorySlug },  // Use PRIMARY category, not many-to-many
+        ...categoryWhereClause,
         id: { notIn: Array.from(seenArticleIds) }
       },
-      include: { author: true, category: true },
+      include: { author: true, category: true, marketsCategory: true, businessCategory: true },
       orderBy: { publishedAt: 'desc' },
       skip: additionalOffset,
       take: additionalNeeded,
     }),
     prisma.article.count({
-      where: {
-        category: { slug: categorySlug },  // Use PRIMARY category for accurate count
-      },
+      where: categoryWhereClause,
     }),
   ])
 
@@ -730,20 +815,33 @@ export async function getCategoryArticlesWithPlacements(
 
 /**
  * Helper function to get articles by category with offset support
- * Uses PRIMARY category to ensure correct category badge display
+ * Uses appropriate category field based on category type
  */
 async function getArticlesByCategoryWithOffset(
   categorySlug: string,
   limit: number,
   offset: number
 ): Promise<Article[]> {
+  // Get category type for proper filtering
+  const category = await prisma.category.findUnique({
+    where: { slug: categorySlug },
+    select: { type: true },
+  })
+
+  // Build where clause based on category type
+  const whereClause = category?.type === 'MARKETS'
+    ? { marketsCategory: { slug: categorySlug } }
+    : category?.type === 'BUSINESS'
+    ? { businessCategory: { slug: categorySlug } }
+    : { category: { slug: categorySlug } } // Fallback
+
   const articles = await prisma.article.findMany({
-    where: {
-      category: { slug: categorySlug },  // Use PRIMARY category for consistency
-    },
+    where: whereClause,
     include: {
       author: true,
       category: true,
+      marketsCategory: true,
+      businessCategory: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,

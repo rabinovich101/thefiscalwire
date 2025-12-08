@@ -24,15 +24,26 @@ function ArticleCard({ article }: ArticleCardProps) {
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        {article.category && (
-          <Badge
-            variant="secondary"
-            className="absolute top-3 left-3 text-[10px] font-semibold uppercase text-white border-0"
-            style={{ backgroundColor: article.category.color }}
-          >
-            {article.category.name}
-          </Badge>
-        )}
+        <div className="absolute top-3 left-3 flex gap-1">
+          {article.marketsCategory && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-semibold uppercase text-white border-0"
+              style={{ backgroundColor: article.marketsCategory.color }}
+            >
+              {article.marketsCategory.name}
+            </Badge>
+          )}
+          {article.businessCategory && (
+            <Badge
+              variant="secondary"
+              className="text-[10px] font-semibold uppercase text-white border-0"
+              style={{ backgroundColor: article.businessCategory.color }}
+            >
+              {article.businessCategory.name}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Content */}

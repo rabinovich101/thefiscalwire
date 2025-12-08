@@ -53,6 +53,8 @@ export default async function AnalysisDetailPage({
         include: {
           author: true,
           category: true,
+          marketsCategory: true,
+          businessCategory: true,
         },
       },
     },
@@ -99,10 +101,19 @@ export default async function AnalysisDetailPage({
             <div className="text-white">{analysis.article.author.name}</div>
           </div>
           <div>
-            <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Category</div>
-            <span className={`text-xs px-2 py-1 rounded ${analysis.article.category.color} text-white`}>
-              {analysis.article.category.name}
-            </span>
+            <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Categories</div>
+            <div className="flex flex-wrap gap-1">
+              {analysis.article.marketsCategory && (
+                <span className={`text-xs px-2 py-1 rounded ${analysis.article.marketsCategory.color} text-white`}>
+                  {analysis.article.marketsCategory.name}
+                </span>
+              )}
+              {analysis.article.businessCategory && (
+                <span className={`text-xs px-2 py-1 rounded ${analysis.article.businessCategory.color} text-white`}>
+                  {analysis.article.businessCategory.name}
+                </span>
+              )}
+            </div>
           </div>
           <div>
             <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Published</div>

@@ -34,12 +34,20 @@ export function TrendingSidebar({ stories }: TrendingSidebarProps) {
               <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                 {story.title}
               </h3>
-              <Badge
-                variant="outline"
-                className="w-fit mt-1.5 text-[10px] font-medium text-muted-foreground border-border/40"
-              >
-                {story.category}
-              </Badge>
+              <div className="flex gap-1 mt-1.5">
+                <Badge
+                  variant="secondary"
+                  className={`text-[10px] font-medium ${story.marketsCategoryColor} text-white border-0`}
+                >
+                  {story.marketsCategory}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className={`text-[10px] font-medium ${story.businessCategoryColor} text-white border-0`}
+                >
+                  {story.businessCategory}
+                </Badge>
+              </div>
             </div>
           </Link>
         ))}

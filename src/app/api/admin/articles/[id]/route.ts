@@ -26,11 +26,40 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       readTime,
       isFeatured,
       isBreaking,
-      categoryId,
+      marketsCategoryId,
+      businessCategoryId,
       authorId,
       tagIds,
       relevantTickers,
     } = body
+
+    // Validate both categories are provided
+    if (!marketsCategoryId || !businessCategoryId) {
+      return NextResponse.json(
+        { error: "Both markets and business categories are required" },
+        { status: 400 }
+      )
+    }
+
+    // Validate category types
+    const [marketsCategory, businessCategory] = await Promise.all([
+      prisma.category.findUnique({ where: { id: marketsCategoryId } }),
+      prisma.category.findUnique({ where: { id: businessCategoryId } }),
+    ])
+
+    if (!marketsCategory || marketsCategory.type !== "MARKETS") {
+      return NextResponse.json(
+        { error: "Markets category must be of type MARKETS" },
+        { status: 400 }
+      )
+    }
+
+    if (!businessCategory || businessCategory.type !== "BUSINESS") {
+      return NextResponse.json(
+        { error: "Business category must be of type BUSINESS" },
+        { status: 400 }
+      )
+    }
 
     // Check if slug already exists (for a different article)
     const existingArticle = await prisma.article.findFirst({
@@ -59,11 +88,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         readTime,
         isFeatured,
         isBreaking,
-        categoryId,
+        marketsCategoryId,
+        businessCategoryId,
         authorId,
         relevantTickers: relevantTickers || [],
         tags: {
           set: tagIds?.map((tagId: string) => ({ id: tagId })) || [],
+        },
+        // Update categories many-to-many relation
+        categories: {
+          set: [{ id: marketsCategoryId }, { id: businessCategoryId }],
         },
       },
     })
@@ -110,6 +144,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: { id },
       include: {
         category: true,
+        marketsCategory: true,
+        businessCategory: true,
         author: true,
         tags: true,
       },

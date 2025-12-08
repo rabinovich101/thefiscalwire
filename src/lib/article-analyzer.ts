@@ -97,8 +97,12 @@ export interface ArticleAnalysisResult {
   sentiment: string | null;
   impactLevel: string | null;
 
-  // Categories (for site navigation)
+  // Categories (for site navigation) - legacy
   suggestedCategories: string[];  // e.g., ["us-markets", "tech", "consumption"]
+
+  // Dual category system (new)
+  suggestedMarketsCategory: string;  // One from: us-markets, europe-markets, asia-markets, forex, crypto, bonds, etf
+  suggestedBusinessCategory: string;  // One from: economy, finance, tech, politics, health-science, real-estate, media, transportation, industrial, sports, consumption, opinion
 
   // Confidence
   confidence: number;
@@ -178,7 +182,7 @@ VALID IMPACT LEVELS:
 - medium (notable but not major)
 - low (minor/routine news)
 
-VALID CATEGORIES (for site navigation - select ALL that apply):
+MARKETS CATEGORIES (pick exactly ONE):
 - us-markets (US stock market news)
 - europe-markets (European markets)
 - asia-markets (Asian markets)
@@ -186,6 +190,8 @@ VALID CATEGORIES (for site navigation - select ALL that apply):
 - crypto (cryptocurrency)
 - bonds (fixed income)
 - etf (ETFs)
+
+BUSINESS CATEGORIES (pick exactly ONE):
 - economy (macroeconomic news)
 - finance (banking, financial services)
 - health-science (healthcare, biotech, pharma)
@@ -201,7 +207,7 @@ VALID CATEGORIES (for site navigation - select ALL that apply):
 
 For stock symbols, use standard ticker format (e.g., AAPL, MSFT, NVDA, GOOGL).
 For competitors, identify the main competitors of each mentioned stock.
-For categories, select 1-4 categories where this article should appear on the site.`;
+IMPORTANT: Every article MUST have exactly ONE markets category AND exactly ONE business category.`;
 
 /**
  * Analyze an article using Perplexity AI
@@ -238,6 +244,8 @@ Respond with ONLY this JSON structure:
   "sentiment": "bullish",
   "impactLevel": "high",
   "suggestedCategories": ["us-markets", "tech"],
+  "suggestedMarketsCategory": "us-markets",
+  "suggestedBusinessCategory": "tech",
   "confidence": 0.85
 }
 
@@ -249,7 +257,8 @@ RULES:
 5. If sector is unclear, set primarySector to null
 6. Confidence should be 0.0-1.0 based on how certain you are
 7. Always identify competitors for mentioned stocks when known
-8. suggestedCategories: pick 1-4 categories from VALID CATEGORIES where this article should appear`;
+8. suggestedMarketsCategory: pick exactly ONE from MARKETS CATEGORIES
+9. suggestedBusinessCategory: pick exactly ONE from BUSINESS CATEGORIES`;
 
   const messages: PerplexityMessage[] = [
     { role: 'system', content: ANALYSIS_SYSTEM_PROMPT },
@@ -319,7 +328,26 @@ function parseAnalysisResponse(content: string): ArticleAnalysisResult | null {
 
     const parsed = JSON.parse(jsonMatch[0]);
 
+    // Markets categories for validation
+    const MARKETS_CATEGORIES = ['us-markets', 'europe-markets', 'asia-markets', 'forex', 'crypto', 'bonds', 'etf'];
+    const BUSINESS_CATEGORIES = ['economy', 'finance', 'health-science', 'real-estate', 'media', 'transportation', 'industrial', 'sports', 'tech', 'politics', 'consumption', 'opinion'];
+
     // Validate and normalize the response
+    const suggestedCategories = validateArray(parsed.suggestedCategories, VALID_CATEGORIES as unknown as string[]);
+
+    // Get dual categories - use explicit values or infer from suggestedCategories
+    let suggestedMarketsCategory = parsed.suggestedMarketsCategory;
+    if (!suggestedMarketsCategory || !MARKETS_CATEGORIES.includes(suggestedMarketsCategory)) {
+      // Try to infer from suggestedCategories
+      suggestedMarketsCategory = suggestedCategories.find(cat => MARKETS_CATEGORIES.includes(cat)) || 'us-markets';
+    }
+
+    let suggestedBusinessCategory = parsed.suggestedBusinessCategory;
+    if (!suggestedBusinessCategory || !BUSINESS_CATEGORIES.includes(suggestedBusinessCategory)) {
+      // Try to infer from suggestedCategories
+      suggestedBusinessCategory = suggestedCategories.find(cat => BUSINESS_CATEGORIES.includes(cat)) || 'economy';
+    }
+
     const result: ArticleAnalysisResult = {
       markets: validateArray(parsed.markets, VALID_MARKETS as unknown as string[]),
       primarySector: validateSector(parsed.primarySector),
@@ -332,7 +360,9 @@ function parseAnalysisResponse(content: string): ArticleAnalysisResult | null {
       businessType: validateOption(parsed.businessType, VALID_BUSINESS_TYPES as unknown as string[]),
       sentiment: validateOption(parsed.sentiment, VALID_SENTIMENTS as unknown as string[]),
       impactLevel: validateOption(parsed.impactLevel, VALID_IMPACT_LEVELS as unknown as string[]),
-      suggestedCategories: validateArray(parsed.suggestedCategories, VALID_CATEGORIES as unknown as string[]),
+      suggestedCategories,
+      suggestedMarketsCategory,
+      suggestedBusinessCategory,
       confidence: validateConfidence(parsed.confidence),
     };
 

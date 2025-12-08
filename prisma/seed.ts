@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, CategoryType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -213,64 +213,64 @@ async function main() {
 
   console.log('📂 Creating categories...')
   const categories = await Promise.all([
-    // Markets Section (7)
+    // Markets Section (7) - type: MARKETS
     prisma.category.create({
-      data: { name: 'US Markets', slug: 'us-markets', color: 'bg-blue-600' },
+      data: { name: 'US Markets', slug: 'us-markets', color: 'bg-blue-600', type: CategoryType.MARKETS },
     }),
     prisma.category.create({
-      data: { name: 'Europe Markets', slug: 'europe-markets', color: 'bg-blue-500' },
+      data: { name: 'Europe Markets', slug: 'europe-markets', color: 'bg-blue-500', type: CategoryType.MARKETS },
     }),
     prisma.category.create({
-      data: { name: 'Asia Markets', slug: 'asia-markets', color: 'bg-blue-400' },
+      data: { name: 'Asia Markets', slug: 'asia-markets', color: 'bg-blue-400', type: CategoryType.MARKETS },
     }),
     prisma.category.create({
-      data: { name: 'Forex', slug: 'forex', color: 'bg-cyan-600' },
+      data: { name: 'Forex', slug: 'forex', color: 'bg-cyan-600', type: CategoryType.MARKETS },
     }),
     prisma.category.create({
-      data: { name: 'Crypto', slug: 'crypto', color: 'bg-orange-500' },
+      data: { name: 'Crypto', slug: 'crypto', color: 'bg-orange-500', type: CategoryType.MARKETS },
     }),
     prisma.category.create({
-      data: { name: 'Bonds', slug: 'bonds', color: 'bg-indigo-600' },
+      data: { name: 'Bonds', slug: 'bonds', color: 'bg-indigo-600', type: CategoryType.MARKETS },
     }),
     prisma.category.create({
-      data: { name: 'ETF', slug: 'etf', color: 'bg-teal-600' },
+      data: { name: 'ETF', slug: 'etf', color: 'bg-teal-600', type: CategoryType.MARKETS },
     }),
-    // Business Section (12)
+    // Business Section (12) - type: BUSINESS
     prisma.category.create({
-      data: { name: 'Economy', slug: 'economy', color: 'bg-green-600' },
-    }),
-    prisma.category.create({
-      data: { name: 'Finance', slug: 'finance', color: 'bg-emerald-600' },
+      data: { name: 'Economy', slug: 'economy', color: 'bg-green-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Health & Science', slug: 'health-science', color: 'bg-red-500' },
+      data: { name: 'Finance', slug: 'finance', color: 'bg-emerald-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Real Estate', slug: 'real-estate', color: 'bg-amber-600' },
+      data: { name: 'Health & Science', slug: 'health-science', color: 'bg-red-500', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Media', slug: 'media', color: 'bg-pink-600' },
+      data: { name: 'Real Estate', slug: 'real-estate', color: 'bg-amber-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Transportation', slug: 'transportation', color: 'bg-slate-600' },
+      data: { name: 'Media', slug: 'media', color: 'bg-pink-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Industrial', slug: 'industrial', color: 'bg-zinc-600' },
+      data: { name: 'Transportation', slug: 'transportation', color: 'bg-slate-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Sports', slug: 'sports', color: 'bg-lime-600' },
+      data: { name: 'Industrial', slug: 'industrial', color: 'bg-zinc-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Tech', slug: 'tech', color: 'bg-purple-600' },
+      data: { name: 'Sports', slug: 'sports', color: 'bg-lime-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Politics', slug: 'politics', color: 'bg-rose-600' },
+      data: { name: 'Tech', slug: 'tech', color: 'bg-purple-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Consumption', slug: 'consumption', color: 'bg-yellow-600' },
+      data: { name: 'Politics', slug: 'politics', color: 'bg-rose-600', type: CategoryType.BUSINESS },
     }),
     prisma.category.create({
-      data: { name: 'Opinion', slug: 'opinion', color: 'bg-gray-600' },
+      data: { name: 'Consumption', slug: 'consumption', color: 'bg-yellow-600', type: CategoryType.BUSINESS },
+    }),
+    prisma.category.create({
+      data: { name: 'Opinion', slug: 'opinion', color: 'bg-gray-600', type: CategoryType.BUSINESS },
     }),
   ])
 
@@ -312,7 +312,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['NVDA', 'AMD', 'MSFT', 'GOOGL'],
       authorId: authorMap['Sarah Chen'],
-      categoryId: categoryMap['us-markets'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['tech'],
       headings: [
         { id: 'ai-boom', text: 'The AI Investment Boom', level: 2 },
         { id: 'key-players', text: 'Key Players Leading the Charge', level: 2 },
@@ -428,7 +429,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['BTC', 'ETH', 'COIN', 'MSTR'],
       authorId: authorMap['Michael Torres'],
-      categoryId: categoryMap['crypto'],
+      marketsCategoryId: categoryMap['crypto'],
+      businessCategoryId: categoryMap['finance'],
       headings: [
         { id: 'institutional-wave', text: 'The Institutional Wave', level: 2 },
         { id: 'etf-flows', text: 'ETF Flows Drive Momentum', level: 2 },
@@ -531,7 +533,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['SPY', 'TLT', 'DXY'],
       authorId: authorMap['Jennifer Walsh'],
-      categoryId: categoryMap['economy'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['economy'],
       headings: [
         { id: 'divided-committee', text: 'A Divided Committee', level: 2 },
         { id: 'inflation-debate', text: 'The Inflation Debate', level: 2 },
@@ -632,7 +635,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['NVDA', 'AMD', 'INTC', 'TSM'],
       authorId: authorMap['David Kim'],
-      categoryId: categoryMap['tech'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['tech'],
       headings: [
         { id: 'record-quarter', text: 'A Record-Breaking Quarter', level: 2 },
         { id: 'data-center-dominance', text: 'Data Center Dominance', level: 2 },
@@ -736,7 +740,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['CL', 'XOM', 'CVX', 'OXY'],
       authorId: authorMap['Robert Hayes'],
-      categoryId: categoryMap['us-markets'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['industrial'],
       headings: [
         { id: 'opec-deliberations', text: 'OPEC+ Deliberations', level: 2 },
         { id: 'demand-outlook', text: 'Global Demand Outlook', level: 2 },
@@ -834,7 +839,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['AAPL', 'MSFT', 'GOOGL'],
       authorId: authorMap['Lisa Park'],
-      categoryId: categoryMap['tech'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['tech'],
       headings: [
         { id: 'apple-intelligence', text: 'Apple Intelligence Arrives', level: 2 },
         { id: 'key-features', text: 'Key Features Announced', level: 2 },
@@ -934,7 +940,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['ETH', 'BTC', 'SOL'],
       authorId: authorMap['Alex Rivera'],
-      categoryId: categoryMap['crypto'],
+      marketsCategoryId: categoryMap['crypto'],
+      businessCategoryId: categoryMap['tech'],
       headings: [
         { id: 'pectra-upgrade', text: 'The Pectra Upgrade', level: 2 },
         { id: 'technical-changes', text: 'Technical Changes', level: 2 },
@@ -1033,7 +1040,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['XHB', 'LEN', 'DHI', 'TOL'],
       authorId: authorMap['Maria Santos'],
-      categoryId: categoryMap['economy'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['real-estate'],
       headings: [
         { id: 'sales-rebound', text: 'Sales Rebound', level: 2 },
         { id: 'regional-trends', text: 'Regional Trends', level: 2 },
@@ -1126,7 +1134,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['SPY', 'QQQ', 'IWM'],
       authorId: authorMap['James Mitchell'],
-      categoryId: categoryMap['opinion'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['opinion'],
       headings: [
         { id: 'contrarian-case', text: 'The Contrarian Case', level: 2 },
         { id: 'overlooked-factors', text: 'Overlooked Factors', level: 2 },
@@ -1227,7 +1236,8 @@ async function main() {
       isBreaking: false,
       relevantTickers: ['TSLA', 'F', 'GM', 'RIVN'],
       authorId: authorMap['Emma Thompson'],
-      categoryId: categoryMap['us-markets'],
+      marketsCategoryId: categoryMap['us-markets'],
+      businessCategoryId: categoryMap['tech'],
       headings: [
         { id: 'delivery-numbers', text: 'The Delivery Numbers', level: 2 },
         { id: 'cybertruck-impact', text: 'Cybertruck\'s Impact', level: 2 },

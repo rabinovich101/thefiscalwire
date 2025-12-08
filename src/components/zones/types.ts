@@ -14,6 +14,19 @@ export interface ZoneArticle {
     slug: string
     color: string
   } | null
+  // Dual category system
+  marketsCategory: {
+    id: string
+    name: string
+    slug: string
+    color: string
+  } | null
+  businessCategory: {
+    id: string
+    name: string
+    slug: string
+    color: string
+  } | null
   author: {
     id: string
     name: string

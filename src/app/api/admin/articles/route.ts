@@ -21,11 +21,40 @@ export async function POST(request: NextRequest) {
       readTime,
       isFeatured,
       isBreaking,
-      categoryId,
+      marketsCategoryId,
+      businessCategoryId,
       authorId,
       tagIds,
       relevantTickers,
     } = body
+
+    // Validate both categories are provided
+    if (!marketsCategoryId || !businessCategoryId) {
+      return NextResponse.json(
+        { error: "Both markets and business categories are required" },
+        { status: 400 }
+      )
+    }
+
+    // Validate category types
+    const [marketsCategory, businessCategory] = await Promise.all([
+      prisma.category.findUnique({ where: { id: marketsCategoryId } }),
+      prisma.category.findUnique({ where: { id: businessCategoryId } }),
+    ])
+
+    if (!marketsCategory || marketsCategory.type !== "MARKETS") {
+      return NextResponse.json(
+        { error: "Markets category must be of type MARKETS" },
+        { status: 400 }
+      )
+    }
+
+    if (!businessCategory || businessCategory.type !== "BUSINESS") {
+      return NextResponse.json(
+        { error: "Business category must be of type BUSINESS" },
+        { status: 400 }
+      )
+    }
 
     // Check if slug already exists
     const existingArticle = await prisma.article.findUnique({
@@ -50,11 +79,16 @@ export async function POST(request: NextRequest) {
         readTime,
         isFeatured,
         isBreaking,
-        categoryId,
+        marketsCategoryId,
+        businessCategoryId,
         authorId,
         relevantTickers: relevantTickers || [],
         tags: {
           connect: tagIds?.map((id: string) => ({ id })) || [],
+        },
+        // Also connect to the categories many-to-many for filtering
+        categories: {
+          connect: [{ id: marketsCategoryId }, { id: businessCategoryId }],
         },
       },
     })
@@ -78,6 +112,8 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
       include: {
         category: true,
+        marketsCategory: true,
+        businessCategory: true,
         author: true,
         tags: true,
       },

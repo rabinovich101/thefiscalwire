@@ -17,16 +17,29 @@ model Author {
   articles  Article[]
 }
 
-model Category {
-  id        String    @id @default(uuid())
-  name      String
-  slug      String    @unique
-  color     String    @default("bg-gray-600")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+// Category type for dual-category system
+enum CategoryType {
+  MARKETS
+  BUSINESS
+}
 
-  // Primary articles (where this is the main category)
+model Category {
+  id        String        @id @default(uuid())
+  name      String
+  slug      String        @unique
+  color     String        @default("bg-gray-600")
+  type      CategoryType? // MARKETS or BUSINESS (nullable for migration)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  // Primary articles (where this is the main category) - DEPRECATED, keep for migration
   primaryArticles  Article[] @relation("PrimaryCategory")
+
+  // Markets category articles (dual-category system)
+  marketsArticles  Article[] @relation("MarketsCategory")
+
+  // Business category articles (dual-category system)
+  businessArticles Article[] @relation("BusinessCategory")
 
   // All articles in this category (many-to-many)
   articles         Article[] @relation("ArticleCategories")
@@ -75,9 +88,16 @@ model Article {
   authorId         String
   author           Author    @relation(fields: [authorId], references: [id])
 
-  // Primary category (for backward compatibility and main display)
-  categoryId       String
-  category         Category  @relation("PrimaryCategory", fields: [categoryId], references: [id])
+  // Primary category - DEPRECATED, keep for migration
+  categoryId       String?
+  category         Category?  @relation("PrimaryCategory", fields: [categoryId], references: [id])
+
+  // Dual-category system (nullable for migration, will be required after data migration)
+  marketsCategoryId   String?
+  marketsCategory     Category?  @relation("MarketsCategory", fields: [marketsCategoryId], references: [id])
+
+  businessCategoryId  String?
+  businessCategory    Category?  @relation("BusinessCategory", fields: [businessCategoryId], references: [id])
 
   // Multiple categories (article can appear in multiple category pages)
   categories       Category[] @relation("ArticleCategories")
@@ -99,6 +119,8 @@ model Article {
 
   @@index([slug])
   @@index([categoryId])
+  @@index([marketsCategoryId])
+  @@index([businessCategoryId])
   @@index([authorId])
   @@index([publishedAt])
 }
