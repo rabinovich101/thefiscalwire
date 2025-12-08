@@ -126,7 +126,11 @@
       "Bash(xargs:*)",
       "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude diff src/components/home/HeroSection.tsx)",
       "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/newsdb?schema=public\" npx tsx -e:*)",
-      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude status src/components/home/HeroSection.tsx)"
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude status src/components/home/HeroSection.tsx)",
+      "WebFetch(domain:x.com)",
+      "WebFetch(domain:nitter.net)",
+      "WebFetch(domain:www.sotwe.com)",
+      "WebFetch(domain:newsletter.wallstengine.com)"
     ],
     "deny": [],
     "ask": []
