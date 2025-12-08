@@ -45,6 +45,33 @@ const CATEGORY_QUERIES: Record<string, string> = {
   'opinion': 'market analysis OR stock forecast OR investment outlook OR expert opinion OR financial commentary',
 };
 
+// Markets category slugs (for dual-category system)
+const MARKETS_CATEGORIES = ['us-markets', 'europe-markets', 'asia-markets', 'forex', 'crypto', 'bonds', 'etf'];
+
+// Get dual category IDs based on target category
+async function getDualCategoryIds(targetCategory: string): Promise<{ marketsCategoryId: string; businessCategoryId: string }> {
+  const isMarketsCategory = MARKETS_CATEGORIES.includes(targetCategory);
+
+  // If target is a markets category, use it for markets and default to 'economy' for business
+  // If target is a business category, use it for business and default to 'us-markets' for markets
+  const marketsCategorySlug = isMarketsCategory ? targetCategory : 'us-markets';
+  const businessCategorySlug = isMarketsCategory ? 'economy' : targetCategory;
+
+  const [marketsCategory, businessCategory] = await Promise.all([
+    prisma.category.findUnique({ where: { slug: marketsCategorySlug } }),
+    prisma.category.findUnique({ where: { slug: businessCategorySlug } }),
+  ]);
+
+  if (!marketsCategory || !businessCategory) {
+    throw new Error(`Missing category: markets=${marketsCategorySlug} business=${businessCategorySlug}`);
+  }
+
+  return {
+    marketsCategoryId: marketsCategory.id,
+    businessCategoryId: businessCategory.id,
+  };
+}
+
 async function getOrCreateNewsDataAuthor() {
   const existingAuthor = await prisma.author.findFirst({
     where: { name: 'NewsData' },
@@ -221,7 +248,7 @@ async function importArticle(
 
     const baseSlug = generateSlug(title);
     const slug = await ensureUniqueSlug(baseSlug);
-    const categoryId = await getCategoryId(targetCategory);
+    const { marketsCategoryId, businessCategoryId } = await getDualCategoryIds(targetCategory);
     const tagIds = await getOrCreateTags(allTagKeywords);
     const tickers = extractTickers(article.content, title);
 
@@ -243,7 +270,11 @@ async function importArticle(
         seoKeywords,
         isAiEnhanced,
         authorId,
-        categoryId,
+        marketsCategoryId,
+        businessCategoryId,
+        categories: {
+          connect: [{ id: marketsCategoryId }, { id: businessCategoryId }],
+        },
         tags: {
           connect: tagIds.map(id => ({ id })),
         },
