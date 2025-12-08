@@ -65,10 +65,10 @@ export async function resolveAutoFillRules(
 
 async function resolveArticles(config: AutoFillConfig): Promise<ResolvedArticle[]> {
   // Build where clause
-  // Use categories (many-to-many) to match how live pages query articles
+  // Use PRIMARY category to match how live pages query articles
   const where: {
     categoryId?: string
-    categories?: { some: { slug: string } }
+    category?: { slug: string }
     isFeatured?: boolean
     isBreaking?: boolean
     tags?: { some: { slug: { in: string[] } } }
@@ -79,8 +79,8 @@ async function resolveArticles(config: AutoFillConfig): Promise<ResolvedArticle[
     where.categoryId = config.filters.categoryId
   }
   if (config.filters?.categorySlug) {
-    // Use many-to-many categories relation (same as live pages)
-    where.categories = { some: { slug: config.filters.categorySlug } }
+    // Use PRIMARY category relation (same as live pages)
+    where.category = { slug: config.filters.categorySlug }
   }
   if (config.filters?.isFeatured !== undefined) {
     where.isFeatured = config.filters.isFeatured

@@ -52,9 +52,13 @@ interface PageSlugMapping {
 
 // Helper to read page file and extract the category slug being queried
 function extractCategorySlugFromPage(pageContent: string): string | null {
-  // Look for getArticlesByCategory("slug") pattern
-  const match = pageContent.match(/getArticlesByCategory\s*\(\s*["']([^"']+)["']/);
-  return match ? match[1] : null;
+  // Look for getCategoryArticlesWithPlacements("slug") pattern (newer)
+  // or getArticlesByCategory("slug") pattern (older)
+  const newMatch = pageContent.match(/getCategoryArticlesWithPlacements\s*\(\s*["']([^"']+)["']/);
+  if (newMatch) return newMatch[1];
+
+  const oldMatch = pageContent.match(/getArticlesByCategory\s*\(\s*["']([^"']+)["']/);
+  return oldMatch ? oldMatch[1] : null;
 }
 
 // Helper to check if a slug exists in database
@@ -230,11 +234,12 @@ describe('Category Page Mismatch Detection', () => {
     it('dynamic route should use the slug parameter directly', () => {
       const content = fs.readFileSync(dynamicPageFile, 'utf-8');
 
-      // The dynamic route should call getArticlesByCategory with the slug from params
-      // Look for pattern: getArticlesByCategory(slug,
-      const usesSlugParam = content.includes('getArticlesByCategory(slug');
+      // The dynamic route should call getCategoryArticlesWithPlacements or getArticlesByCategory with the slug from params
+      // Look for pattern: getCategoryArticlesWithPlacements(slug, or getArticlesByCategory(slug,
+      const usesNewFunction = content.includes('getCategoryArticlesWithPlacements(slug');
+      const usesOldFunction = content.includes('getArticlesByCategory(slug');
 
-      expect(usesSlugParam).toBe(true);
+      expect(usesNewFunction || usesOldFunction).toBe(true);
     });
 
     it('dynamic route should call getCategoryBySlug with the slug parameter', () => {
@@ -352,30 +357,30 @@ describe('getArticlesByCategory Function Behavior', () => {
   });
 
   describe('Query Structure Validation', () => {
-    it('should query using many-to-many categories relation', async () => {
+    it('should query using PRIMARY category relation for correct badge display', async () => {
       // Read data.ts and verify the query structure
       const projectRoot = path.resolve(__dirname, '../../..');
       const dataFile = path.join(projectRoot, 'src/lib/data.ts');
       const content = fs.readFileSync(dataFile, 'utf-8');
 
-      // The query should use: categories: { some: { slug: categorySlug } }
-      expect(content).toContain('categories:');
-      expect(content).toContain('some:');
-      expect(content).toContain('slug: categorySlug');
+      // The query should use: category: { slug: categorySlug }
+      // This ensures articles displayed on category pages show the correct category badge
+      expect(content).toContain('category: { slug: categorySlug }');
     });
 
-    it('getArticleCountByCategory should use same query pattern', async () => {
+    it('getArticleCountByCategory should use PRIMARY category for accurate count', async () => {
       const projectRoot = path.resolve(__dirname, '../../..');
       const dataFile = path.join(projectRoot, 'src/lib/data.ts');
       const content = fs.readFileSync(dataFile, 'utf-8');
 
-      // Find the getArticleCountByCategory function and verify it uses same pattern
+      // Find the getArticleCountByCategory function and verify it uses PRIMARY category
       const functionMatch = content.match(/getArticleCountByCategory[\s\S]*?return prisma\.article\.count\(\{[\s\S]*?\}\)/);
 
       expect(functionMatch).not.toBeNull();
       if (functionMatch) {
-        expect(functionMatch[0]).toContain('categories:');
-        expect(functionMatch[0]).toContain('some:');
+        // Should use primary category relation, not many-to-many
+        expect(functionMatch[0]).toContain('category:');
+        expect(functionMatch[0]).not.toContain('categories:');
       }
     });
   });

@@ -363,19 +363,14 @@ export async function getCategories() {
 }
 
 export async function getArticlesByCategory(categorySlug: string, limit?: number): Promise<Article[]> {
-  // Use the many-to-many relation to find articles in this category
-  // Articles can belong to multiple categories
+  // Use PRIMARY category to ensure correct category badge display
   const articles = await prisma.article.findMany({
     where: {
-      categories: {
-        some: {
-          slug: categorySlug,
-        },
-      },
+      category: { slug: categorySlug },
     },
     include: {
       author: true,
-      category: true, // Primary category for display
+      category: true,
     },
     orderBy: { publishedAt: 'desc' },
     take: limit,
@@ -385,14 +380,10 @@ export async function getArticlesByCategory(categorySlug: string, limit?: number
 }
 
 export async function getArticleCountByCategory(categorySlug: string): Promise<number> {
-  // Use the many-to-many relation to count articles in this category
+  // Use PRIMARY category for accurate count (matches display)
   return prisma.article.count({
     where: {
-      categories: {
-        some: {
-          slug: categorySlug,
-        },
-      },
+      category: { slug: categorySlug },
     },
   })
 }
@@ -706,10 +697,12 @@ export async function getCategoryArticlesWithPlacements(
   const additionalOffset = Math.max(0, offset - placedCount)
   const additionalNeeded = Math.max(0, limit - Math.max(0, placedCount - offset))
 
+  // Use PRIMARY category for additional articles to ensure correct category badge
+  // This prevents articles with different primary categories from appearing
   const [additionalArticles, totalCategoryArticles] = await Promise.all([
     prisma.article.findMany({
       where: {
-        categories: { some: { slug: categorySlug } },
+        category: { slug: categorySlug },  // Use PRIMARY category, not many-to-many
         id: { notIn: Array.from(seenArticleIds) }
       },
       include: { author: true, category: true },
@@ -719,7 +712,7 @@ export async function getCategoryArticlesWithPlacements(
     }),
     prisma.article.count({
       where: {
-        categories: { some: { slug: categorySlug } },
+        category: { slug: categorySlug },  // Use PRIMARY category for accurate count
       },
     }),
   ])
@@ -737,6 +730,7 @@ export async function getCategoryArticlesWithPlacements(
 
 /**
  * Helper function to get articles by category with offset support
+ * Uses PRIMARY category to ensure correct category badge display
  */
 async function getArticlesByCategoryWithOffset(
   categorySlug: string,
@@ -745,11 +739,7 @@ async function getArticlesByCategoryWithOffset(
 ): Promise<Article[]> {
   const articles = await prisma.article.findMany({
     where: {
-      categories: {
-        some: {
-          slug: categorySlug,
-        },
-      },
+      category: { slug: categorySlug },  // Use PRIMARY category for consistency
     },
     include: {
       author: true,
