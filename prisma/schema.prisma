@@ -92,12 +92,12 @@ model Article {
   categoryId       String?
   category         Category?  @relation("PrimaryCategory", fields: [categoryId], references: [id])
 
-  // Dual-category system (nullable for migration, will be required after data migration)
-  marketsCategoryId   String?
-  marketsCategory     Category?  @relation("MarketsCategory", fields: [marketsCategoryId], references: [id])
+  // Dual-category system (REQUIRED - every article must have both categories)
+  marketsCategoryId   String
+  marketsCategory     Category   @relation("MarketsCategory", fields: [marketsCategoryId], references: [id])
 
-  businessCategoryId  String?
-  businessCategory    Category?  @relation("BusinessCategory", fields: [businessCategoryId], references: [id])
+  businessCategoryId  String
+  businessCategory    Category   @relation("BusinessCategory", fields: [businessCategoryId], references: [id])
 
   // Multiple categories (article can appear in multiple category pages)
   categories       Category[] @relation("ArticleCategories")

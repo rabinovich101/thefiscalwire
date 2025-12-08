@@ -136,6 +136,13 @@ export function ArticleEditor({ article, marketsCategories, businessCategories, 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate both categories are selected
+    if (!formData.marketsCategoryId || !formData.businessCategoryId) {
+      alert("Both Markets Category and Business Category are required")
+      return
+    }
+
     setIsSaving(true)
 
     const headings = blocks
