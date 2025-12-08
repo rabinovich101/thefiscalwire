@@ -671,12 +671,18 @@ export async function getCategoryArticlesWithPlacements(
     return { articles, total, hasPageBuilder: false }
   }
 
-  // 3. Collect all placed articles (maintaining position order)
-  // Deduplicate articles that might be in multiple zones
+  // 3. Collect articles from ARTICLE_GRID or ARTICLE_LIST zones only
+  // These zones define the main article ordering for category pages
   const seenArticleIds = new Set<string>()
   const placedArticles: PrismaArticleWithRelations[] = []
 
-  for (const zone of categoryPage.zones) {
+  // Filter to only article grid/list zones for main content ordering
+  const articleZones = categoryPage.zones.filter(zone =>
+    zone.zoneDefinition?.zoneType === 'ARTICLE_GRID' ||
+    zone.zoneDefinition?.zoneType === 'ARTICLE_LIST'
+  )
+
+  for (const zone of articleZones) {
     for (const placement of zone.placements) {
       if (placement.article && !seenArticleIds.has(placement.article.id)) {
         seenArticleIds.add(placement.article.id)
