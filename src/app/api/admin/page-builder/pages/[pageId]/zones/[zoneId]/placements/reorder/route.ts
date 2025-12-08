@@ -26,14 +26,24 @@ export async function PUT(
     }
 
     // Update positions in a transaction
-    await prisma.$transaction(
-      placementIds.map((id, index) =>
-        prisma.contentPlacement.update({
-          where: { id },
-          data: { position: index },
+    // First set all positions to temporary high values to avoid unique constraint violations
+    // Then set to final positions
+    await prisma.$transaction(async (tx) => {
+      // Step 1: Set all positions to temporary high values (offset by 10000)
+      for (let i = 0; i < placementIds.length; i++) {
+        await tx.contentPlacement.update({
+          where: { id: placementIds[i] },
+          data: { position: 10000 + i },
         })
-      )
-    )
+      }
+      // Step 2: Set final positions
+      for (let i = 0; i < placementIds.length; i++) {
+        await tx.contentPlacement.update({
+          where: { id: placementIds[i] },
+          data: { position: i },
+        })
+      }
+    })
 
     // Return updated placements
     const placements = await prisma.contentPlacement.findMany({

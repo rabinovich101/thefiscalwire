@@ -121,7 +121,8 @@
       "Bash(npm test:*)",
       "Bash(echo:*)",
       "WebFetch(domain:context7.com)",
-      "Bash(claude mcp add:*)"
+      "Bash(claude mcp add:*)",
+      "mcp__playwright__browser_drag"
     ],
     "deny": [],
     "ask": []
