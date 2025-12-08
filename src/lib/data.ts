@@ -618,6 +618,9 @@ export async function getCategoryArticlesWithPlacements(
   total: number
   hasPageBuilder: boolean
 }> {
+  // Create date once for consistent filtering
+  const now = new Date()
+
   // 1. Find the category page definition with placements
   const categoryPage = await prisma.pageDefinition.findFirst({
     where: {
@@ -638,9 +641,9 @@ export async function getCategoryArticlesWithPlacements(
               // Filter by valid date range
               OR: [
                 { startDate: null, endDate: null },
-                { startDate: null, endDate: { gte: new Date() } },
-                { startDate: { lte: new Date() }, endDate: null },
-                { startDate: { lte: new Date() }, endDate: { gte: new Date() } },
+                { startDate: null, endDate: { gte: now } },
+                { startDate: { lte: now }, endDate: null },
+                { startDate: { lte: now }, endDate: { gte: now } },
               ],
             },
             orderBy: { position: 'asc' },
@@ -691,15 +694,29 @@ export async function getCategoryArticlesWithPlacements(
     return { articles, total, hasPageBuilder: false }
   }
 
-  // 5. Get additional articles not in placements (for infinite scroll)
-  const additionalArticles = await prisma.article.findMany({
-    where: {
-      categories: { some: { slug: categorySlug } },
-      id: { notIn: Array.from(seenArticleIds) }
-    },
-    include: { author: true, category: true },
-    orderBy: { publishedAt: 'desc' },
-  })
+  // 5. Get count and additional articles not in placements (for infinite scroll)
+  // Calculate how many additional articles we need for this page
+  const placedCount = placedArticles.length
+  const additionalOffset = Math.max(0, offset - placedCount)
+  const additionalNeeded = Math.max(0, limit - Math.max(0, placedCount - offset))
+
+  const [additionalArticles, totalCategoryArticles] = await Promise.all([
+    prisma.article.findMany({
+      where: {
+        categories: { some: { slug: categorySlug } },
+        id: { notIn: Array.from(seenArticleIds) }
+      },
+      include: { author: true, category: true },
+      orderBy: { publishedAt: 'desc' },
+      skip: additionalOffset,
+      take: additionalNeeded,
+    }),
+    prisma.article.count({
+      where: {
+        categories: { some: { slug: categorySlug } },
+      },
+    }),
+  ])
 
   // 6. Combine: placed articles first (in position order), then chronological
   const allArticles = [...placedArticles, ...additionalArticles]
@@ -707,7 +724,7 @@ export async function getCategoryArticlesWithPlacements(
 
   return {
     articles: paginatedArticles.map(transformArticle),
-    total: allArticles.length,
+    total: totalCategoryArticles,
     hasPageBuilder: true,
   }
 }

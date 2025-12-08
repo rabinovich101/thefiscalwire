@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 // PUT reorder placements within a zone
 export async function PUT(
   request: NextRequest,
@@ -14,13 +17,53 @@ export async function PUT(
   }
 
   try {
-    const { zoneId } = await params
+    const { pageId, zoneId } = await params
     const body = await request.json()
     const { placementIds } = body as { placementIds: string[] }
 
+    // Validate placementIds is an array
     if (!Array.isArray(placementIds)) {
       return NextResponse.json(
         { error: "placementIds must be an array" },
+        { status: 400 }
+      )
+    }
+
+    // Validate all placement IDs are valid UUIDs
+    const invalidIds = placementIds.filter(id => typeof id !== 'string' || !UUID_REGEX.test(id))
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: "Invalid placement ID format" },
+        { status: 400 }
+      )
+    }
+
+    // Verify zone belongs to the page
+    const zone = await prisma.pageZone.findFirst({
+      where: {
+        id: zoneId,
+        pageId: pageId,
+      },
+    })
+
+    if (!zone) {
+      return NextResponse.json(
+        { error: "Zone not found or does not belong to this page" },
+        { status: 404 }
+      )
+    }
+
+    // Verify all placements belong to this zone
+    const placementCount = await prisma.contentPlacement.count({
+      where: {
+        id: { in: placementIds },
+        zoneId: zoneId,
+      },
+    })
+
+    if (placementCount !== placementIds.length) {
+      return NextResponse.json(
+        { error: "One or more placements do not belong to this zone" },
         { status: 400 }
       )
     }

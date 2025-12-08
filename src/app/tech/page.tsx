@@ -11,7 +11,9 @@ import { LoadMoreArticles } from "@/components/home/LoadMoreArticles";
 import {
   getCategoryArticlesWithPlacements,
   getTrendingStories,
+  getCategoryPageContent,
 } from "@/lib/data";
+import { ZoneRenderer } from "@/components/zones";
 import { Cpu } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -22,12 +24,14 @@ export const metadata: Metadata = {
 const PAGE_SIZE = 8;
 
 export default async function TechPage() {
-  const [articleData, trendingStories] = await Promise.all([
+  const [articleData, trendingStories, pageContent] = await Promise.all([
     getCategoryArticlesWithPlacements("tech", PAGE_SIZE, 0),
     getTrendingStories(8),
+    getCategoryPageContent("tech"),
   ]);
 
   const { articles, total: totalCount } = articleData;
+  const trendingSidebarZone = pageContent?.get("trending-sidebar");
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -66,7 +70,14 @@ export default async function TechPage() {
 
               {/* Sidebar */}
               <div className="lg:col-span-1">
-                <TrendingSidebar stories={trendingStories} />
+                {trendingSidebarZone ? (
+                  <ZoneRenderer
+                    zoneType={trendingSidebarZone.zoneType}
+                    content={trendingSidebarZone.content}
+                  />
+                ) : (
+                  <TrendingSidebar stories={trendingStories} />
+                )}
                 <MarketMovers />
               </div>
             </div>
