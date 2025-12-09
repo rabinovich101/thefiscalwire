@@ -487,7 +487,7 @@ export function ArticleEditor({ article, marketsCategories, businessCategories, 
                         value={block.attribution || ""}
                         onChange={(e) => updateBlock(block.id, { attribution: e.target.value })}
                         className="w-full px-3 py-2 bg-zinc-900 border border-zinc-600 rounded-md text-white"
-                        placeholder="Attribution (e.g., — John Doe, CEO)"
+                        placeholder="Attribution (e.g., - John Doe, CEO)"
                       />
                     </div>
                   )}

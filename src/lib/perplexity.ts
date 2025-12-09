@@ -4,6 +4,16 @@
  */
 
 const PERPLEXITY_API_KEY = process.env.PERPLEXITY_API_KEY;
+
+/**
+ * Remove AI-telltale characters like em dashes from text
+ * Replaces em dash (—) and en dash (–) with regular dash (-)
+ */
+export function sanitizeAIText(text: string): string {
+  return text
+    .replace(/—/g, '-')  // em dash
+    .replace(/–/g, '-'); // en dash
+}
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 
 // Use Sonar model for article rewrites
@@ -165,13 +175,14 @@ function parsePerplexityResponse(content: string): RewrittenArticle | null {
       return null;
     }
 
+    // Sanitize all text content to remove AI-telltale characters like em dashes
     return {
-      rewrittenTitle: parsed.rewrittenTitle,
-      rewrittenContent: parsed.rewrittenContent,
-      excerpt: parsed.excerpt || parsed.rewrittenContent.substring(0, 200),
-      metaDescription: parsed.metaDescription || parsed.excerpt || '',
-      seoKeywords: Array.isArray(parsed.seoKeywords) ? parsed.seoKeywords : [],
-      suggestedTags: Array.isArray(parsed.suggestedTags) ? parsed.suggestedTags : [],
+      rewrittenTitle: sanitizeAIText(parsed.rewrittenTitle),
+      rewrittenContent: sanitizeAIText(parsed.rewrittenContent),
+      excerpt: sanitizeAIText(parsed.excerpt || parsed.rewrittenContent.substring(0, 200)),
+      metaDescription: sanitizeAIText(parsed.metaDescription || parsed.excerpt || ''),
+      seoKeywords: Array.isArray(parsed.seoKeywords) ? parsed.seoKeywords.map(sanitizeAIText) : [],
+      suggestedTags: Array.isArray(parsed.suggestedTags) ? parsed.suggestedTags.map(sanitizeAIText) : [],
     };
   } catch (error) {
     console.error('[Perplexity] JSON parse error:', error);

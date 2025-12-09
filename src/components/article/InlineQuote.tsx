@@ -14,7 +14,7 @@ export function InlineQuote({ content, attribution }: InlineQuoteProps) {
       </p>
       {attribution && (
         <footer className="mt-4 text-sm text-muted-foreground">
-          — {attribution}
+          - {attribution}
         </footer>
       )}
     </blockquote>
