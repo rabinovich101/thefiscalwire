@@ -59,12 +59,6 @@ export function VideoCarouselZone({ content, className }: ZoneProps) {
           <Play className="h-5 w-5 text-primary" />
           Latest Videos
         </h2>
-        <Link
-          href="/videos"
-          className="text-sm text-primary hover:underline"
-        >
-          View All
-        </Link>
       </div>
 
       {/* Carousel */}

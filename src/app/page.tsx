@@ -158,13 +158,6 @@ export default async function Home() {
             {/* Section Header */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-foreground">Top Stories</h2>
-              <a
-                href="/news"
-                className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                aria-label="View all top stories"
-              >
-                View All
-              </a>
             </div>
 
             {/* Grid Layout */}
