@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
         excerpt: string
         imageUrl: string
         publishedAt: Date
-        category: { id: string; name: string; slug: string; color: string } | null
+        marketsCategory: { id: string; name: string; slug: string; color: string }
+        businessCategory: { id: string; name: string; slug: string; color: string }
         author: { id: string; name: string; avatar: string | null } | null
       }[]
       videos?: {
@@ -63,7 +64,15 @@ export async function GET(request: NextRequest) {
           excerpt: true,
           imageUrl: true,
           publishedAt: true,
-          category: {
+          marketsCategory: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              color: true,
+            },
+          },
+          businessCategory: {
             select: {
               id: true,
               name: true,

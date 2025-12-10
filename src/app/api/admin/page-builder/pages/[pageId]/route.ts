@@ -35,7 +35,12 @@ export async function GET(
                     excerpt: true,
                     imageUrl: true,
                     publishedAt: true,
-                    category: true,
+                    marketsCategory: {
+                      select: { id: true, name: true, slug: true, color: true },
+                    },
+                    businessCategory: {
+                      select: { id: true, name: true, slug: true, color: true },
+                    },
                   },
                 },
                 video: {

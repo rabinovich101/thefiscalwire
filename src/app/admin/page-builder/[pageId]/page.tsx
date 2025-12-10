@@ -77,7 +77,8 @@ interface Article {
   excerpt: string
   imageUrl: string
   publishedAt: string
-  category: { id: string; name: string; slug: string; color: string } | null
+  marketsCategory: { id: string; name: string; slug: string; color: string }
+  businessCategory: { id: string; name: string; slug: string; color: string }
   author?: { id: string; name: string; avatar: string | null } | null
 }
 
@@ -193,7 +194,7 @@ function SortablePlacement({
           <div className="flex-1 min-w-0">
             <p className="text-sm text-white truncate">{placement.article.title}</p>
             <p className="text-xs text-zinc-500">
-              {placement.article.category?.name || "No category"} •{" "}
+              {placement.article.marketsCategory.name} / {placement.article.businessCategory.name} •{" "}
               {new Date(placement.article.publishedAt).toLocaleDateString()}
             </p>
           </div>
@@ -849,7 +850,7 @@ export default function PageEditor({ params }: { params: Promise<{ pageId: strin
                           <div className="flex-1 min-w-0">
                             <p className="text-sm text-white truncate">{article.title}</p>
                             <p className="text-xs text-zinc-500">
-                              {article.category?.name || "No category"} •{" "}
+                              {article.marketsCategory.name} / {article.businessCategory.name} •{" "}
                               {new Date(article.publishedAt).toLocaleDateString()}
                             </p>
                           </div>
