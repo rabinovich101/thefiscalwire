@@ -15,6 +15,7 @@ import {
 } from '@/lib/perplexity';
 import { analyzeArticleWithAI } from '@/lib/article-analyzer';
 import { logImport, logNewsApiUsage, logPerplexityBatch, logError, logArticleAnalysis } from '@/lib/activityLogger';
+import { addArticleToPageBuilderZones } from '@/lib/page-builder-placement';
 
 // Force dynamic - no caching for cron jobs
 export const dynamic = 'force-dynamic';
@@ -282,6 +283,9 @@ async function importArticle(
         },
       },
     });
+
+    // Add article to page builder zones (homepage + category pages)
+    await addArticleToPageBuilderZones(newArticle.id, marketsCategoryId, businessCategoryId);
 
     return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced, analyzed: true };
   } catch (error) {

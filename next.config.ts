@@ -146,6 +146,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "g.foolcdn.com",
+      },
+      {
+        protocol: "https",
+        hostname: "*.foolcdn.com",
+      },
+      {
+        protocol: "https",
         hostname: "*.thestreet.com",
       },
       {

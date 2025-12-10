@@ -13,6 +13,7 @@ import {
   delay,
 } from '@/lib/perplexity';
 import { logImport, logNewsApiUsage, logPerplexityBatch, logError } from '@/lib/activityLogger';
+import { addArticleToPageBuilderZones } from '@/lib/page-builder-placement';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -280,6 +281,9 @@ async function importArticle(
         },
       },
     });
+
+    // Add article to page builder zones (homepage + category pages)
+    await addArticleToPageBuilderZones(newArticle.id, marketsCategoryId, businessCategoryId);
 
     return { success: true, articleId: newArticle.id, aiEnhanced: isAiEnhanced };
   } catch (error) {

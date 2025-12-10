@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { addArticleToPageBuilderZones } from "@/lib/page-builder-placement"
 
 export async function POST(request: NextRequest) {
   const session = await auth()
@@ -92,6 +93,9 @@ export async function POST(request: NextRequest) {
         },
       },
     })
+
+    // Add article to page builder zones (homepage + category pages)
+    await addArticleToPageBuilderZones(article.id, marketsCategoryId, businessCategoryId)
 
     return NextResponse.json(article)
   } catch (error) {
