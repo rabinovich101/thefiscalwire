@@ -110,6 +110,9 @@ export async function GET(request: NextRequest) {
           thumbnail: true,
           duration: true,
           category: true,
+          url: true,
+          embedType: true,
+          videoId: true,
           createdAt: true,
         },
       })

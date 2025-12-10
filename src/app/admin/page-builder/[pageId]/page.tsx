@@ -38,6 +38,8 @@ import {
   Video,
   Image,
   Zap,
+  Link2,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -88,6 +90,9 @@ interface VideoItem {
   thumbnail: string
   duration: string
   category: string
+  url?: string
+  embedType?: string
+  videoId?: string
   createdAt: string
 }
 
@@ -466,6 +471,9 @@ export default function PageEditor({ params }: { params: Promise<{ pageId: strin
     videos?: VideoItem[]
   }>({})
   const [searchLoading, setSearchLoading] = useState(false)
+  const [videoUrl, setVideoUrl] = useState("")
+  const [videoTitle, setVideoTitle] = useState("")
+  const [addingVideo, setAddingVideo] = useState(false)
 
   useEffect(() => {
     fetchPage()
@@ -636,6 +644,56 @@ export default function PageEditor({ params }: { params: Promise<{ pageId: strin
     } catch (error) {
       console.error("Failed to add placement:", error)
       toast.error("Failed to add content")
+    }
+  }
+
+  async function addVideoFromUrl(zoneId: string) {
+    if (!videoUrl.trim()) {
+      toast.error("Please enter a video URL")
+      return
+    }
+
+    setAddingVideo(true)
+    try {
+      // First create the video
+      const createRes = await fetch("/api/admin/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: videoUrl.trim(),
+          title: videoTitle.trim() || undefined,
+          category: "General",
+        }),
+      })
+
+      if (!createRes.ok) {
+        const error = await createRes.json()
+        throw new Error(error.error || "Failed to create video")
+      }
+
+      const video = await createRes.json()
+
+      // Then add it as a placement
+      await fetch(`/api/admin/page-builder/pages/${pageId}/zones/${zoneId}/placements`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: "VIDEO",
+          videoId: video.id,
+        }),
+      })
+
+      setContentPickerOpen(false)
+      setSelectedZoneId(null)
+      setVideoUrl("")
+      setVideoTitle("")
+      fetchPage()
+      toast.success("Video added to zone")
+    } catch (error) {
+      console.error("Failed to add video:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to add video")
+    } finally {
+      setAddingVideo(false)
     }
   }
 
@@ -820,6 +878,10 @@ export default function PageEditor({ params }: { params: Promise<{ pageId: strin
                   <Video className="w-4 h-4 mr-2" />
                   Videos ({searchResults.videos?.length || 0})
                 </TabsTrigger>
+                <TabsTrigger value="add-video">
+                  <Link2 className="w-4 h-4 mr-2" />
+                  Add Video URL
+                </TabsTrigger>
               </TabsList>
 
               <ScrollArea className="h-[400px] mt-4">
@@ -900,6 +962,53 @@ export default function PageEditor({ params }: { params: Promise<{ pageId: strin
                       )}
                     </div>
                   )}
+                </TabsContent>
+
+                <TabsContent value="add-video" className="m-0">
+                  <div className="space-y-4 p-4 bg-zinc-800 rounded-lg">
+                    <div className="space-y-2">
+                      <Label htmlFor="videoUrl" className="text-white">Video URL</Label>
+                      <Input
+                        id="videoUrl"
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        className="bg-zinc-900 border-zinc-700"
+                      />
+                      <p className="text-xs text-zinc-500">
+                        Supports YouTube and Vimeo URLs
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="videoTitle" className="text-white">Title (optional)</Label>
+                      <Input
+                        id="videoTitle"
+                        value={videoTitle}
+                        onChange={(e) => setVideoTitle(e.target.value)}
+                        placeholder="Enter video title..."
+                        className="bg-zinc-900 border-zinc-700"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => selectedZoneId && addVideoFromUrl(selectedZoneId)}
+                      disabled={!videoUrl.trim() || addingVideo}
+                      className="w-full"
+                    >
+                      {addingVideo ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Adding Video...
+                        </>
+                      ) : (
+                        <>
+                          <Video className="w-4 h-4 mr-2" />
+                          Add Video to Zone
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </TabsContent>
               </ScrollArea>
             </Tabs>

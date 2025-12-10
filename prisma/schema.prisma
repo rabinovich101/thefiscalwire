@@ -141,6 +141,9 @@ model Video {
   thumbnail String
   duration  String
   category  String
+  url       String?  // Embed URL (YouTube, Vimeo, etc.)
+  embedType String?  // "youtube", "vimeo", "custom"
+  videoId   String?  // Platform-specific video ID (e.g., YouTube video ID)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

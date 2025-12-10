@@ -40,6 +40,9 @@ export interface ZoneVideo {
   thumbnail: string
   duration: string
   category: string
+  url?: string | null
+  embedType?: string | null
+  videoId?: string | null
   createdAt: Date
 }
 

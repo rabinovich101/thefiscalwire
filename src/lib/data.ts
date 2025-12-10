@@ -79,6 +79,9 @@ export interface Video {
   thumbnail: string
   duration: string
   category: string
+  url?: string | null
+  embedType?: string | null
+  videoId?: string | null
 }
 
 export interface BreakingNews {
@@ -389,6 +392,9 @@ export async function getVideos(limit = 4): Promise<Video[]> {
     thumbnail: video.thumbnail,
     duration: video.duration,
     category: video.category,
+    url: video.url,
+    embedType: video.embedType,
+    videoId: video.videoId,
   }))
 }
 

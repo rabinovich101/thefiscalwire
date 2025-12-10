@@ -743,3 +743,37 @@ Successfully implemented a dynamic stock market heatmap page with the following 
 | `src/config/navigation.ts` | Added Heatmap link under Stocks menu |
 
 ### Current Status: Complete
+
+---
+
+# Add Video Embedding to Page Builder
+
+## Overview
+Allow users to insert embedded videos (YouTube, Vimeo) in the page builder for the home page.
+
+## Plan
+
+### Phase 1: Update Database Schema
+- [ ] Add `url` field to Video model for embed URLs
+- [ ] Add `embedType` field to detect YouTube/Vimeo
+- [ ] Run prisma migration
+
+### Phase 2: Update Page Builder UI
+- [ ] Add "Add Video URL" tab in content picker dialog
+- [ ] Create form to add video by URL (supports YouTube, Vimeo)
+- [ ] Auto-extract video ID and generate thumbnail from YouTube
+
+### Phase 3: Create Video Management API
+- [ ] Create API endpoint to add new videos from URL
+- [ ] Auto-detect platform and extract metadata
+
+### Phase 4: Update Frontend Display
+- [ ] Update zone renderers to display embedded videos properly
+
+### Phase 5: Test
+- [ ] Test adding YouTube video URL
+- [ ] Test video appears in placement list
+- [ ] Test video displays correctly on home page
+
+## Review
+(To be filled after implementation)
