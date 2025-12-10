@@ -337,8 +337,9 @@ export async function getArticleSlugs(): Promise<string[]> {
   return articles.map((a) => a.slug)
 }
 
-export async function getTrendingStories(limit = 8): Promise<TrendingItem[]> {
+export async function getTrendingStories(limit = 8, excludeIds: string[] = []): Promise<TrendingItem[]> {
   const articles = await prisma.article.findMany({
+    where: excludeIds.length > 0 ? { id: { notIn: excludeIds } } : undefined,
     include: {
       category: true,
       marketsCategory: true,

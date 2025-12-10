@@ -26,22 +26,29 @@ export default async function Home() {
   // Try to get page builder content first
   const pageContent = await getHomepageContent();
 
-  // Fetch all fallback data in parallel (for when page builder is not configured)
+  // Fetch hero and grid articles first (for when page builder is not configured)
   const [
     featuredArticle,
     secondaryArticles,
     topStories,
-    trendingStories,
     videos,
     breakingNews,
   ] = await Promise.all([
     getFeaturedArticle(),
     getSecondaryArticles(3),
     getTopStories(6),
-    getTrendingStories(8),
     getVideos(4),
     getBreakingNews(),
   ]);
+
+  // Collect IDs from hero section and article grid to exclude from trending
+  const excludeIds: string[] = [];
+  if (featuredArticle) excludeIds.push(featuredArticle.id);
+  secondaryArticles.forEach(a => excludeIds.push(a.id));
+  topStories.forEach(a => excludeIds.push(a.id));
+
+  // Fetch trending stories excluding articles already shown
+  const trendingStories = await getTrendingStories(8, excludeIds);
 
   // If page builder is configured, render zones
   const usePageBuilder = pageContent && pageContent.size > 0;
@@ -64,6 +71,50 @@ export default async function Home() {
     if (!pageContent) return null;
     return pageContent.get(zoneSlug);
   };
+
+  // Collect hero article IDs for filtering (from zone or fallback)
+  const heroZone = getZoneContent("hero-featured");
+  const heroArticleIds: Set<string> = new Set();
+
+  if (heroZone && heroZone.content.length > 0) {
+    // Hero is from page builder zone
+    heroZone.content.forEach(item => {
+      if ('slug' in item) heroArticleIds.add(item.id);
+    });
+  } else {
+    // Hero is from fallback
+    if (featuredArticle) heroArticleIds.add(featuredArticle.id);
+    secondaryArticles.forEach(a => heroArticleIds.add(a.id));
+  }
+
+  // Helper to filter zone content (exclude hero articles)
+  const getFilteredZoneContent = (zoneSlug: string, excludeIds: Set<string>) => {
+    const zone = getZoneContent(zoneSlug);
+    if (!zone) return null;
+    return {
+      ...zone,
+      content: zone.content.filter(item => {
+        if ('slug' in item) return !excludeIds.has(item.id);
+        return true; // Keep non-article items (videos, etc.)
+      })
+    };
+  };
+
+  // Get filtered content for article-grid (exclude hero articles)
+  const articleGridZone = getFilteredZoneContent("article-grid", heroArticleIds);
+
+  // Collect article-grid IDs for trending filtering
+  const articleGridIds: Set<string> = new Set(heroArticleIds);
+  if (articleGridZone) {
+    articleGridZone.content.forEach(item => {
+      if ('slug' in item) articleGridIds.add(item.id);
+    });
+  } else {
+    topStories.forEach(a => articleGridIds.add(a.id));
+  }
+
+  // Get filtered content for trending (exclude hero + article-grid articles)
+  const trendingZone = getFilteredZoneContent("trending-sidebar", articleGridIds);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -118,12 +169,12 @@ export default async function Home() {
 
             {/* Grid Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Article Grid - 2/3 width - use zone if configured */}
+              {/* Article Grid - 2/3 width - use zone if configured (filtered to exclude hero articles) */}
               <div className="lg:col-span-2">
-                {usePageBuilder && getZoneContent("article-grid") ? (
+                {usePageBuilder && articleGridZone && articleGridZone.content.length > 0 ? (
                   <ZoneRenderer
-                    zoneType={getZoneContent("article-grid")!.zoneType}
-                    content={getZoneContent("article-grid")!.content}
+                    zoneType={articleGridZone.zoneType}
+                    content={articleGridZone.content}
                   />
                 ) : (
                   <ArticleGrid articles={topStories} />
@@ -132,10 +183,10 @@ export default async function Home() {
 
               {/* Sidebar - 1/3 width */}
               <div className="lg:col-span-1">
-                {usePageBuilder && getZoneContent("trending-sidebar") ? (
+                {usePageBuilder && trendingZone && trendingZone.content.length > 0 ? (
                   <ZoneRenderer
-                    zoneType={getZoneContent("trending-sidebar")!.zoneType}
-                    content={getZoneContent("trending-sidebar")!.content}
+                    zoneType={trendingZone.zoneType}
+                    content={trendingZone.content}
                   />
                 ) : (
                   <TrendingSidebar stories={trendingStories} />

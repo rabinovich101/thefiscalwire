@@ -192,10 +192,14 @@ async function resolveVideos(config: AutoFillConfig): Promise<ResolvedVideo[]> {
 
 /**
  * Gets content for a zone, combining pinned placements with auto-fill rules
+ * @param zoneId - The zone ID
+ * @param maxItems - Optional max items override
+ * @param excludeArticleIds - Article IDs to exclude (used for cross-zone deduplication)
  */
 export async function getZoneContent(
   zoneId: string,
-  maxItems?: number
+  maxItems?: number,
+  excludeArticleIds: string[] = []
 ): Promise<{
   placements: Array<{
     id: string
@@ -291,13 +295,16 @@ export async function getZoneContent(
   const autoFillRules = zone.autoFillRules as AutoFillConfig | null
 
   if (autoFillRules && autoFillRules.source) {
-    // Get IDs of already placed content to exclude
+    // Get IDs of already placed content to exclude (within this zone)
     const placedArticleIds = validPlacements
       .filter((p) => p.articleId)
       .map((p) => p.articleId!)
     const placedVideoIds = validPlacements
       .filter((p) => p.videoId)
       .map((p) => p.videoId!)
+
+    // Combine with cross-zone exclusions
+    const allExcludedArticleIds = [...new Set([...placedArticleIds, ...excludeArticleIds])]
 
     // Calculate how many items to auto-fill
     const zoneMax = zone.zoneDefinition?.maxItems || maxItems || 10
@@ -307,14 +314,14 @@ export async function getZoneContent(
     if (autoFillLimit > 0) {
       const resolved = await resolveAutoFillRules({
         ...autoFillRules,
-        limit: autoFillLimit + placedArticleIds.length + placedVideoIds.length,
+        limit: autoFillLimit + allExcludedArticleIds.length + placedVideoIds.length,
       })
 
-      // Filter out already placed content
+      // Filter out already placed content AND cross-zone excluded content
       autoFilled = resolved.filter((item) => {
         if ("slug" in item) {
-          // It's an article
-          return !placedArticleIds.includes(item.id)
+          // It's an article - check both local and cross-zone exclusions
+          return !allExcludedArticleIds.includes(item.id)
         } else {
           // It's a video
           return !placedVideoIds.includes(item.id)
@@ -384,8 +391,12 @@ export async function getPageZonesContent(
     }
   >()
 
+  // Track all used article IDs across zones for deduplication
+  const usedArticleIds: string[] = []
+
   for (const zone of page.zones) {
-    const { placements, autoFilled } = await getZoneContent(zone.id)
+    // Pass used article IDs to exclude from this zone
+    const { placements, autoFilled } = await getZoneContent(zone.id, undefined, usedArticleIds)
 
     // Combine pinned placements and auto-filled content
     const allContent: ResolvedContent[] = []
@@ -399,6 +410,8 @@ export async function getPageZonesContent(
       if (p.article) {
         allContent.push(p.article)
         allPlacements.push({ isPinned: p.isPinned, content: p.article })
+        // Track this article ID for subsequent zones
+        usedArticleIds.push(p.article.id)
       } else if (p.video) {
         allContent.push(p.video)
         allPlacements.push({ isPinned: p.isPinned, content: p.video })
@@ -411,6 +424,10 @@ export async function getPageZonesContent(
     for (const item of autoFilled) {
       allContent.push(item)
       allPlacements.push({ isPinned: false, content: item })
+      // Track article IDs for subsequent zones
+      if ("slug" in item) {
+        usedArticleIds.push(item.id)
+      }
     }
 
     result.set(zone.zoneDefinition?.slug || zone.id, {
