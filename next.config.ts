@@ -191,6 +191,20 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.businesswire.com",
       },
+      // YouTube thumbnails (for video embedding)
+      {
+        protocol: "https",
+        hostname: "img.youtube.com",
+      },
+      {
+        protocol: "https",
+        hostname: "i.ytimg.com",
+      },
+      // Vimeo thumbnails
+      {
+        protocol: "https",
+        hostname: "i.vimeocdn.com",
+      },
       // Additional trusted CDNs
       {
         protocol: "https",
