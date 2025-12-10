@@ -193,7 +193,8 @@ function SortablePlacement({
           <div className="flex-1 min-w-0">
             <p className="text-sm text-white truncate">{placement.article.title}</p>
             <p className="text-xs text-zinc-500">
-              {placement.article.category?.name || "No category"}
+              {placement.article.category?.name || "No category"} •{" "}
+              {new Date(placement.article.publishedAt).toLocaleDateString()}
             </p>
           </div>
         </>
