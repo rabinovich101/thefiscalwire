@@ -499,40 +499,73 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
                 <option value={100}>100</option>
               </select>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
                 {(currentPage - 1) * rowsPerPage + 1}-{Math.min(currentPage * rowsPerPage, sortedEarnings.length)} of {sortedEarnings.length}
               </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="p-1.5 hover:bg-muted/50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  <ChevronLeft className="h-4 w-4 -ml-2" />
-                </button>
+              <div className="flex items-center gap-1 ml-2">
                 <button
                   onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 hover:bg-muted/50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg border border-border/50 bg-surface hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface transition-colors"
+                  aria-label="Previous page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
+
+                {/* Page numbers */}
+                <div className="flex items-center gap-1">
+                  {(() => {
+                    const pages: (number | string)[] = [];
+                    const showEllipsisStart = currentPage > 3;
+                    const showEllipsisEnd = currentPage < totalPages - 2;
+
+                    if (totalPages <= 5) {
+                      for (let i = 1; i <= totalPages; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (showEllipsisStart) pages.push('...');
+
+                      const start = Math.max(2, currentPage - 1);
+                      const end = Math.min(totalPages - 1, currentPage + 1);
+                      for (let i = start; i <= end; i++) {
+                        if (!pages.includes(i)) pages.push(i);
+                      }
+
+                      if (showEllipsisEnd) pages.push('...');
+                      if (!pages.includes(totalPages)) pages.push(totalPages);
+                    }
+
+                    return pages.map((page, idx) => (
+                      page === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="w-8 h-8 flex items-center justify-center text-muted-foreground text-sm">
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page as number)}
+                          className={cn(
+                            "w-8 h-8 rounded-lg text-sm font-medium transition-colors",
+                            currentPage === page
+                              ? "bg-primary text-primary-foreground"
+                              : "border border-border/50 bg-surface hover:bg-muted/50"
+                          )}
+                        >
+                          {page}
+                        </button>
+                      )
+                    ));
+                  })()}
+                </div>
+
                 <button
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 hover:bg-muted/50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center justify-center w-8 h-8 rounded-lg border border-border/50 bg-surface hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface transition-colors"
+                  aria-label="Next page"
                 >
                   <ChevronRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 hover:bg-muted/50 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                  <ChevronRight className="h-4 w-4 -ml-2" />
                 </button>
               </div>
             </div>
