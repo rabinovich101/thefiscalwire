@@ -11,10 +11,30 @@ import {
 import { getMarketIndices } from "@/lib/yahoo-finance";
 import { Calendar, TrendingUp, TrendingDown, Clock } from "lucide-react";
 
+// Helper to get the correct base URL for server-side fetching
+function getBaseUrl(): string {
+  // Check if running in production (Railway sets NODE_ENV=production)
+  if (process.env.NODE_ENV === 'production') {
+    // Railway provides this env var
+    if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+      return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    }
+    // Explicit production URL
+    if (process.env.NEXT_PUBLIC_BASE_URL) {
+      return process.env.NEXT_PUBLIC_BASE_URL;
+    }
+    // Hardcoded fallback for production
+    return 'https://thefiscalwire.com';
+  }
+  // Local development
+  return 'http://localhost:3000';
+}
+
 // Fetch earnings from NASDAQ API (our primary data source)
 async function getNasdaqEarnings(): Promise<EarningsCalendarEntry[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = getBaseUrl();
+    console.log(`[Earnings Page] Fetching from baseUrl: ${baseUrl}`);
     // Fetch 2 days back + 14 days forward
     const response = await fetch(`${baseUrl}/api/stocks/earnings/nasdaq?daysBack=2&daysForward=14`, {
       cache: 'no-store',
