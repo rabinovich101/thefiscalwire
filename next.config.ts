@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "utfs.io",
       },
+      {
+        protocol: "https",
+        hostname: "*.ufs.sh",
+      },
       // NewsData.io images
       {
         protocol: "https",
@@ -155,10 +159,6 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "*.thestreet.com",
-      },
-      {
-        protocol: "https",
-        hostname: "*.barrons.com",
       },
       {
         protocol: "https",
