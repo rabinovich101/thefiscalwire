@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Calendar, List, Clock, CalendarDays, ArrowRight } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { Calendar, List, Clock, CalendarDays, ArrowRight, Activity, Loader2 } from "lucide-react";
 import { EarningsCalendar, EarningsCard, EarningsTable } from "@/components/stocks";
 import type { EarningsCalendarEntry } from "@/lib/alpha-vantage";
 
@@ -15,13 +15,66 @@ type FilterType = "all" | "today" | "thisWeek" | "nextWeek" | "selected";
 type ViewType = "calendar" | "table";
 
 export function EarningsPageClient({
-  allEarnings,
-  todaysEarnings,
-  thisWeeksEarnings,
+  allEarnings: initialAllEarnings,
+  todaysEarnings: initialTodaysEarnings,
+  thisWeeksEarnings: initialThisWeeksEarnings,
 }: EarningsPageClientProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [viewType, setViewType] = useState<ViewType>("calendar");
+  const [isLoadingExpectedMove, setIsLoadingExpectedMove] = useState(false);
+  const [expectedMoveLoaded, setExpectedMoveLoaded] = useState(false);
+  const [allEarnings, setAllEarnings] = useState(initialAllEarnings);
+  const [todaysEarnings, setTodaysEarnings] = useState(initialTodaysEarnings);
+  const [thisWeeksEarnings, setThisWeeksEarnings] = useState(initialThisWeeksEarnings);
+
+  // Fetch expected move data on component mount
+  useEffect(() => {
+    const fetchExpectedMove = async () => {
+      if (expectedMoveLoaded || initialThisWeeksEarnings.length === 0) return;
+
+      setIsLoadingExpectedMove(true);
+      try {
+        // Fetch expected move for this week's earnings (most relevant)
+        const response = await fetch(`/api/stocks/earnings?filter=thisWeek&expectedMove=true`);
+        if (response.ok) {
+          const data = await response.json();
+          const earningsWithMove: EarningsCalendarEntry[] = data.earnings;
+
+          // Create a map of symbol -> expected move data
+          const expectedMoveMap = new Map<string, Partial<EarningsCalendarEntry>>();
+          earningsWithMove.forEach(e => {
+            if (e.expectedMovePercent !== undefined) {
+              expectedMoveMap.set(e.symbol, {
+                stockPrice: e.stockPrice,
+                expectedMove: e.expectedMove,
+                expectedMovePercent: e.expectedMovePercent,
+                impliedVolatility: e.impliedVolatility,
+              });
+            }
+          });
+
+          // Update all earnings with expected move data
+          const updateEarnings = (earnings: EarningsCalendarEntry[]) =>
+            earnings.map(e => {
+              const moveData = expectedMoveMap.get(e.symbol);
+              return moveData ? { ...e, ...moveData } : e;
+            });
+
+          setAllEarnings(updateEarnings(initialAllEarnings));
+          setTodaysEarnings(updateEarnings(initialTodaysEarnings));
+          setThisWeeksEarnings(updateEarnings(initialThisWeeksEarnings));
+          setExpectedMoveLoaded(true);
+        }
+      } catch (error) {
+        console.error("Error fetching expected move data:", error);
+      } finally {
+        setIsLoadingExpectedMove(false);
+      }
+    };
+
+    fetchExpectedMove();
+  }, [initialAllEarnings, initialTodaysEarnings, initialThisWeeksEarnings, expectedMoveLoaded]);
 
   // Get next week's earnings
   const nextWeeksEarnings = useMemo(() => {
@@ -157,30 +210,46 @@ export function EarningsPageClient({
           )}
         </div>
 
-        {/* View Toggle */}
-        <div className="flex items-center gap-1 bg-surface border border-border/50 rounded-lg p-1">
-          <button
-            onClick={() => setViewType("calendar")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              viewType === "calendar"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Calendar className="h-4 w-4" />
-            Calendar
-          </button>
-          <button
-            onClick={() => setViewType("table")}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              viewType === "table"
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <List className="h-4 w-4" />
-            Table
-          </button>
+        {/* Expected Move Indicator */}
+        <div className="flex items-center gap-3">
+          {isLoadingExpectedMove && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Loading expected moves...
+            </div>
+          )}
+          {expectedMoveLoaded && (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-amber-500/10 text-amber-500 text-xs font-medium">
+              <Activity className="h-3 w-3" />
+              Expected Move
+            </div>
+          )}
+
+          {/* View Toggle */}
+          <div className="flex items-center gap-1 bg-surface border border-border/50 rounded-lg p-1">
+            <button
+              onClick={() => setViewType("calendar")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewType === "calendar"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Calendar className="h-4 w-4" />
+              Calendar
+            </button>
+            <button
+              onClick={() => setViewType("table")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                viewType === "table"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <List className="h-4 w-4" />
+              Table
+            </button>
+          </div>
         </div>
       </div>
 

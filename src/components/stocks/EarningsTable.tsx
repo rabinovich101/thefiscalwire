@@ -8,6 +8,7 @@ import {
   ChevronDown,
   ArrowUpDown,
   ExternalLink,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EarningsCalendarEntry } from "@/lib/alpha-vantage";
@@ -17,7 +18,7 @@ interface EarningsTableProps {
   className?: string;
 }
 
-type SortField = "symbol" | "name" | "reportDate" | "estimate";
+type SortField = "symbol" | "name" | "reportDate" | "estimate" | "expectedMove";
 type SortDirection = "asc" | "desc";
 
 export function EarningsTable({ earnings, className }: EarningsTableProps) {
@@ -50,6 +51,11 @@ export function EarningsTable({ earnings, className }: EarningsTableProps) {
         const aEst = a.estimate ?? -Infinity;
         const bEst = b.estimate ?? -Infinity;
         comparison = aEst - bEst;
+        break;
+      case "expectedMove":
+        const aMove = a.expectedMovePercent ?? -Infinity;
+        const bMove = b.expectedMovePercent ?? -Infinity;
+        comparison = aMove - bMove;
         break;
     }
 
@@ -134,6 +140,16 @@ export function EarningsTable({ earnings, className }: EarningsTableProps) {
                 </button>
               </th>
               <th className="text-right px-4 py-3">
+                <button
+                  onClick={() => handleSort("expectedMove")}
+                  className="flex items-center justify-end text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors w-full"
+                >
+                  <Activity className="h-3 w-3 mr-1" />
+                  Exp. Move
+                  <SortIcon field="expectedMove" />
+                </button>
+              </th>
+              <th className="text-right px-4 py-3">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Actions
                 </span>
@@ -173,6 +189,15 @@ export function EarningsTable({ earnings, className }: EarningsTableProps) {
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
+                  {earning.expectedMovePercent !== undefined ? (
+                    <span className="text-sm font-semibold tabular-nums text-amber-500">
+                      ±{earning.expectedMovePercent.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-right">
                   <Link
                     href={`/stocks/${earning.symbol}`}
                     className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
@@ -200,8 +225,13 @@ export function EarningsTable({ earnings, className }: EarningsTableProps) {
                 {earning.symbol.slice(0, 2)}
               </div>
               <div className="min-w-0">
-                <div className="font-semibold text-foreground">
+                <div className="flex items-center gap-2 font-semibold text-foreground">
                   {earning.symbol}
+                  {earning.expectedMovePercent !== undefined && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">
+                      ±{earning.expectedMovePercent.toFixed(1)}%
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground truncate">
                   {earning.name}

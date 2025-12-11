@@ -15,6 +15,11 @@ export interface EarningsCalendarEntry {
   fiscalDateEnding: string;
   estimate: number | null;
   currency: string;
+  // Expected move data (optional, populated from options)
+  stockPrice?: number;
+  expectedMove?: number;
+  expectedMovePercent?: number;
+  impliedVolatility?: number | null;
 }
 
 export interface EarningsHistorical {

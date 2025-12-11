@@ -4,6 +4,45 @@ import YahooFinance from "yahoo-finance2";
 const yahooFinance = new YahooFinance();
 
 // ============================================================================
+// Expected Move Types (for earnings)
+// ============================================================================
+
+export interface ExpectedMoveData {
+  symbol: string;
+  stockPrice: number;
+  expectedMove: number;
+  expectedMovePercent: number;
+  atmStrike: number;
+  atmCallPrice: number;
+  atmPutPrice: number;
+  impliedVolatility: number | null;
+  expirationDate: string;
+}
+
+interface YahooOption {
+  strike: number;
+  lastPrice?: number;
+  bid?: number;
+  ask?: number;
+  impliedVolatility?: number;
+  inTheMoney?: boolean;
+}
+
+interface YahooOptionsChain {
+  underlyingSymbol: string;
+  expirationDates: Date[];
+  strikes: number[];
+  quote: {
+    regularMarketPrice?: number;
+  };
+  options: Array<{
+    expirationDate: Date;
+    calls: YahooOption[];
+    puts: YahooOption[];
+  }>;
+}
+
+// ============================================================================
 // Yahoo Finance API Types
 // ============================================================================
 
@@ -1289,4 +1328,182 @@ export async function getSectorStocksPaginated(
       hasMore: false,
     };
   }
+}
+
+// ============================================================================
+// Expected Move Calculation for Earnings
+// ============================================================================
+
+/**
+ * Cache for expected move data to reduce API calls
+ */
+const expectedMoveCache = new Map<string, { data: ExpectedMoveData; expires: number }>();
+const EXPECTED_MOVE_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Get expected move for a stock before earnings
+ * Calculates expected move using ATM straddle price from options chain
+ *
+ * @param symbol - Stock ticker symbol
+ * @param earningsDate - Expected earnings date (optional, uses nearest expiration if not provided)
+ * @returns Expected move data or null if options unavailable
+ */
+export async function getExpectedMove(
+  symbol: string,
+  earningsDate?: string
+): Promise<ExpectedMoveData | null> {
+  // Check cache first
+  const cacheKey = `expected_move_${symbol}`;
+  const cached = expectedMoveCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    // Fetch options chain from Yahoo Finance
+    const optionsData = await yahooFinance.options(symbol) as YahooOptionsChain;
+
+    if (!optionsData || !optionsData.options || optionsData.options.length === 0) {
+      console.log(`[Expected Move] No options data available for ${symbol}`);
+      return null;
+    }
+
+    const stockPrice = optionsData.quote?.regularMarketPrice;
+    if (!stockPrice) {
+      console.log(`[Expected Move] No stock price available for ${symbol}`);
+      return null;
+    }
+
+    // Find the appropriate expiration date
+    // If earnings date provided, find expiration closest to but after earnings
+    // Otherwise use the nearest weekly expiration
+    let targetExpiration = optionsData.options[0];
+
+    if (earningsDate && optionsData.expirationDates.length > 0) {
+      const earningsTimestamp = new Date(earningsDate).getTime();
+
+      // Find expiration closest to but after earnings date
+      for (const option of optionsData.options) {
+        const expirationTime = option.expirationDate instanceof Date
+          ? option.expirationDate.getTime()
+          : new Date(option.expirationDate).getTime();
+        if (expirationTime >= earningsTimestamp) {
+          targetExpiration = option;
+          break;
+        }
+      }
+    }
+
+    if (!targetExpiration.calls || !targetExpiration.puts ||
+        targetExpiration.calls.length === 0 || targetExpiration.puts.length === 0) {
+      console.log(`[Expected Move] No calls/puts available for ${symbol}`);
+      return null;
+    }
+
+    // Find ATM strike (closest to current stock price)
+    const strikes = targetExpiration.calls.map(c => c.strike);
+    const atmStrike = strikes.reduce((prev, curr) =>
+      Math.abs(curr - stockPrice) < Math.abs(prev - stockPrice) ? curr : prev
+    );
+
+    // Find ATM call and put
+    const atmCall = targetExpiration.calls.find(c => c.strike === atmStrike);
+    const atmPut = targetExpiration.puts.find(p => p.strike === atmStrike);
+
+    if (!atmCall || !atmPut) {
+      console.log(`[Expected Move] Could not find ATM options for ${symbol} at strike ${atmStrike}`);
+      return null;
+    }
+
+    // Use mid price (average of bid/ask) or last price
+    const callPrice = atmCall.bid && atmCall.ask
+      ? (atmCall.bid + atmCall.ask) / 2
+      : atmCall.lastPrice || 0;
+
+    const putPrice = atmPut.bid && atmPut.ask
+      ? (atmPut.bid + atmPut.ask) / 2
+      : atmPut.lastPrice || 0;
+
+    if (callPrice === 0 && putPrice === 0) {
+      console.log(`[Expected Move] No price data for ATM options for ${symbol}`);
+      return null;
+    }
+
+    // Calculate expected move (straddle price)
+    const expectedMove = callPrice + putPrice;
+    const expectedMovePercent = (expectedMove / stockPrice) * 100;
+
+    // Get implied volatility (average of call and put IV)
+    const callIV = atmCall.impliedVolatility || 0;
+    const putIV = atmPut.impliedVolatility || 0;
+    const avgIV = callIV > 0 && putIV > 0 ? (callIV + putIV) / 2 : callIV || putIV || null;
+
+    // Get expiration date as ISO string
+    const expirationDateObj = targetExpiration.expirationDate instanceof Date
+      ? targetExpiration.expirationDate
+      : new Date(targetExpiration.expirationDate);
+
+    const result: ExpectedMoveData = {
+      symbol,
+      stockPrice,
+      expectedMove,
+      expectedMovePercent,
+      atmStrike,
+      atmCallPrice: callPrice,
+      atmPutPrice: putPrice,
+      impliedVolatility: avgIV,
+      expirationDate: expirationDateObj.toISOString().split('T')[0],
+    };
+
+    // Cache the result
+    expectedMoveCache.set(cacheKey, {
+      data: result,
+      expires: Date.now() + EXPECTED_MOVE_CACHE_TTL,
+    });
+
+    console.log(`[Expected Move] ${symbol}: ±$${expectedMove.toFixed(2)} (±${expectedMovePercent.toFixed(1)}%)`);
+    return result;
+  } catch (error) {
+    console.error(`[Expected Move] Error fetching options for ${symbol}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Get expected move for multiple symbols in batch
+ * Processes in parallel with rate limiting
+ *
+ * @param symbols - Array of stock ticker symbols
+ * @param earningsDates - Map of symbol to earnings date
+ * @returns Map of symbol to expected move data
+ */
+export async function getExpectedMoveBatch(
+  symbols: string[],
+  earningsDates?: Map<string, string>
+): Promise<Map<string, ExpectedMoveData>> {
+  const results = new Map<string, ExpectedMoveData>();
+
+  // Process in batches of 5 to avoid rate limiting
+  const batchSize = 5;
+
+  for (let i = 0; i < symbols.length; i += batchSize) {
+    const batch = symbols.slice(i, i + batchSize);
+
+    const promises = batch.map(async (symbol) => {
+      const earningsDate = earningsDates?.get(symbol);
+      const result = await getExpectedMove(symbol, earningsDate);
+      if (result) {
+        results.set(symbol, result);
+      }
+    });
+
+    await Promise.all(promises);
+
+    // Small delay between batches to avoid rate limiting
+    if (i + batchSize < symbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  }
+
+  return results;
 }

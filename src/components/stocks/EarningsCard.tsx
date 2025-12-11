@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, Clock, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EarningsCalendarEntry, EarningsHistorical } from "@/lib/alpha-vantage";
 
@@ -49,6 +49,12 @@ export function EarningsCard({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className="font-semibold text-foreground">{earning.symbol}</span>
+              {/* Expected Move Badge */}
+              {earning.expectedMovePercent !== undefined && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 font-medium">
+                  ±{earning.expectedMovePercent.toFixed(1)}%
+                </span>
+              )}
             </div>
             <p className="text-xs text-muted-foreground truncate max-w-[150px]">
               {earning.name}
@@ -95,7 +101,7 @@ export function EarningsCard({
         </div>
 
         {/* EPS Section */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className={cn("grid gap-4 mb-4", earning.expectedMovePercent !== undefined ? "grid-cols-3" : "grid-cols-2")}>
           <div className="bg-muted/30 rounded-lg p-3">
             <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
               EPS Estimate
@@ -104,6 +110,23 @@ export function EarningsCard({
               {formatEPS(earning.estimate)}
             </div>
           </div>
+          {/* Expected Move */}
+          {earning.expectedMovePercent !== undefined && (
+            <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/20">
+              <div className="text-xs text-amber-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <Activity className="h-3 w-3" />
+                Expected Move
+              </div>
+              <div className="text-2xl font-bold tabular-nums text-amber-500">
+                ±{earning.expectedMovePercent.toFixed(1)}%
+              </div>
+              {earning.stockPrice && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  ${earning.stockPrice.toFixed(2)} ± ${earning.expectedMove?.toFixed(2)}
+                </div>
+              )}
+            </div>
+          )}
           {lastQuarter && (
             <div className="bg-muted/30 rounded-lg p-3">
               <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
@@ -210,7 +233,19 @@ export function EarningsCard({
             {formatEPS(earning.estimate)}
           </div>
         </div>
-        {lastQuarter && (
+        {/* Expected Move */}
+        {earning.expectedMovePercent !== undefined && (
+          <div className="text-center">
+            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+              <Activity className="h-3 w-3" />
+              Expected Move
+            </div>
+            <div className="text-sm font-semibold tabular-nums text-amber-500">
+              ±{earning.expectedMovePercent.toFixed(1)}%
+            </div>
+          </div>
+        )}
+        {lastQuarter && !earning.expectedMovePercent && (
           <div className="text-right">
             <div className="text-xs text-muted-foreground mb-1">Last Quarter</div>
             <div className="flex items-center gap-1.5 justify-end">
