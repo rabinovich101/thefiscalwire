@@ -148,7 +148,9 @@
       "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude diff next.config.ts)",
       "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude add next.config.ts)",
       "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude commit -m \"$(cat <<''EOF''\nAdd *.ufs.sh to image remote patterns for UploadThing CDN\n\nUploadThing''s new CDN uses *.ufs.sh domain instead of utfs.io.\nThis was causing 400 errors when loading uploaded images through\nNext.js image optimization.\n\nAlso removed duplicate *.barrons.com entry to stay under 50 pattern limit.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude push)"
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude push)",
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude commit -m \"$(cat <<''EOF''\nAllow all HTTPS images in Next.js config\n\nSimplified image remote patterns to allow any HTTPS hostname.\nThis prevents future issues with image URLs from any domain.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude log -1 --oneline)"
     ],
     "deny": [],
     "ask": []

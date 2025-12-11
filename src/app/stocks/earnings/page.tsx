@@ -3,7 +3,6 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { EarningsPageClient } from "./EarningsPageClient";
 import {
-  getEarningsCalendar,
   getTodaysEarnings,
   getThisWeeksEarnings,
   groupEarningsByDate,
@@ -12,100 +11,31 @@ import {
 import { getMarketIndices } from "@/lib/yahoo-finance";
 import { Calendar, TrendingUp, TrendingDown, Clock } from "lucide-react";
 
-// Get date string in YYYY-MM-DD format
-function getDateStr(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
-// Generate date range: 2 days before to 4 days forward (7 days total for fast loading)
-function getDateRange(): string[] {
-  const dates: string[] = [];
-  const today = new Date();
-
-  // 2 days before
-  for (let i = 2; i >= 1; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    dates.push(getDateStr(d));
-  }
-
-  // Today + 4 days forward (rest of the week)
-  for (let i = 0; i <= 4; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    dates.push(getDateStr(d));
-  }
-
-  return dates;
-}
-
-// Fetch Yahoo earnings for a single date
-async function fetchYahooForDate(date: string): Promise<EarningsCalendarEntry[]> {
+// Fetch earnings from NASDAQ API (our primary data source)
+async function getNasdaqEarnings(): Promise<EarningsCalendarEntry[]> {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const response = await fetch(`${baseUrl}/api/stocks/earnings/yahoo?date=${date}`, {
+    // Fetch 2 days back + 14 days forward
+    const response = await fetch(`${baseUrl}/api/stocks/earnings/nasdaq?daysBack=2&daysForward=14`, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(45000), // 45 second timeout per day
+      signal: AbortSignal.timeout(60000), // 60 second timeout
     });
 
     if (!response.ok) {
+      console.error(`[Earnings Page] NASDAQ API error: ${response.status}`);
       return [];
     }
 
     const data = await response.json();
-    return data.success && data.earnings?.length > 0 ? data.earnings : [];
+    if (data.success && data.earnings?.length > 0) {
+      console.log(`[Earnings Page] Got ${data.earnings.length} earnings from NASDAQ API`);
+      return data.earnings;
+    }
+    return [];
   } catch (error) {
+    console.error(`[Earnings Page] NASDAQ fetch error:`, error);
     return [];
   }
-}
-
-// Fetch Yahoo earnings for date range (7 days: 2 before + today + 4 forward)
-async function getYahooEarningsRange(): Promise<EarningsCalendarEntry[]> {
-  const dates = getDateRange();
-  console.log(`[Earnings Page] Fetching Yahoo data for ${dates.length} dates: ${dates[0]} to ${dates[dates.length - 1]}`);
-
-  const allEarnings: EarningsCalendarEntry[] = [];
-
-  // Process dates sequentially to avoid overloading (each scrape uses a browser)
-  for (const date of dates) {
-    try {
-      const earnings = await fetchYahooForDate(date);
-      allEarnings.push(...earnings);
-      console.log(`[Earnings Page] ${date}: ${earnings.length} earnings`);
-    } catch (error) {
-      console.log(`[Earnings Page] Failed to fetch ${date}, skipping`);
-    }
-  }
-
-  console.log(`[Earnings Page] Got ${allEarnings.length} total earnings from Yahoo Finance`);
-
-  return allEarnings;
-}
-
-// Merge Yahoo data with Alpha Vantage calendar (Yahoo REPLACES Alpha for fetched dates)
-function mergeEarningsData(
-  alphaEarnings: EarningsCalendarEntry[],
-  yahooEarnings: EarningsCalendarEntry[]
-): EarningsCalendarEntry[] {
-  if (yahooEarnings.length === 0) {
-    return alphaEarnings;
-  }
-
-  // Get all dates that Yahoo has data for
-  const yahooDates = new Set(yahooEarnings.map(e => e.reportDate));
-
-  // Filter out Alpha Vantage entries for dates Yahoo covers
-  const alphaFiltered = alphaEarnings.filter(e => !yahooDates.has(e.reportDate));
-
-  // Combine: Alpha (dates not covered by Yahoo) + Yahoo (covered dates)
-  const merged = [...alphaFiltered, ...yahooEarnings];
-
-  // Sort by date
-  merged.sort((a, b) => a.reportDate.localeCompare(b.reportDate));
-
-  console.log(`[Earnings Page] Merged: ${alphaFiltered.length} Alpha (other dates) + ${yahooEarnings.length} Yahoo (${yahooDates.size} dates)`);
-
-  return merged;
 }
 
 export const metadata: Metadata = {
@@ -117,14 +47,13 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function EarningsPage() {
-  // Fetch from Alpha Vantage only for fast page load
-  // Yahoo data will be fetched progressively via the stream endpoint
+  // Fetch from NASDAQ API (primary data source - includes past, present, and future dates)
   const [allEarnings, indices] = await Promise.all([
-    getEarningsCalendar("3month").catch(() => []),
+    getNasdaqEarnings().catch(() => []),
     getMarketIndices().catch(() => []),
   ]);
 
-  console.log(`[Earnings Page] Loaded ${allEarnings.length} earnings from Alpha Vantage`);
+  console.log(`[Earnings Page] Loaded ${allEarnings.length} earnings from NASDAQ API`);
 
   const todaysEarnings = getTodaysEarnings(allEarnings);
   const thisWeeksEarnings = getThisWeeksEarnings(allEarnings);

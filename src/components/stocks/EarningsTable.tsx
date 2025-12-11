@@ -51,6 +51,7 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [todayStr, setTodayStr] = useState<string>("");
   const [isClient, setIsClient] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   // Set today's date on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -61,20 +62,24 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
   // Helper to get the effective report date (corrected from Yahoo or original from Alpha Vantage)
   const getEffectiveDate = (e: EarningsCalendarEntry) => e.correctedReportDate || e.reportDate;
 
-  // Get the current week's dates
+  // Get calendar week (Sun-Sat) based on weekOffset
   const weekDates = useMemo(() => {
     // Use a stable date reference - if on client, use actual date; otherwise use empty array
     if (!isClient) return [];
 
     const today = new Date();
-    const dayOfWeek = today.getDay();
-    const sunday = new Date(today);
-    sunday.setDate(today.getDate() - dayOfWeek);
+    // Find the Sunday of the current week
+    const currentSunday = new Date(today);
+    currentSunday.setDate(today.getDate() - today.getDay()); // Go back to Sunday
 
-    const dates: { date: Date; dateStr: string; dayName: string; count: number }[] = [];
+    // Apply week offset (each arrow click moves to prev/next calendar week)
+    const startDate = new Date(currentSunday);
+    startDate.setDate(currentSunday.getDate() + (weekOffset * 7));
+
+    const dates: { date: Date; dateStr: string; dayName: string; dayShort: string; count: number }[] = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(sunday);
-      d.setDate(sunday.getDate() + i);
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
       const dateStr = d.toISOString().split('T')[0];
       // Use corrected date when available for accurate counting
       const count = earnings.filter(e => getEffectiveDate(e) === dateStr).length;
@@ -82,23 +87,44 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
         date: d,
         dateStr,
         dayName: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        dayShort: d.toLocaleDateString('en-US', { weekday: 'short' }),
         count
       });
     }
     return dates;
-  }, [earnings, isClient]);
+  }, [earnings, isClient, weekOffset]);
 
-  // Initialize selected date to today if not set and today has earnings
+  // Format week range for header (e.g., "Dec 7, 2025 - Dec 13, 2025")
+  const weekRangeStr = useMemo(() => {
+    if (weekDates.length === 0) return '';
+    const start = weekDates[0].date;
+    const end = weekDates[6].date;
+    const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return `${startStr} - ${endStr}`;
+  }, [weekDates]);
+
+  // Update selected date when week changes - select first day with earnings in new week
   useEffect(() => {
-    if (!selectedDate && weekDates.length > 0 && todayStr) {
-      const todayHasEarnings = weekDates.find(d => d.dateStr === todayStr && d.count > 0);
-      if (todayHasEarnings) {
+    if (weekDates.length === 0) return;
+
+    // Check if current selectedDate is in the current week
+    const selectedInCurrentWeek = weekDates.find(d => d.dateStr === selectedDate);
+
+    if (!selectedInCurrentWeek || !selectedInCurrentWeek.count) {
+      // Selected date is not in current week or has no earnings, find a new one
+      // First try to select today if it's in this week and has earnings
+      const todayInWeek = weekDates.find(d => d.dateStr === todayStr && d.count > 0);
+      if (todayInWeek) {
         setSelectedDate(todayStr);
       } else {
-        // Find first day with earnings
+        // Find first day with earnings in this week
         const firstDayWithEarnings = weekDates.find(d => d.count > 0);
         if (firstDayWithEarnings) {
           setSelectedDate(firstDayWithEarnings.dateStr);
+        } else {
+          // No earnings this week, clear selection
+          setSelectedDate(null);
         }
       }
     }
@@ -268,13 +294,46 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* Week Day Selector - Yahoo Finance Style */}
+      {/* Week Selector - Yahoo Finance Style */}
       {showWeekSelector && (
-        <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-muted/50 rounded-lg transition-colors">
-            <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex-1 grid grid-cols-7 gap-1">
+        <div className="bg-surface rounded-xl border border-border/50 p-4">
+          {/* Date Range Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Earnings Calendar for:</span>
+              <span className="text-sm font-semibold text-foreground">{weekRangeStr}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setWeekOffset(prev => prev - 1)}
+                className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors border border-border/50"
+                aria-label="Previous week"
+              >
+                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <button
+                onClick={() => setWeekOffset(0)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border",
+                  weekOffset === 0
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "hover:bg-muted/50 border-border/50 text-muted-foreground"
+                )}
+              >
+                This Week
+              </button>
+              <button
+                onClick={() => setWeekOffset(prev => prev + 1)}
+                className="p-1.5 hover:bg-muted/50 rounded-lg transition-colors border border-border/50"
+                aria-label="Next week"
+              >
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+
+          {/* Day Pills - Yahoo Finance Style */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-1">
             {weekDates.map((day) => {
               const isSelected = day.dateStr === selectedDate;
               const isToday = day.dateStr === todayStr;
@@ -286,25 +345,23 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
                   onClick={() => hasEarnings && setSelectedDate(day.dateStr)}
                   disabled={!hasEarnings}
                   className={cn(
-                    "flex flex-col items-center py-2 px-1 rounded-lg transition-all text-sm",
+                    "flex-1 min-w-[100px] flex flex-col items-center py-2.5 px-2 rounded-lg transition-all",
                     isSelected && "bg-primary text-primary-foreground",
                     !isSelected && hasEarnings && "hover:bg-muted/50 cursor-pointer",
-                    !hasEarnings && "opacity-50 cursor-not-allowed",
-                    isToday && !isSelected && "ring-1 ring-primary/50"
+                    !hasEarnings && "opacity-40 cursor-not-allowed",
+                    isToday && !isSelected && "ring-2 ring-gold/50 bg-gold/5"
                   )}
                 >
                   <span className={cn(
                     "text-xs font-medium",
-                    !isSelected && "text-muted-foreground"
+                    isSelected ? "text-primary-foreground" : "text-foreground"
                   )}>
-                    {day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {day.dayShort}, {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                   </span>
                   {hasEarnings && (
                     <span className={cn(
-                      "text-xs mt-1 px-2 py-0.5 rounded-full",
-                      isSelected
-                        ? "bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-primary/10 text-primary"
+                      "text-[10px] mt-1 font-medium",
+                      isSelected ? "text-primary-foreground/80" : "text-primary"
                     )}>
                       {day.count} Earnings
                     </span>
@@ -313,9 +370,6 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
               );
             })}
           </div>
-          <button className="p-2 hover:bg-muted/50 rounded-lg transition-colors">
-            <ChevronRight className="h-4 w-4 text-muted-foreground" />
-          </button>
         </div>
       )}
 

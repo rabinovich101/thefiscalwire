@@ -11,32 +11,19 @@ interface EarningsPageClientProps {
   thisWeeksEarnings: EarningsCalendarEntry[];
 }
 
-// Get past dates (2 days ago, yesterday)
-function getPastDates(): string[] {
-  const dates: string[] = [];
-  const today = new Date();
-  for (let i = 2; i >= 1; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    dates.push(d.toISOString().split('T')[0]);
-  }
-  return dates;
-}
-
 export function EarningsPageClient({
   allEarnings: initialAllEarnings,
   todaysEarnings: initialTodaysEarnings,
   thisWeeksEarnings: initialThisWeeksEarnings,
 }: EarningsPageClientProps) {
-  // Start with loading=true so skeleton shows immediately
-  const [isLoadingEnhancedData, setIsLoadingEnhancedData] = useState(true);
+  // NASDAQ data already includes enhanced data, so no need to fetch more
+  const [isLoadingEnhancedData, setIsLoadingEnhancedData] = useState(false);
   const [loadedCount, setLoadedCount] = useState(0);
   const [totalToLoad, setTotalToLoad] = useState(0);
   const [allEarnings, setAllEarnings] = useState(initialAllEarnings);
   const [searchQuery, setSearchQuery] = useState("");
   const eventSourceRef = useRef<EventSource | null>(null);
   const hasStartedLoading = useRef(false);
-  const hasFetchedPastDates = useRef(false);
 
   // Update a single earnings entry with enhanced data
   const updateEarningsEntry = useCallback((update: Partial<EarningsCalendarEntry> & { symbol: string }) => {
@@ -51,57 +38,31 @@ export function EarningsPageClient({
     setLoadedCount(prev => prev + 1);
   }, []);
 
-  // Fetch past dates from Yahoo API (Alpha Vantage doesn't have them)
+  // Fetch expected move data via SSE stream for upcoming earnings
+  // NASDAQ provides most data, but expected move comes from Yahoo options
   useEffect(() => {
-    if (hasFetchedPastDates.current) return;
-    hasFetchedPastDates.current = true;
-
-    const fetchPastDates = async () => {
-      const pastDates = getPastDates();
-      const pastEarnings: EarningsCalendarEntry[] = [];
-
-      for (const date of pastDates) {
-        try {
-          const response = await fetch(`/api/stocks/earnings/yahoo?date=${date}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.earnings) {
-              pastEarnings.push(...data.earnings);
-            }
-          }
-        } catch (error) {
-          console.log(`Failed to fetch past date ${date}`);
-        }
-      }
-
-      if (pastEarnings.length > 0) {
-        setAllEarnings(prev => {
-          // Merge: add past earnings, sort by date
-          const merged = [...pastEarnings, ...prev];
-          merged.sort((a, b) => a.reportDate.localeCompare(b.reportDate));
-          return merged;
-        });
-      }
-    };
-
-    fetchPastDates();
-  }, []);
-
-  // Fetch enhanced data using Server-Sent Events for progressive loading
-  useEffect(() => {
-    if (hasStartedLoading.current || initialThisWeeksEarnings.length === 0) {
-      if (initialThisWeeksEarnings.length === 0) {
-        setIsLoadingEnhancedData(false);
-      }
+    if (hasStartedLoading.current || initialAllEarnings.length === 0) {
       return;
     }
 
     hasStartedLoading.current = true;
-    const earningsToEnhance = initialThisWeeksEarnings.slice(0, 100);
-    setTotalToLoad(earningsToEnhance.length);
+
+    // Get today's date and filter for upcoming earnings (today + future)
+    const today = new Date().toISOString().split('T')[0];
+    const upcomingEarnings = initialAllEarnings
+      .filter(e => e.reportDate >= today)
+      .slice(0, 50); // Limit to 50 for performance
+
+    if (upcomingEarnings.length === 0) {
+      setIsLoadingEnhancedData(false);
+      return;
+    }
+
+    setIsLoadingEnhancedData(true);
+    setTotalToLoad(upcomingEarnings.length);
 
     // Build symbol:date pairs to pass to stream
-    const symbolDatePairs = earningsToEnhance
+    const symbolDatePairs = upcomingEarnings
       .map(e => `${e.symbol}:${e.reportDate}`)
       .join(",");
 
@@ -129,8 +90,10 @@ export function EarningsPageClient({
           return;
         }
 
-        // Update the earnings entry with the new data
-        updateEarningsEntry(data);
+        // Update the earnings entry with expected move data
+        if (data.expectedMove || data.expectedMovePercent) {
+          updateEarningsEntry(data);
+        }
       } catch (err) {
         console.error("Error parsing SSE data:", err);
       }
@@ -146,7 +109,7 @@ export function EarningsPageClient({
     return () => {
       eventSource.close();
     };
-  }, [initialThisWeeksEarnings.length, updateEarningsEntry]);
+  }, [initialAllEarnings, updateEarningsEntry]);
 
   // Filter earnings by search query
   const filteredEarnings = searchQuery
