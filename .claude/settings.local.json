@@ -130,7 +130,9 @@
       "WebFetch(domain:x.com)",
       "WebFetch(domain:nitter.net)",
       "WebFetch(domain:www.sotwe.com)",
-      "WebFetch(domain:newsletter.wallstengine.com)"
+      "WebFetch(domain:newsletter.wallstengine.com)",
+      "WebFetch(domain:www.fintut.com)",
+      "WebFetch(domain:www.nasdaq.com)"
     ],
     "deny": [],
     "ask": []

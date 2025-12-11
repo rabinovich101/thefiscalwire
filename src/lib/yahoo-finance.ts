@@ -1507,3 +1507,185 @@ export async function getExpectedMoveBatch(
 
   return results;
 }
+
+// ============================================================================
+// Earnings Report Timing (BMO/AMC)
+// ============================================================================
+
+export type EarningsReportTime = 'BMO' | 'AMC' | 'TBD';
+
+interface YahooCalendarEvents {
+  earnings?: {
+    earningsDate?: Date[];
+    earningsCallDate?: Date[];
+    isEarningsDateEstimate?: boolean;
+    earningsAverage?: number;
+    earningsLow?: number;
+    earningsHigh?: number;
+  };
+}
+
+interface YahooQuoteSummaryResult {
+  calendarEvents?: YahooCalendarEvents;
+}
+
+/**
+ * Determine earnings report time (BMO/AMC) from Yahoo Finance earningsDate
+ * Based on UTC hour:
+ * - BMO (Before Market Open): UTC hour 10-14 (5-9 AM EST)
+ * - AMC (After Market Close): UTC hour 20-23 (4-7 PM EST)
+ */
+function getReportTimeFromDate(date: Date): EarningsReportTime {
+  const hours = date.getUTCHours();
+
+  if (hours >= 20 && hours <= 23) {
+    return 'AMC';
+  } else if (hours >= 10 && hours <= 14) {
+    return 'BMO';
+  }
+  return 'TBD';
+}
+
+/**
+ * Cache for earnings timing data
+ */
+const earningsTimingCache = new Map<string, { data: EarningsReportTime; expires: number }>();
+const EARNINGS_TIMING_CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+
+/**
+ * Get earnings report timing (BMO/AMC) for a single symbol
+ * @param symbol - Stock ticker symbol
+ * @returns Report timing or 'TBD' if unknown
+ */
+export async function getEarningsReportTime(symbol: string): Promise<EarningsReportTime> {
+  // Check cache first
+  const cached = earningsTimingCache.get(symbol);
+  if (cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ['calendarEvents']
+    }) as YahooQuoteSummaryResult;
+
+    const earningsDate = result.calendarEvents?.earnings?.earningsDate?.[0];
+
+    if (!earningsDate) {
+      return 'TBD';
+    }
+
+    const reportTime = getReportTimeFromDate(new Date(earningsDate));
+
+    // Cache the result
+    earningsTimingCache.set(symbol, {
+      data: reportTime,
+      expires: Date.now() + EARNINGS_TIMING_CACHE_TTL,
+    });
+
+    return reportTime;
+  } catch (error) {
+    console.error(`[Yahoo Finance] Error fetching earnings timing for ${symbol}:`, error);
+    return 'TBD';
+  }
+}
+
+/**
+ * Get earnings report timing for multiple symbols in batch
+ * @param symbols - Array of stock ticker symbols
+ * @returns Map of symbol to report timing
+ */
+export async function getEarningsReportTimeBatch(
+  symbols: string[]
+): Promise<Map<string, EarningsReportTime>> {
+  const results = new Map<string, EarningsReportTime>();
+
+  // Process in batches to avoid rate limiting
+  const batchSize = 10;
+
+  for (let i = 0; i < symbols.length; i += batchSize) {
+    const batch = symbols.slice(i, i + batchSize);
+
+    const promises = batch.map(async (symbol) => {
+      const reportTime = await getEarningsReportTime(symbol);
+      results.set(symbol, reportTime);
+    });
+
+    await Promise.all(promises);
+
+    // Small delay between batches
+    if (i + batchSize < symbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  return results;
+}
+
+// ============================================================================
+// Earnings Enhanced Data (Report Time + Market Cap)
+// ============================================================================
+
+export interface EarningsEnhancedData {
+  reportTime: EarningsReportTime;
+  marketCap?: number;
+}
+
+/**
+ * Get enhanced earnings data (report timing + market cap) for a single symbol
+ */
+export async function getEarningsEnhancedData(symbol: string): Promise<EarningsEnhancedData> {
+  try {
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ['calendarEvents', 'price']
+    }) as YahooQuoteSummaryResult & { price?: { marketCap?: number } };
+
+    const earningsDate = result.calendarEvents?.earnings?.earningsDate?.[0];
+    const marketCap = result.price?.marketCap;
+
+    let reportTime: EarningsReportTime = 'TBD';
+    if (earningsDate) {
+      reportTime = getReportTimeFromDate(new Date(earningsDate));
+    }
+
+    return {
+      reportTime,
+      marketCap: marketCap || undefined
+    };
+  } catch (error) {
+    console.error(`[Yahoo Finance] Error fetching enhanced data for ${symbol}:`, error);
+    return { reportTime: 'TBD' };
+  }
+}
+
+/**
+ * Get enhanced earnings data for multiple symbols in batch
+ * @param symbols - Array of stock ticker symbols
+ * @returns Map of symbol to enhanced data
+ */
+export async function getEarningsEnhancedDataBatch(
+  symbols: string[]
+): Promise<Map<string, EarningsEnhancedData>> {
+  const results = new Map<string, EarningsEnhancedData>();
+
+  // Process in batches to avoid rate limiting
+  const batchSize = 10;
+
+  for (let i = 0; i < symbols.length; i += batchSize) {
+    const batch = symbols.slice(i, i + batchSize);
+
+    const promises = batch.map(async (symbol) => {
+      const data = await getEarningsEnhancedData(symbol);
+      results.set(symbol, data);
+    });
+
+    await Promise.all(promises);
+
+    // Small delay between batches
+    if (i + batchSize < symbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  return results;
+}

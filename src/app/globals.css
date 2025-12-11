@@ -285,4 +285,11 @@
   .light .bg-surface {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
+
+  /* Skeleton shimmer animation */
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
 }

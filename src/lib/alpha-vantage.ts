@@ -8,6 +8,8 @@ const BASE_URL = "https://www.alphavantage.co/query";
 // Types
 // ============================================================================
 
+export type EarningsReportTime = 'BMO' | 'AMC' | 'TBD';
+
 export interface EarningsCalendarEntry {
   symbol: string;
   name: string;
@@ -15,11 +17,15 @@ export interface EarningsCalendarEntry {
   fiscalDateEnding: string;
   estimate: number | null;
   currency: string;
+  // Report timing (Before Market Open, After Market Close, or To Be Determined)
+  reportTime?: EarningsReportTime;
   // Expected move data (optional, populated from options)
   stockPrice?: number;
   expectedMove?: number;
   expectedMovePercent?: number;
   impliedVolatility?: number | null;
+  // Market cap (optional, populated from Yahoo Finance)
+  marketCap?: number;
 }
 
 export interface EarningsHistorical {

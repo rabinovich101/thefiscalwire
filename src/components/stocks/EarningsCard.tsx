@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Activity } from "lucide-react";
+import { Calendar, Clock, TrendingUp, TrendingDown, DollarSign, Activity, Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EarningsCalendarEntry, EarningsHistorical } from "@/lib/alpha-vantage";
 
@@ -36,6 +36,38 @@ export function EarningsCard({
   const hasPositiveSurprise = surprise !== null && surprise !== undefined && surprise > 0;
   const hasNegativeSurprise = surprise !== null && surprise !== undefined && surprise < 0;
 
+  // Report time badge component
+  const ReportTimeBadge = () => {
+    const reportTime = earning.reportTime;
+    if (!reportTime || reportTime === 'TBD') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground">
+          TBD
+        </span>
+      );
+    }
+
+    if (reportTime === 'BMO') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <Sun className="h-3 w-3" />
+          BMO
+        </span>
+      );
+    }
+
+    if (reportTime === 'AMC') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+          <Moon className="h-3 w-3" />
+          AMC
+        </span>
+      );
+    }
+
+    return null;
+  };
+
   if (variant === "compact") {
     return (
       <Link
@@ -65,9 +97,10 @@ export function EarningsCard({
           <p className="text-sm font-medium tabular-nums">
             Est: {formatEPS(earning.estimate)}
           </p>
-          <p className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground justify-end">
             {formatDate(earning.reportDate)}
-          </p>
+            <ReportTimeBadge />
+          </div>
         </div>
       </Link>
     );
@@ -94,9 +127,12 @@ export function EarningsCard({
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gold/10 text-gold text-sm font-medium">
-            <Calendar className="h-4 w-4" />
-            {formatDate(earning.reportDate)}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gold/10 text-gold text-sm font-medium">
+              <Calendar className="h-4 w-4" />
+              {formatDate(earning.reportDate)}
+            </div>
+            <ReportTimeBadge />
           </div>
         </div>
 
@@ -220,9 +256,12 @@ export function EarningsCard({
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-gold/10 text-gold text-xs font-medium">
-          <Calendar className="h-3 w-3" />
-          {formatDate(earning.reportDate)}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-gold/10 text-gold text-xs font-medium">
+            <Calendar className="h-3 w-3" />
+            {formatDate(earning.reportDate)}
+          </div>
+          <ReportTimeBadge />
         </div>
       </div>
 

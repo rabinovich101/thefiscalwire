@@ -8,3 +8,4 @@
 8. Do Not Be Lazy: NEVER BE LAZY. If there is a bug, find the root cause and fix it properly. Do not implement temporary fixes.
 9. Simplicity in Fixes: Make all fixes and code changes as simple as humanly possible. They should only impact necessary code relevant to the task and nothing else to avoid introducing new bugs.
 10. please after you finnish your mission go and test the results as regular user
+11. ALWAYS test with Playwright after finishing any task - use browser_navigate, browser_snapshot, and browser_take_screenshot to verify changes visually and ensure everything works as expected from a user's perspective.

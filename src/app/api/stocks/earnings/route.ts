@@ -8,7 +8,7 @@ import {
   groupEarningsByDate,
   type EarningsCalendarEntry,
 } from "@/lib/alpha-vantage";
-import { getExpectedMoveBatch } from "@/lib/yahoo-finance";
+import { getExpectedMoveBatch, getEarningsEnhancedDataBatch } from "@/lib/yahoo-finance";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 86400; // 24 hours
@@ -55,14 +55,48 @@ export async function GET(request: Request) {
         );
     }
 
+    // Fetch enhanced data (report timing + market cap) for earnings
+    // Prioritize today and upcoming earnings
+    const today = new Date().toISOString().split('T')[0];
+    if (filteredEarnings.length > 0) {
+      // Prioritize upcoming earnings (today + future) over past
+      const upcomingForEnhanced = filteredEarnings.filter(e => e.reportDate >= today);
+      const pastForEnhanced = filteredEarnings.filter(e => e.reportDate < today);
+      const prioritizedForEnhanced = [...upcomingForEnhanced, ...pastForEnhanced];
+
+      const symbolsForEnhanced = prioritizedForEnhanced.slice(0, 100).map(e => e.symbol);
+      console.log(`[Earnings API] Fetching enhanced data for ${symbolsForEnhanced.length} stocks (${upcomingForEnhanced.length} upcoming)`);
+
+      const enhancedData = await getEarningsEnhancedDataBatch(symbolsForEnhanced);
+
+      // Merge enhanced data into earnings
+      filteredEarnings = filteredEarnings.map(earning => {
+        const data = enhancedData.get(earning.symbol);
+        return {
+          ...earning,
+          reportTime: data?.reportTime || 'TBD',
+          marketCap: data?.marketCap,
+        };
+      });
+
+      console.log(`[Earnings API] Added enhanced data for ${enhancedData.size} stocks`);
+    }
+
     // Fetch expected move data if requested
-    // Only fetch for first 50 stocks to avoid rate limiting
+    // Prioritize today and upcoming earnings (expected move only relevant before reporting)
     if (includeExpectedMove && filteredEarnings.length > 0) {
-      const symbolsToFetch = filteredEarnings.slice(0, 50).map(e => e.symbol);
+      // Separate earnings into upcoming (today+future) and past
+      const upcomingEarnings = filteredEarnings.filter(e => e.reportDate >= today);
+      const pastEarnings = filteredEarnings.filter(e => e.reportDate < today);
+
+      // Prioritize upcoming earnings, then fill with past if room
+      const prioritizedEarnings = [...upcomingEarnings, ...pastEarnings];
+      const symbolsToFetch = prioritizedEarnings.slice(0, 50).map(e => e.symbol);
+
       const earningsDatesMap = new Map<string, string>();
       filteredEarnings.forEach(e => earningsDatesMap.set(e.symbol, e.reportDate));
 
-      console.log(`[Earnings API] Fetching expected move for ${symbolsToFetch.length} stocks`);
+      console.log(`[Earnings API] Fetching expected move for ${symbolsToFetch.length} stocks (${upcomingEarnings.length} upcoming, ${pastEarnings.length} past)`);
       const expectedMoveData = await getExpectedMoveBatch(symbolsToFetch, earningsDatesMap);
 
       // Merge expected move data into earnings
