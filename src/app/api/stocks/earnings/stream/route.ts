@@ -23,18 +23,39 @@ export async function GET(request: NextRequest) {
         const allEarnings = await getEarningsCalendar(horizon);
         const thisWeeksEarnings = getThisWeeksEarnings(allEarnings);
 
-        // Sort by date
-        const sortedEarnings = thisWeeksEarnings.sort((a, b) =>
-          a.reportDate.localeCompare(b.reportDate)
-        );
-
         // Get today's date for prioritization
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
 
-        // Prioritize upcoming earnings (today + future) over past
-        const upcomingEarnings = sortedEarnings.filter(e => e.reportDate >= today);
-        const pastEarnings = sortedEarnings.filter(e => e.reportDate < today);
-        const prioritizedEarnings = [...upcomingEarnings, ...pastEarnings];
+        // Calculate dates for prioritization
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+        // Prioritize: Today -> Tomorrow -> Yesterday -> Future -> Past
+        const todaysEarnings = thisWeeksEarnings.filter(e => e.reportDate === todayStr);
+        const tomorrowsEarnings = thisWeeksEarnings.filter(e => e.reportDate === tomorrowStr);
+        const yesterdaysEarnings = thisWeeksEarnings.filter(e => e.reportDate === yesterdayStr);
+        const futureEarnings = thisWeeksEarnings
+          .filter(e => e.reportDate > tomorrowStr)
+          .sort((a, b) => a.reportDate.localeCompare(b.reportDate));
+        const pastEarnings = thisWeeksEarnings
+          .filter(e => e.reportDate < yesterdayStr)
+          .sort((a, b) => b.reportDate.localeCompare(a.reportDate)); // Most recent past first
+
+        const prioritizedEarnings = [
+          ...todaysEarnings,
+          ...tomorrowsEarnings,
+          ...yesterdaysEarnings,
+          ...futureEarnings,
+          ...pastEarnings
+        ];
+
+        console.log(`[Earnings Stream] Priority order: Today(${todaysEarnings.length}), Tomorrow(${tomorrowsEarnings.length}), Yesterday(${yesterdaysEarnings.length}), Future(${futureEarnings.length}), Past(${pastEarnings.length})`);
 
         // Limit to first 100 for enhanced data
         const earningsToEnhance = prioritizedEarnings.slice(0, 100);
