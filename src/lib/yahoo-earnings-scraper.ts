@@ -191,7 +191,10 @@ export async function scrapeYahooEarnings(dateStr: string): Promise<EarningsCale
 
       allEarnings.push(...pageEarnings.map(e => ({
         ...e,
-        reportTime: e.reportTime as EarningsReportTime
+        reportTime: e.reportTime as EarningsReportTime,
+        marketCap: e.marketCap ?? undefined,
+        reportedEPS: e.reportedEPS ?? undefined,
+        surprisePercent: e.surprisePercent ?? undefined
       })));
 
       // Check for next page button

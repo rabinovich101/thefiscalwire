@@ -42,9 +42,9 @@ function extractDataFromHtml(html: string): Record<string, unknown> | null {
   try {
     // Look for the JSON data embedded in the page
     const patterns = [
-      /root\.App\.main\s*=\s*(\{.*?\});/s,
-      /<script[^>]*>window\.__PRELOADED_STATE__\s*=\s*(\{.*?\})<\/script>/s,
-      /data-reactid="[^"]*"[^>]*>(\{"[^<]*)<\/script>/s,
+      /root\.App\.main\s*=\s*(\{[\s\S]*?\});/,
+      /<script[^>]*>window\.__PRELOADED_STATE__\s*=\s*(\{[\s\S]*?\})<\/script>/,
+      /data-reactid="[^"]*"[^>]*>(\{"[^<]*)<\/script>/,
     ];
 
     for (const pattern of patterns) {

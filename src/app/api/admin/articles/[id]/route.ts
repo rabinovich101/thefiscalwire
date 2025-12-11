@@ -30,6 +30,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       businessCategoryId,
       authorId,
       tagIds,
+      newTags,
       relevantTickers,
     } = body
 
@@ -76,6 +77,32 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Create new tags if any
+    const createdTagIds: string[] = []
+    if (newTags && Array.isArray(newTags) && newTags.length > 0) {
+      for (const tagName of newTags) {
+        // Check if tag already exists (case-insensitive)
+        const existingTag = await prisma.tag.findFirst({
+          where: { name: { equals: tagName, mode: "insensitive" } },
+        })
+
+        if (existingTag) {
+          createdTagIds.push(existingTag.id)
+        } else {
+          const newTag = await prisma.tag.create({
+            data: {
+              name: tagName,
+              slug: tagName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+            },
+          })
+          createdTagIds.push(newTag.id)
+        }
+      }
+    }
+
+    // Combine existing tag IDs with newly created tag IDs
+    const allTagIds = [...(tagIds || []), ...createdTagIds]
+
     const article = await prisma.article.update({
       where: { id },
       data: {
@@ -93,7 +120,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         authorId,
         relevantTickers: relevantTickers || [],
         tags: {
-          set: tagIds?.map((tagId: string) => ({ id: tagId })) || [],
+          set: allTagIds.map((tagId: string) => ({ id: tagId })),
         },
         // Update categories many-to-many relation
         categories: {

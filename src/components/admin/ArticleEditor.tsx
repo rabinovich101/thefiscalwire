@@ -133,6 +133,8 @@ export function ArticleEditor({ article, marketsCategories, businessCategories, 
   }
 
   const [uploadingBlockId, setUploadingBlockId] = useState<string | null>(null)
+  const [newTagInput, setNewTagInput] = useState("")
+  const [customTags, setCustomTags] = useState<{ id: string; name: string }[]>([])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,6 +164,7 @@ export function ArticleEditor({ article, marketsCategories, businessCategories, 
         .map((t) => t.trim())
         .filter(Boolean),
       tagIds: formData.selectedTags,
+      newTags: customTags.map((t) => t.name),
     }
 
     try {
@@ -195,6 +198,28 @@ export function ArticleEditor({ article, marketsCategories, businessCategories, 
         ? prev.selectedTags.filter((id) => id !== tagId)
         : [...prev.selectedTags, tagId],
     }))
+  }
+
+  const addCustomTag = () => {
+    const tagName = newTagInput.trim()
+    if (!tagName) return
+
+    // Check if tag already exists in the list
+    const existsInTags = tags.some((t) => t.name.toLowerCase() === tagName.toLowerCase())
+    const existsInCustom = customTags.some((t) => t.name.toLowerCase() === tagName.toLowerCase())
+
+    if (existsInTags || existsInCustom) {
+      setNewTagInput("")
+      return
+    }
+
+    const newTag = { id: `new-${crypto.randomUUID()}`, name: tagName }
+    setCustomTags((prev) => [...prev, newTag])
+    setNewTagInput("")
+  }
+
+  const removeCustomTag = (tagId: string) => {
+    setCustomTags((prev) => prev.filter((t) => t.id !== tagId))
   }
 
   return (
@@ -712,6 +737,53 @@ export function ArticleEditor({ article, marketsCategories, businessCategories, 
           {/* Tags */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
             <h3 className="text-sm font-medium text-zinc-400 mb-3">Tags</h3>
+
+            {/* Add new tag input */}
+            <div className="flex gap-2 mb-3">
+              <input
+                type="text"
+                value={newTagInput}
+                onChange={(e) => setNewTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault()
+                    addCustomTag()
+                  }
+                }}
+                placeholder="Add new tag..."
+                className="flex-1 px-3 py-1.5 text-sm bg-zinc-800 border border-zinc-700 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={addCustomTag}
+                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Add
+              </button>
+            </div>
+
+            {/* Custom tags (newly added) */}
+            {customTags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-zinc-700">
+                {customTags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="flex items-center gap-1 text-xs px-3 py-1 rounded-full bg-green-600 text-white"
+                  >
+                    {tag.name}
+                    <button
+                      type="button"
+                      onClick={() => removeCustomTag(tag.id)}
+                      className="ml-1 hover:text-red-200"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Existing tags */}
             <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto">
               {tags.map((tag) => (
                 <button
