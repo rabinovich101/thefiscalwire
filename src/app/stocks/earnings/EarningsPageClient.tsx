@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Loader2, Search } from "lucide-react";
 import { EarningsTable } from "@/components/stocks";
 import type { EarningsCalendarEntry } from "@/lib/alpha-vantage";
@@ -18,70 +18,78 @@ export function EarningsPageClient({
 }: EarningsPageClientProps) {
   // Start with loading=true so skeleton shows immediately
   const [isLoadingEnhancedData, setIsLoadingEnhancedData] = useState(true);
-  const [enhancedDataLoaded, setEnhancedDataLoaded] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [totalToLoad, setTotalToLoad] = useState(0);
   const [allEarnings, setAllEarnings] = useState(initialAllEarnings);
   const [searchQuery, setSearchQuery] = useState("");
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const hasStartedLoading = useRef(false);
 
-  // Fetch enhanced data (report timing + market cap) on component mount
-  useEffect(() => {
-    const fetchEnhancedData = async () => {
-      if (enhancedDataLoaded || initialThisWeeksEarnings.length === 0) return;
-
-      setIsLoadingEnhancedData(true);
-      try {
-        // Fetch enhanced data for this week's earnings
-        const response = await fetch(`/api/stocks/earnings?filter=thisWeek&expectedMove=true`);
-        if (response.ok) {
-          const data = await response.json();
-          const earningsWithData: EarningsCalendarEntry[] = data.earnings;
-
-          // Create a map of symbol -> enhanced data
-          const enhancedDataMap = new Map<string, Partial<EarningsCalendarEntry>>();
-          earningsWithData.forEach(e => {
-            const enhancedData: Partial<EarningsCalendarEntry> = {};
-
-            // Add expected move data if available
-            if (e.expectedMovePercent !== undefined) {
-              enhancedData.stockPrice = e.stockPrice;
-              enhancedData.expectedMove = e.expectedMove;
-              enhancedData.expectedMovePercent = e.expectedMovePercent;
-              enhancedData.impliedVolatility = e.impliedVolatility;
-            }
-
-            // Add report timing data if available
-            if (e.reportTime) {
-              enhancedData.reportTime = e.reportTime;
-            }
-
-            // Add market cap data if available
-            if (e.marketCap) {
-              enhancedData.marketCap = e.marketCap;
-            }
-
-            if (Object.keys(enhancedData).length > 0) {
-              enhancedDataMap.set(e.symbol, enhancedData);
-            }
-          });
-
-          // Update all earnings with enhanced data
-          const updateEarnings = (earnings: EarningsCalendarEntry[]) =>
-            earnings.map(e => {
-              const enhancedData = enhancedDataMap.get(e.symbol);
-              return enhancedData ? { ...e, ...enhancedData } : e;
-            });
-
-          setAllEarnings(updateEarnings(initialAllEarnings));
-          setEnhancedDataLoaded(true);
+  // Update a single earnings entry with enhanced data
+  const updateEarningsEntry = useCallback((update: Partial<EarningsCalendarEntry> & { symbol: string }) => {
+    setAllEarnings(prev =>
+      prev.map(e => {
+        if (e.symbol === update.symbol) {
+          return { ...e, ...update };
         }
-      } catch (error) {
-        console.error("Error fetching enhanced earnings data:", error);
-      } finally {
+        return e;
+      })
+    );
+    setLoadedCount(prev => prev + 1);
+  }, []);
+
+  // Fetch enhanced data using Server-Sent Events for progressive loading
+  useEffect(() => {
+    if (hasStartedLoading.current || initialThisWeeksEarnings.length === 0) {
+      if (initialThisWeeksEarnings.length === 0) {
         setIsLoadingEnhancedData(false);
+      }
+      return;
+    }
+
+    hasStartedLoading.current = true;
+    setTotalToLoad(Math.min(initialThisWeeksEarnings.length, 100));
+
+    // Use EventSource for Server-Sent Events
+    const eventSource = new EventSource('/api/stocks/earnings/stream?expectedMove=true');
+    eventSourceRef.current = eventSource;
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.done) {
+          // Stream completed
+          setIsLoadingEnhancedData(false);
+          eventSource.close();
+          return;
+        }
+
+        if (data.error) {
+          console.error("Stream error:", data.error);
+          setIsLoadingEnhancedData(false);
+          eventSource.close();
+          return;
+        }
+
+        // Update the earnings entry with the new data
+        updateEarningsEntry(data);
+      } catch (err) {
+        console.error("Error parsing SSE data:", err);
       }
     };
 
-    fetchEnhancedData();
-  }, [initialAllEarnings, initialTodaysEarnings, initialThisWeeksEarnings, enhancedDataLoaded]);
+    eventSource.onerror = (err) => {
+      console.error("EventSource error:", err);
+      setIsLoadingEnhancedData(false);
+      eventSource.close();
+    };
+
+    // Cleanup on unmount
+    return () => {
+      eventSource.close();
+    };
+  }, [initialThisWeeksEarnings.length, updateEarningsEntry]);
 
   // Filter earnings by search query
   const filteredEarnings = searchQuery
@@ -102,7 +110,11 @@ export function EarningsPageClient({
           {isLoadingEnhancedData && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Loading data...
+              {loadedCount > 0 ? (
+                <span>Loading {loadedCount}/{totalToLoad}...</span>
+              ) : (
+                <span>Loading data...</span>
+              )}
             </div>
           )}
         </div>
