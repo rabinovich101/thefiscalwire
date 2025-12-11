@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   Calendar,
@@ -49,9 +49,20 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(25);
+  const [todayStr, setTodayStr] = useState<string>("");
+  const [isClient, setIsClient] = useState(false);
+
+  // Set today's date on client side only to avoid hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+    setTodayStr(new Date().toISOString().split('T')[0]);
+  }, []);
 
   // Get the current week's dates
   const weekDates = useMemo(() => {
+    // Use a stable date reference - if on client, use actual date; otherwise use empty array
+    if (!isClient) return [];
+
     const today = new Date();
     const dayOfWeek = today.getDay();
     const sunday = new Date(today);
@@ -71,16 +82,11 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
       });
     }
     return dates;
-  }, [earnings]);
-
-  // Get today's date string
-  const todayStr = useMemo(() => {
-    return new Date().toISOString().split('T')[0];
-  }, []);
+  }, [earnings, isClient]);
 
   // Initialize selected date to today if not set and today has earnings
-  useMemo(() => {
-    if (!selectedDate) {
+  useEffect(() => {
+    if (!selectedDate && weekDates.length > 0 && todayStr) {
       const todayHasEarnings = weekDates.find(d => d.dateStr === todayStr && d.count > 0);
       if (todayHasEarnings) {
         setSelectedDate(todayStr);
