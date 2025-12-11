@@ -26,6 +26,10 @@ export interface EarningsCalendarEntry {
   impliedVolatility?: number | null;
   // Market cap (optional, populated from Yahoo Finance)
   marketCap?: number;
+  // Historical data (for past earnings - populated from company earnings)
+  reportedEPS?: number | null;
+  surprise?: number | null;
+  surprisePercent?: number | null;
 }
 
 export interface EarningsHistorical {
@@ -209,19 +213,26 @@ export async function getCompanyEarnings(
       return null;
     }
 
+    // Helper to parse numeric values that might be "None" string from Alpha Vantage
+    const parseNumeric = (val: string | undefined): number | null => {
+      if (!val || val === "None" || val === "none" || val === "") return null;
+      const num = parseFloat(val);
+      return isNaN(num) ? null : num;
+    };
+
     const earnings: CompanyEarnings = {
       symbol,
       annualEarnings: (data.annualEarnings || []).map((e: Record<string, string>) => ({
         fiscalDateEnding: e.fiscalDateEnding || "",
-        reportedEPS: e.reportedEPS ? parseFloat(e.reportedEPS) : null,
+        reportedEPS: parseNumeric(e.reportedEPS),
       })),
       quarterlyEarnings: (data.quarterlyEarnings || []).map((e: Record<string, string>) => ({
         fiscalDateEnding: e.fiscalDateEnding || "",
         reportedDate: e.reportedDate || "",
-        reportedEPS: e.reportedEPS ? parseFloat(e.reportedEPS) : null,
-        estimatedEPS: e.estimatedEPS ? parseFloat(e.estimatedEPS) : null,
-        surprise: e.surprise ? parseFloat(e.surprise) : null,
-        surprisePercentage: e.surprisePercentage ? parseFloat(e.surprisePercentage) : null,
+        reportedEPS: parseNumeric(e.reportedEPS),
+        estimatedEPS: parseNumeric(e.estimatedEPS),
+        surprise: parseNumeric(e.surprise),
+        surprisePercentage: parseNumeric(e.surprisePercentage),
       })),
     };
 
@@ -308,4 +319,81 @@ export function getNextWeeksEarnings(
   endOfNextWeek.setHours(23, 59, 59, 999);
 
   return filterEarningsByDateRange(earnings, startOfNextWeek, endOfNextWeek);
+}
+
+/**
+ * Fetch historical earnings data for a batch of symbols and match by reportDate
+ * Used to enrich past earnings with reported EPS and surprise data
+ */
+export async function getHistoricalEarningsDataBatch(
+  earnings: EarningsCalendarEntry[]
+): Promise<Map<string, { reportedEPS: number | null; surprise: number | null; surprisePercent: number | null }>> {
+  const results = new Map<string, { reportedEPS: number | null; surprise: number | null; surprisePercent: number | null }>();
+
+  // Only process past earnings
+  const today = new Date().toISOString().split('T')[0];
+  const pastEarnings = earnings.filter(e => e.reportDate < today);
+
+  if (pastEarnings.length === 0) {
+    return results;
+  }
+
+  // Get unique symbols
+  const uniqueSymbols = [...new Set(pastEarnings.map(e => e.symbol))];
+
+  console.log(`[Alpha Vantage] Fetching historical earnings for ${uniqueSymbols.length} symbols`);
+
+  // Fetch company earnings for each symbol (in parallel, with rate limiting)
+  const batchSize = 5;
+
+  for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
+    const batch = uniqueSymbols.slice(i, i + batchSize);
+
+    const promises = batch.map(async (symbol) => {
+      try {
+        const companyEarnings = await getCompanyEarnings(symbol);
+
+        if (companyEarnings?.quarterlyEarnings) {
+          // Find the matching quarterly earnings by reportedDate
+          const earningsForSymbol = pastEarnings.filter(e => e.symbol === symbol);
+
+          for (const earning of earningsForSymbol) {
+            // Look for a match in quarterly earnings
+            // Try exact match first, then fuzzy match within 5 days (earnings dates can vary slightly)
+            let match = companyEarnings.quarterlyEarnings.find(q => q.reportedDate === earning.reportDate);
+
+            if (!match) {
+              // Try to find a match within 5 days of the report date
+              const reportDateObj = new Date(earning.reportDate);
+              match = companyEarnings.quarterlyEarnings.find(q => {
+                const histDateObj = new Date(q.reportedDate);
+                const diffDays = Math.abs((reportDateObj.getTime() - histDateObj.getTime()) / (1000 * 60 * 60 * 24));
+                return diffDays <= 5;
+              });
+            }
+
+            if (match && match.reportedEPS !== null) {
+              results.set(`${symbol}_${earning.reportDate}`, {
+                reportedEPS: match.reportedEPS,
+                surprise: match.surprise,
+                surprisePercent: match.surprisePercentage,
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[Alpha Vantage] Error fetching historical earnings for ${symbol}:`, error);
+      }
+    });
+
+    await Promise.all(promises);
+
+    // Rate limiting delay between batches
+    if (i + batchSize < uniqueSymbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+  }
+
+  console.log(`[Alpha Vantage] Found historical data for ${results.size} earnings entries`);
+  return results;
 }

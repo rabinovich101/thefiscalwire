@@ -1623,6 +1623,171 @@ export async function getEarningsReportTimeBatch(
 }
 
 // ============================================================================
+// Historical Earnings Data (Reported EPS, Surprise)
+// ============================================================================
+
+export interface HistoricalEarningsData {
+  reportedEPS: number | null;
+  estimatedEPS: number | null;
+  surprise: number | null;
+  surprisePercent: number | null;
+  quarter: string; // e.g., "1Q2025"
+}
+
+/**
+ * Cache for historical earnings data
+ */
+const historicalEarningsCache = new Map<string, { data: HistoricalEarningsData[]; expires: number }>();
+const HISTORICAL_EARNINGS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Get historical quarterly earnings data for a symbol from Yahoo Finance
+ * Returns reported EPS, estimates, and surprise percentage
+ */
+export async function getHistoricalEarnings(symbol: string): Promise<HistoricalEarningsData[]> {
+  // Check cache first
+  const cached = historicalEarningsCache.get(symbol);
+  if (cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    const result = await yahooFinance.quoteSummary(symbol, {
+      modules: ['earnings']
+    }) as { earnings?: { earningsChart?: { quarterly?: Array<{ date: string; actual: number; estimate: number; surprisePct?: string }> } } };
+
+    const quarterlyData = result.earnings?.earningsChart?.quarterly || [];
+
+    const earnings: HistoricalEarningsData[] = quarterlyData.map(q => {
+      const actual = typeof q.actual === 'number' ? q.actual : null;
+      const estimate = typeof q.estimate === 'number' ? q.estimate : null;
+      const surprise = actual !== null && estimate !== null ? actual - estimate : null;
+      const surprisePercent = q.surprisePct ? parseFloat(q.surprisePct) : null;
+
+      return {
+        reportedEPS: actual,
+        estimatedEPS: estimate,
+        surprise,
+        surprisePercent,
+        quarter: q.date || '',
+      };
+    });
+
+    // Cache the result
+    historicalEarningsCache.set(symbol, {
+      data: earnings,
+      expires: Date.now() + HISTORICAL_EARNINGS_CACHE_TTL,
+    });
+
+    return earnings;
+  } catch (error) {
+    console.error(`[Yahoo Finance] Error fetching historical earnings for ${symbol}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Convert quarter string (e.g., "1Q2025") to approximate date range
+ * Returns the end date of the fiscal quarter
+ */
+function quarterToDate(quarter: string): Date | null {
+  // Parse format like "1Q2025", "2Q2024", etc.
+  const match = quarter.match(/(\d)Q(\d{4})/);
+  if (!match) return null;
+
+  const q = parseInt(match[1]);
+  const year = parseInt(match[2]);
+
+  // Approximate end month for each quarter (fiscal quarters can vary by company)
+  // Most companies: Q1=Mar, Q2=Jun, Q3=Sep, Q4=Dec
+  const endMonths = [2, 5, 8, 11]; // March, June, September, December (0-indexed)
+  const month = endMonths[q - 1];
+
+  if (month === undefined) return null;
+
+  // Return the last day of the quarter's end month
+  return new Date(year, month + 1, 0);
+}
+
+/**
+ * Get historical earnings data for a batch of earnings entries from Yahoo Finance
+ * For each past earnings entry, matches with the most recent quarter data from Yahoo Finance
+ *
+ * This replaces Alpha Vantage's getHistoricalEarningsDataBatch
+ */
+export async function getHistoricalEarningsDataBatch(
+  earnings: Array<{ symbol: string; reportDate: string }>
+): Promise<Map<string, { reportedEPS: number | null; surprise: number | null; surprisePercent: number | null }>> {
+  const results = new Map<string, { reportedEPS: number | null; surprise: number | null; surprisePercent: number | null }>();
+
+  // Only process past earnings
+  const today = new Date().toISOString().split('T')[0];
+  const pastEarnings = earnings.filter(e => e.reportDate < today);
+
+  if (pastEarnings.length === 0) {
+    return results;
+  }
+
+  // Get unique symbols
+  const uniqueSymbols = [...new Set(pastEarnings.map(e => e.symbol))];
+
+  console.log(`[Yahoo Finance] Fetching historical earnings for ${uniqueSymbols.length} symbols`);
+
+  // Process in batches
+  const batchSize = 10;
+
+  for (let i = 0; i < uniqueSymbols.length; i += batchSize) {
+    const batch = uniqueSymbols.slice(i, i + batchSize);
+
+    const promises = batch.map(async (symbol) => {
+      try {
+        const historicalData = await getHistoricalEarnings(symbol);
+
+        if (historicalData.length === 0) return;
+
+        // Find earnings entries for this symbol
+        const earningsForSymbol = pastEarnings.filter(e => e.symbol === symbol);
+
+        // Sort historical data by quarter (most recent first)
+        // Quarter format is like "3Q2025", "2Q2025", etc.
+        const sortedHistorical = [...historicalData].sort((a, b) => {
+          const [aQ, aY] = [parseInt(a.quarter[0]), parseInt(a.quarter.slice(2))];
+          const [bQ, bY] = [parseInt(b.quarter[0]), parseInt(b.quarter.slice(2))];
+          if (aY !== bY) return bY - aY; // Sort by year descending
+          return bQ - aQ; // Sort by quarter descending
+        });
+
+        for (const earning of earningsForSymbol) {
+          // Use the most recent quarter data available (Yahoo returns last 4 quarters)
+          // The most recent quarter with data should match the most recent earnings report
+          const mostRecent = sortedHistorical[0];
+
+          if (mostRecent && mostRecent.reportedEPS !== null) {
+            results.set(`${symbol}_${earning.reportDate}`, {
+              reportedEPS: mostRecent.reportedEPS,
+              surprise: mostRecent.surprise,
+              surprisePercent: mostRecent.surprisePercent,
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`[Yahoo Finance] Error fetching historical earnings for ${symbol}:`, error);
+      }
+    });
+
+    await Promise.all(promises);
+
+    // Rate limiting delay between batches
+    if (i + batchSize < uniqueSymbols.length) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+  }
+
+  console.log(`[Yahoo Finance] Found historical data for ${results.size} earnings entries`);
+  return results;
+}
+
+// ============================================================================
 // Earnings Enhanced Data (Report Time + Market Cap)
 // ============================================================================
 

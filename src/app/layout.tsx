@@ -39,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-5K33Y3P7YP"
@@ -56,6 +56,7 @@ export default function RootLayout({
       </head>
       <body
         className={`${inter.variable} ${geistMono.variable} font-sans antialiased`}
+        suppressHydrationWarning
       >
         <AuthProvider>
           <ThemeProvider>{children}</ThemeProvider>

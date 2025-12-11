@@ -418,10 +418,32 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-sm text-muted-foreground">-</span>
+                    <span className={cn(
+                      "text-sm tabular-nums",
+                      earning.reportedEPS !== undefined && earning.reportedEPS !== null
+                        ? "text-foreground"
+                        : "text-muted-foreground"
+                    )}>
+                      {earning.reportedEPS !== undefined && earning.reportedEPS !== null
+                        ? earning.reportedEPS.toFixed(2)
+                        : "-"}
+                    </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-sm text-muted-foreground">-</span>
+                    {earning.surprisePercent !== undefined && earning.surprisePercent !== null ? (
+                      <span className={cn(
+                        "text-sm tabular-nums font-medium",
+                        earning.surprisePercent > 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : earning.surprisePercent < 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-muted-foreground"
+                      )}>
+                        {earning.surprisePercent > 0 ? "+" : ""}{earning.surprisePercent.toFixed(2)}%
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {isLoadingEnhancedData && !earning.marketCap ? (

@@ -8,7 +8,11 @@ import {
   groupEarningsByDate,
   type EarningsCalendarEntry,
 } from "@/lib/alpha-vantage";
-import { getExpectedMoveBatch, getEarningsEnhancedDataBatch } from "@/lib/yahoo-finance";
+import {
+  getExpectedMoveBatch,
+  getEarningsEnhancedDataBatch,
+  getHistoricalEarningsDataBatch,
+} from "@/lib/yahoo-finance";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 86400; // 24 hours
@@ -115,6 +119,30 @@ export async function GET(request: Request) {
       });
 
       console.log(`[Earnings API] Added expected move data for ${expectedMoveData.size} stocks`);
+    }
+
+    // Fetch historical earnings data (reported EPS + surprise) for past earnings using Yahoo Finance
+    const pastEarnings = filteredEarnings.filter(e => e.reportDate < today);
+    if (pastEarnings.length > 0) {
+      console.log(`[Earnings API] Fetching historical earnings data from Yahoo Finance for ${pastEarnings.length} past earnings`);
+      const historicalData = await getHistoricalEarningsDataBatch(pastEarnings);
+
+      // Merge historical data into earnings
+      filteredEarnings = filteredEarnings.map(earning => {
+        const key = `${earning.symbol}_${earning.reportDate}`;
+        const histData = historicalData.get(key);
+        if (histData) {
+          return {
+            ...earning,
+            reportedEPS: histData.reportedEPS,
+            surprise: histData.surprise,
+            surprisePercent: histData.surprisePercent,
+          };
+        }
+        return earning;
+      });
+
+      console.log(`[Earnings API] Added historical data for ${historicalData.size} past earnings`);
     }
 
     // Group by date for calendar view

@@ -4,7 +4,7 @@ import {
   getThisWeeksEarnings,
   type EarningsCalendarEntry,
 } from "@/lib/alpha-vantage";
-import { getEarningsEnhancedData, getExpectedMove } from "@/lib/yahoo-finance";
+import { getEarningsEnhancedData, getExpectedMove, getHistoricalEarnings } from "@/lib/yahoo-finance";
 
 export const dynamic = "force-dynamic";
 
@@ -77,8 +77,8 @@ export async function GET(request: NextRequest) {
               marketCap: enhancedData.marketCap,
             };
 
-            // Optionally fetch expected move data
-            if (includeExpectedMove) {
+            // Optionally fetch expected move data (for upcoming earnings)
+            if (includeExpectedMove && earning.reportDate >= todayStr) {
               try {
                 const expectedMoveData = await getExpectedMove(earning.symbol, earning.reportDate);
                 if (expectedMoveData) {
@@ -90,6 +90,30 @@ export async function GET(request: NextRequest) {
               } catch (err) {
                 // Skip expected move for this stock if it fails
                 console.error(`[Earnings Stream] Expected move error for ${earning.symbol}:`, err);
+              }
+            }
+
+            // For past earnings, fetch historical data (reportedEPS and surprise) from Yahoo Finance
+            if (earning.reportDate < todayStr) {
+              try {
+                const historicalData = await getHistoricalEarnings(earning.symbol);
+                if (historicalData.length > 0) {
+                  // Sort by quarter (most recent first) and use the most recent data
+                  const sortedHistorical = [...historicalData].sort((a, b) => {
+                    const [aQ, aY] = [parseInt(a.quarter[0]), parseInt(a.quarter.slice(2))];
+                    const [bQ, bY] = [parseInt(b.quarter[0]), parseInt(b.quarter.slice(2))];
+                    if (aY !== bY) return bY - aY;
+                    return bQ - aQ;
+                  });
+                  const mostRecent = sortedHistorical[0];
+                  if (mostRecent && mostRecent.reportedEPS !== null) {
+                    update.reportedEPS = mostRecent.reportedEPS;
+                    update.surprise = mostRecent.surprise;
+                    update.surprisePercent = mostRecent.surprisePercent;
+                  }
+                }
+              } catch (err) {
+                console.error(`[Earnings Stream] Historical data error for ${earning.symbol}:`, err);
               }
             }
 
