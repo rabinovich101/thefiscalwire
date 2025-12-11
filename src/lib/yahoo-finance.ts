@@ -1652,11 +1652,13 @@ export async function getHistoricalEarnings(symbol: string): Promise<HistoricalE
   }
 
   try {
+    // Use validateResult: false to handle incomplete data from Yahoo Finance
+    // Some symbols have missing 'estimate' field which causes validation errors
     const result = await yahooFinance.quoteSummary(symbol, {
       modules: ['earnings']
-    }) as { earnings?: { earningsChart?: { quarterly?: Array<{ date: string; actual: number; estimate: number; surprisePct?: string }> } } };
+    }, { validateResult: false }) as { earnings?: { earningsChart?: { quarterly?: Array<{ date: string; actual?: number; estimate?: number; surprisePct?: string }> } } };
 
-    const quarterlyData = result.earnings?.earningsChart?.quarterly || [];
+    const quarterlyData = result?.earnings?.earningsChart?.quarterly || [];
 
     const earnings: HistoricalEarningsData[] = quarterlyData.map(q => {
       const actual = typeof q.actual === 'number' ? q.actual : null;
