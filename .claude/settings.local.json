@@ -135,7 +135,14 @@
       "WebFetch(domain:www.nasdaq.com)",
       "Bash(source:*)",
       "Bash(true curl -s \"https://www.alphavantage.co/query?function=EARNINGS&symbol=ORCL&apikey=$ALPHA_VANTAGE_API_KEY\")",
-      "Bash(npm info:*)"
+      "Bash(npm info:*)",
+      "Bash(export ALPHA_VANTAGE_API_KEY=\"LLFRIMOWABECCOJ7\")",
+      "Bash(timeout 30 curl:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(npx playwright:*)",
+      "Bash(timeout 60 curl:*)",
+      "Bash(time curl:*)",
+      "Bash(head -1 grep -oE '\"\"\"\"results\"\"\"\":\\{' /tmp/yahoo-earnings.html)"
     ],
     "deny": [],
     "ask": []

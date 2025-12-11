@@ -58,6 +58,9 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
     setTodayStr(new Date().toISOString().split('T')[0]);
   }, []);
 
+  // Helper to get the effective report date (corrected from Yahoo or original from Alpha Vantage)
+  const getEffectiveDate = (e: EarningsCalendarEntry) => e.correctedReportDate || e.reportDate;
+
   // Get the current week's dates
   const weekDates = useMemo(() => {
     // Use a stable date reference - if on client, use actual date; otherwise use empty array
@@ -73,7 +76,8 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
       const d = new Date(sunday);
       d.setDate(sunday.getDate() + i);
       const dateStr = d.toISOString().split('T')[0];
-      const count = earnings.filter(e => e.reportDate === dateStr).length;
+      // Use corrected date when available for accurate counting
+      const count = earnings.filter(e => getEffectiveDate(e) === dateStr).length;
       dates.push({
         date: d,
         dateStr,
@@ -100,10 +104,10 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
     }
   }, [weekDates, todayStr, selectedDate]);
 
-  // Filter earnings by selected date
+  // Filter earnings by selected date (using corrected date when available)
   const filteredEarnings = useMemo(() => {
     if (!selectedDate) return earnings;
-    return earnings.filter(e => e.reportDate === selectedDate);
+    return earnings.filter(e => getEffectiveDate(e) === selectedDate);
   }, [earnings, selectedDate]);
 
   const handleSort = (field: SortField) => {

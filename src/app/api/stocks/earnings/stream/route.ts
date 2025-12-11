@@ -7,58 +7,88 @@ import {
 import { getEarningsEnhancedData, getExpectedMove, getHistoricalEarnings } from "@/lib/yahoo-finance";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // Server-Sent Events endpoint for progressive earnings data loading
+// Note: This endpoint receives symbols query param from client with the actual earnings list
+// The client already has Yahoo+Alpha merged data from page.tsx
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const horizon = (searchParams.get("horizon") || "3month") as "3month" | "6month" | "12month";
   const includeExpectedMove = searchParams.get("expectedMove") === "true";
+  const symbolsParam = searchParams.get("symbols"); // Comma-separated symbols from client
 
   // Create a readable stream for SSE
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Get earnings calendar
-        const allEarnings = await getEarningsCalendar(horizon);
-        const thisWeeksEarnings = getThisWeeksEarnings(allEarnings);
+        let thisWeeksEarnings: EarningsCalendarEntry[];
 
-        // Get today's date for prioritization
+        if (symbolsParam) {
+          // Client passed specific symbol:date pairs to enhance (e.g., "AVGO:2025-12-11,AZO:2025-12-09")
+          const pairs = symbolsParam.split(",").filter(s => s.trim());
+          thisWeeksEarnings = pairs.map(pair => {
+            const [symbol, date] = pair.split(":").map(s => s.trim());
+            return {
+              symbol,
+              name: "",
+              reportDate: date || "",
+              fiscalDateEnding: "",
+              estimate: null,
+              currency: "USD",
+              reportTime: "TBD" as const,
+            };
+          });
+        } else {
+          // Fallback: fetch from Alpha Vantage (won't have past dates)
+          const allEarnings = await getEarningsCalendar(horizon);
+          thisWeeksEarnings = getThisWeeksEarnings(allEarnings);
+        }
+
+        // Get today's date for determining past/future
         const today = new Date();
         const todayStr = today.toISOString().split('T')[0];
 
-        // Calculate dates for prioritization
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        // When symbols are passed from client, use them in order (client already prioritized)
+        // When falling back to Alpha Vantage, prioritize by date
+        let earningsToProcess: EarningsCalendarEntry[];
 
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        if (symbolsParam) {
+          earningsToProcess = thisWeeksEarnings;
+          console.log(`[Earnings Stream] Processing ${earningsToProcess.length} stocks from client`);
+        } else {
+          // Prioritize: Today -> Tomorrow -> Yesterday -> Future -> Past
+          const tomorrow = new Date(today);
+          tomorrow.setDate(today.getDate() + 1);
+          const tomorrowStr = tomorrow.toISOString().split('T')[0];
 
-        // Prioritize: Today -> Tomorrow -> Yesterday -> Future -> Past
-        const todaysEarnings = thisWeeksEarnings.filter(e => e.reportDate === todayStr);
-        const tomorrowsEarnings = thisWeeksEarnings.filter(e => e.reportDate === tomorrowStr);
-        const yesterdaysEarnings = thisWeeksEarnings.filter(e => e.reportDate === yesterdayStr);
-        const futureEarnings = thisWeeksEarnings
-          .filter(e => e.reportDate > tomorrowStr)
-          .sort((a, b) => a.reportDate.localeCompare(b.reportDate));
-        const pastEarnings = thisWeeksEarnings
-          .filter(e => e.reportDate < yesterdayStr)
-          .sort((a, b) => b.reportDate.localeCompare(a.reportDate)); // Most recent past first
+          const yesterday = new Date(today);
+          yesterday.setDate(today.getDate() - 1);
+          const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-        const prioritizedEarnings = [
-          ...todaysEarnings,
-          ...tomorrowsEarnings,
-          ...yesterdaysEarnings,
-          ...futureEarnings,
-          ...pastEarnings
-        ];
+          const todaysEarnings = thisWeeksEarnings.filter(e => e.reportDate === todayStr);
+          const tomorrowsEarnings = thisWeeksEarnings.filter(e => e.reportDate === tomorrowStr);
+          const yesterdaysEarnings = thisWeeksEarnings.filter(e => e.reportDate === yesterdayStr);
+          const futureEarnings = thisWeeksEarnings
+            .filter(e => e.reportDate > tomorrowStr)
+            .sort((a, b) => a.reportDate.localeCompare(b.reportDate));
+          const pastEarnings = thisWeeksEarnings
+            .filter(e => e.reportDate < yesterdayStr)
+            .sort((a, b) => b.reportDate.localeCompare(a.reportDate));
 
-        console.log(`[Earnings Stream] Priority order: Today(${todaysEarnings.length}), Tomorrow(${tomorrowsEarnings.length}), Yesterday(${yesterdaysEarnings.length}), Future(${futureEarnings.length}), Past(${pastEarnings.length})`);
+          earningsToProcess = [
+            ...todaysEarnings,
+            ...tomorrowsEarnings,
+            ...yesterdaysEarnings,
+            ...futureEarnings,
+            ...pastEarnings
+          ];
+          console.log(`[Earnings Stream] Priority order: Today(${todaysEarnings.length}), Tomorrow(${tomorrowsEarnings.length}), Yesterday(${yesterdaysEarnings.length}), Future(${futureEarnings.length}), Past(${pastEarnings.length})`);
+        }
 
         // Limit to first 100 for enhanced data
-        const earningsToEnhance = prioritizedEarnings.slice(0, 100);
+        const earningsToEnhance = earningsToProcess.slice(0, 100);
 
         console.log(`[Earnings Stream] Starting stream for ${earningsToEnhance.length} stocks`);
 
@@ -67,7 +97,7 @@ export async function GET(request: NextRequest) {
           const earning = earningsToEnhance[i];
 
           try {
-            // Fetch enhanced data for this single stock
+            // Fetch enhanced data for this single stock (includes corrected date from Yahoo)
             const enhancedData = await getEarningsEnhancedData(earning.symbol);
 
             // Build the update object
@@ -76,6 +106,20 @@ export async function GET(request: NextRequest) {
               reportTime: enhancedData.reportTime || 'TBD',
               marketCap: enhancedData.marketCap,
             };
+
+            // Only use Yahoo's date if it's within 7 days of Alpha Vantage's date
+            // (Yahoo shows NEXT earnings date after a company reports, which could be months away)
+            if (enhancedData.earningsDate) {
+              const alphaDate = new Date(earning.reportDate + 'T12:00:00');
+              const yahooDate = new Date(enhancedData.earningsDate + 'T12:00:00');
+              const diffDays = Math.abs((yahooDate.getTime() - alphaDate.getTime()) / (1000 * 60 * 60 * 24));
+
+              if (diffDays <= 7) {
+                // Yahoo date is close to Alpha Vantage - use it as correction
+                update.correctedReportDate = enhancedData.earningsDate;
+              }
+              // If Yahoo date is far away (next quarter), keep Alpha Vantage's date
+            }
 
             // Optionally fetch expected move data (for upcoming earnings)
             if (includeExpectedMove && earning.reportDate >= todayStr) {
@@ -93,7 +137,8 @@ export async function GET(request: NextRequest) {
               }
             }
 
-            // For past earnings, fetch historical data (reportedEPS and surprise) from Yahoo Finance
+            // Only fetch historical data for stocks that have ALREADY reported (past dates)
+            // Don't show for today/future - they haven't reported this quarter yet
             if (earning.reportDate < todayStr) {
               try {
                 const historicalData = await getHistoricalEarnings(earning.symbol);
@@ -106,6 +151,7 @@ export async function GET(request: NextRequest) {
                     return bQ - aQ;
                   });
                   const mostRecent = sortedHistorical[0];
+
                   if (mostRecent && mostRecent.reportedEPS !== null) {
                     update.reportedEPS = mostRecent.reportedEPS;
                     update.surprise = mostRecent.surprise;

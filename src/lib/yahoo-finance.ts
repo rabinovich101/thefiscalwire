@@ -1796,10 +1796,11 @@ export async function getHistoricalEarningsDataBatch(
 export interface EarningsEnhancedData {
   reportTime: EarningsReportTime;
   marketCap?: number;
+  earningsDate?: string; // Corrected earnings date from Yahoo Finance (YYYY-MM-DD)
 }
 
 /**
- * Get enhanced earnings data (report timing + market cap) for a single symbol
+ * Get enhanced earnings data (report timing + market cap + correct date) for a single symbol
  */
 export async function getEarningsEnhancedData(symbol: string): Promise<EarningsEnhancedData> {
   try {
@@ -1807,17 +1808,22 @@ export async function getEarningsEnhancedData(symbol: string): Promise<EarningsE
       modules: ['calendarEvents', 'price']
     }) as YahooQuoteSummaryResult & { price?: { marketCap?: number } };
 
-    const earningsDate = result.calendarEvents?.earnings?.earningsDate?.[0];
+    const earningsDateRaw = result.calendarEvents?.earnings?.earningsDate?.[0];
     const marketCap = result.price?.marketCap;
 
     let reportTime: EarningsReportTime = 'TBD';
-    if (earningsDate) {
-      reportTime = getReportTimeFromDate(new Date(earningsDate));
+    let earningsDate: string | undefined;
+
+    if (earningsDateRaw) {
+      const dateObj = new Date(earningsDateRaw);
+      reportTime = getReportTimeFromDate(dateObj);
+      earningsDate = dateObj.toISOString().split('T')[0]; // YYYY-MM-DD format
     }
 
     return {
       reportTime,
-      marketCap: marketCap || undefined
+      marketCap: marketCap || undefined,
+      earningsDate
     };
   } catch (error) {
     console.error(`[Yahoo Finance] Error fetching enhanced data for ${symbol}:`, error);

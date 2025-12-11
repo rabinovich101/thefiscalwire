@@ -13,12 +13,14 @@ export type EarningsReportTime = 'BMO' | 'AMC' | 'TBD';
 export interface EarningsCalendarEntry {
   symbol: string;
   name: string;
-  reportDate: string; // YYYY-MM-DD
+  reportDate: string; // YYYY-MM-DD (from Alpha Vantage, may be inaccurate)
   fiscalDateEnding: string;
   estimate: number | null;
   currency: string;
   // Report timing (Before Market Open, After Market Close, or To Be Determined)
   reportTime?: EarningsReportTime;
+  // Corrected report date from Yahoo Finance (more accurate than Alpha Vantage)
+  correctedReportDate?: string;
   // Expected move data (optional, populated from options)
   stockPrice?: number;
   expectedMove?: number;
