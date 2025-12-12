@@ -9,7 +9,8 @@ import {
   type EarningsCalendarEntry,
 } from "@/lib/alpha-vantage";
 import { getMarketIndices } from "@/lib/yahoo-finance";
-import { Calendar, TrendingUp, TrendingDown, Clock } from "lucide-react";
+import { Calendar, TrendingUp, TrendingDown, Clock, Info } from "lucide-react";
+import Script from "next/script";
 
 // Helper to get the correct base URL for server-side fetching
 function getBaseUrl(): string {
@@ -59,9 +60,46 @@ async function getNasdaqEarnings(): Promise<EarningsCalendarEntry[]> {
 }
 
 export const metadata: Metadata = {
-  title: "Earnings Calendar | The Fiscal Wire",
+  title: "Earnings Calendar & Expected Move | Stock Options Analysis | The Fiscal Wire",
   description:
-    "Track upcoming earnings reports and company results. View earnings dates, EPS estimates, and historical performance for stocks.",
+    "Track stock expected move before earnings using options implied volatility. View earnings dates, EPS estimates, expected move percentages, and historical surprises for AAPL, TSLA, NVDA, and 1000+ stocks.",
+  keywords: [
+    "expected move",
+    "stock expected move",
+    "earnings expected move",
+    "options implied volatility",
+    "earnings calendar",
+    "EPS estimates",
+    "stock earnings",
+    "options straddle",
+    "earnings surprise",
+    "pre-earnings volatility",
+  ],
+  openGraph: {
+    title: "Earnings Calendar & Expected Move | The Fiscal Wire",
+    description:
+      "Track stock expected move before earnings. See implied volatility, EPS estimates, and historical earnings surprises.",
+    type: "website",
+    url: "https://thefiscalwire.com/stocks/earnings",
+    siteName: "The Fiscal Wire",
+    images: [
+      {
+        url: "https://thefiscalwire.com/og-earnings.png",
+        width: 1200,
+        height: 630,
+        alt: "The Fiscal Wire Earnings Calendar",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Earnings Calendar & Expected Move | The Fiscal Wire",
+    description:
+      "Track stock expected move before earnings. See implied volatility and EPS estimates.",
+  },
+  alternates: {
+    canonical: "https://thefiscalwire.com/stocks/earnings",
+  },
 };
 
 export const dynamic = "force-dynamic";
@@ -87,8 +125,43 @@ export default async function EarningsPage() {
   // Get unique dates with earnings
   const datesWithEarnings = Array.from(groupedByDate.keys()).length;
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Earnings Calendar & Expected Move",
+    description:
+      "Track stock expected move before earnings using options implied volatility. View earnings dates, EPS estimates, and historical surprises.",
+    url: "https://thefiscalwire.com/stocks/earnings",
+    mainEntity: {
+      "@type": "Dataset",
+      name: "Stock Earnings Calendar with Expected Move Data",
+      description:
+        "Real-time earnings calendar showing company earnings dates, EPS estimates, expected move calculations from options pricing, and historical earnings surprises.",
+      keywords: [
+        "expected move",
+        "earnings calendar",
+        "stock earnings",
+        "options implied volatility",
+        "EPS estimates",
+      ],
+      creator: {
+        "@type": "Organization",
+        name: "The Fiscal Wire",
+        url: "https://thefiscalwire.com",
+      },
+    },
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* JSON-LD Structured Data */}
+      <Script
+        id="earnings-jsonld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <Header />
 
       <main className="flex-1">
@@ -107,19 +180,19 @@ export default async function EarningsPage() {
                 Earnings Calendar
               </div>
 
-              {/* Title */}
+              {/* Title - H1 with SEO keywords */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-                Upcoming{" "}
+                Earnings Calendar &{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold via-amber-500 to-orange-500">
-                  Earnings
+                  Expected Move
                 </span>
               </h1>
 
-              {/* Subtitle */}
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Track company earnings reports, EPS estimates, and historical
-                performance. Stay ahead of market-moving announcements.
-              </p>
+              {/* Subtitle - H2 with SEO keywords */}
+              <h2 className="text-lg text-muted-foreground max-w-2xl mx-auto font-normal">
+                Track stock expected move before earnings using options implied volatility.
+                View EPS estimates, historical surprises, and market-moving announcements.
+              </h2>
 
               {/* Quick Stats */}
               <div className="flex flex-wrap justify-center gap-6 pt-4">
@@ -224,6 +297,32 @@ export default async function EarningsPage() {
             </div>
           </section>
         )}
+
+        {/* What is Expected Move - SEO Explainer Section */}
+        <section className="py-8 border-b border-border/40 bg-surface/50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex items-start gap-4 p-6 rounded-xl bg-gradient-to-r from-gold/5 to-amber-500/5 border border-gold/10">
+              <div className="flex-shrink-0 p-2 rounded-lg bg-gold/10">
+                <Info className="h-5 w-5 text-gold" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-foreground">
+                  What is Expected Move?
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  <strong>Expected move</strong> is the predicted price range a stock may move after an earnings announcement,
+                  calculated from <strong>options implied volatility</strong>. It&apos;s derived from the at-the-money (ATM)
+                  straddle price — the combined cost of a call and put option at the same strike. For example, if a stock
+                  trades at $100 with a ±5% expected move, the market anticipates the price to land between $95-$105 after
+                  earnings. This metric helps traders gauge market uncertainty and plan positions accordingly.
+                </p>
+                <p className="text-xs text-muted-foreground/70">
+                  Formula: Expected Move = ATM Call Price + ATM Put Price | Expected Move % = (Expected Move ÷ Stock Price) × 100
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
         {/* Main Content - Client Component for Interactivity */}
         <EarningsPageClient

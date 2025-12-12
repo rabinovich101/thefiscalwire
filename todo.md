@@ -777,3 +777,69 @@ Allow users to insert embedded videos (YouTube, Vimeo) in the page builder for t
 
 ## Review
 (To be filled after implementation)
+
+---
+
+# SEO Optimization for Expected Move Feature
+
+## Goal
+Improve search visibility for "[STOCK] expected move" queries.
+
+---
+
+## Plan
+
+### Phase 1: Quick Wins (Current Earnings Page)
+- [x] **1.1** Update earnings page meta title to include "Expected Move"
+  - New: `Earnings Calendar & Expected Move | Stock Options Analysis | The Fiscal Wire`
+
+- [x] **1.2** Update meta description to mention expected move
+  - Added keywords: "expected move", "options implied volatility", "straddle", etc.
+
+- [x] **1.3** Add OpenGraph tags for social sharing
+
+- [x] **1.4** Add JSON-LD structured data for WebPage/Dataset
+
+### Phase 2: Content Enhancement
+- [x] **2.1** Add H1/H2 headers with "expected move" keywords on earnings page
+
+- [x] **2.2** Add explainer section: "What is Expected Move?" (always visible)
+
+### Phase 3: Individual Stock Pages - SKIPPED (per user request)
+
+---
+
+## Review Section
+
+### Summary
+Successfully implemented SEO optimization for the Expected Move feature on the Earnings Calendar page.
+
+### Changes Made
+
+| File | Changes |
+|------|---------|
+| `src/app/stocks/earnings/page.tsx` | Meta title, description, keywords, OpenGraph, Twitter cards, canonical URL, JSON-LD structured data, H1/H2 headers, explainer section |
+
+### SEO Elements Added
+
+1. **Meta Title**: `Earnings Calendar & Expected Move | Stock Options Analysis | The Fiscal Wire`
+
+2. **Meta Description**: Includes keywords like "expected move", "options implied volatility", "EPS estimates", stock symbols (AAPL, TSLA, NVDA)
+
+3. **Keywords Array**: 10 relevant keywords for search ranking
+
+4. **OpenGraph Tags**: For social sharing on Facebook, LinkedIn
+
+5. **Twitter Cards**: For Twitter sharing with large image
+
+6. **Canonical URL**: `https://thefiscalwire.com/stocks/earnings`
+
+7. **JSON-LD Structured Data**: WebPage + Dataset schema for rich snippets
+
+8. **H1 Header**: "Earnings Calendar & Expected Move"
+
+9. **H2 Header**: "Track stock expected move before earnings using options implied volatility..."
+
+10. **Explainer Section**: "What is Expected Move?" with formula explanation
+
+### Current Status: ✅ Complete
