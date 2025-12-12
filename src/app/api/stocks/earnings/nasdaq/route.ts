@@ -102,12 +102,18 @@ async function fetchNasdaqEarnings(date: string): Promise<EarningsCalendarEntry[
     return data.data.rows.map((row): EarningsCalendarEntry => {
       const reportedEPS = parseEPS(row.eps);
       const estimate = parseEPS(row.epsForecast);
-      const surprisePercent = parseSurprise(row.surprise);
+      let surprisePercent = parseSurprise(row.surprise);
 
       // Calculate surprise amount if we have both reported and estimate
       let surprise: number | null = null;
       if (reportedEPS !== null && estimate !== null) {
         surprise = reportedEPS - estimate;
+        // Calculate surprise percentage if NASDAQ didn't provide it
+        if (surprisePercent === null && estimate !== 0) {
+          surprisePercent = ((reportedEPS - estimate) / Math.abs(estimate)) * 100;
+          // Round to 2 decimal places
+          surprisePercent = Math.round(surprisePercent * 100) / 100;
+        }
       }
 
       return {
