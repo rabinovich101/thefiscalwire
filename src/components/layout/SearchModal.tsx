@@ -25,7 +25,7 @@ interface SearchResult {
     name: string;
     slug: string;
     color: string;
-  };
+  } | null;
 }
 
 interface StockResult {
@@ -265,11 +265,13 @@ export function SearchModal({ open, onOpenChange }: SearchModalProps) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <span
-                                className={`text-xs font-medium px-2 py-0.5 rounded ${article.category.color} text-white`}
-                              >
-                                {article.category.name}
-                              </span>
+                              {article.category && (
+                                <span
+                                  className={`text-xs font-medium px-2 py-0.5 rounded ${article.category.color} text-white`}
+                                >
+                                  {article.category.name}
+                                </span>
+                              )}
                               <span className="text-xs text-muted-foreground">
                                 {formatDate(article.publishedAt)}
                               </span>
