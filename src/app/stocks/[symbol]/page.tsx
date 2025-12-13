@@ -1,11 +1,6 @@
-import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Share2, Star, Bell } from "lucide-react";
-import { StockPriceHeader, StockChartSection, StockStatistics, StockNews } from "@/components/stocks";
-import { Button } from "@/components/ui/button";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { StockChartSection, StockStatistics, StockNews } from "@/components/stocks";
+import { Globe, ExternalLink } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +10,6 @@ interface PageProps {
 
 async function getStockData(symbol: string) {
   try {
-    // Use the correct base URL for server-side fetches
     let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
     if (!baseUrl && process.env.VERCEL_URL) {
       baseUrl = `https://${process.env.VERCEL_URL}`;
@@ -40,34 +34,7 @@ async function getStockData(symbol: string) {
   }
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { symbol } = await params;
-  const upperSymbol = symbol.toUpperCase();
-
-  const stock = await getStockData(upperSymbol);
-
-  if (!stock) {
-    return {
-      title: `${upperSymbol} | Stock Not Found`,
-    };
-  }
-
-  const priceFormatted = stock.price?.toFixed(2) || "N/A";
-  const changeFormatted = stock.change >= 0
-    ? `+${stock.change?.toFixed(2)}`
-    : stock.change?.toFixed(2);
-
-  return {
-    title: `${stock.name} (${upperSymbol}) Stock Price, Quote & News | The Fiscal Wire`,
-    description: `Get the latest ${stock.name} (${upperSymbol}) stock price, news, and financial data. Current price: $${priceFormatted} (${changeFormatted})`,
-    openGraph: {
-      title: `${upperSymbol} - $${priceFormatted} | The Fiscal Wire`,
-      description: `${stock.name} stock quote and analysis`,
-    },
-  };
-}
-
-export default async function StockDetailPage({ params }: PageProps) {
+export default async function StockSummaryPage({ params }: PageProps) {
   const { symbol } = await params;
   const upperSymbol = symbol.toUpperCase();
 
@@ -78,105 +45,119 @@ export default async function StockDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
-      <main className="flex-1 pb-16">
-      {/* Sub Navigation Bar */}
-      <div className="sticky top-16 z-40 border-b border-border/50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
-            {/* Back Button */}
-            <Link
-              href="/stocks"
-              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">Back to Stocks</span>
-            </Link>
+    <div className="space-y-6">
+      {/* Chart Section */}
+      <section className="bg-surface rounded-xl border border-border/50 p-6">
+        <StockChartSection symbol={upperSymbol} />
+      </section>
 
-            {/* Quick Info */}
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold">{upperSymbol}</span>
-              <span className="text-lg font-semibold tabular-nums">
-                ${stock.price?.toFixed(2)}
-              </span>
-              <span
-                className={`text-sm font-medium tabular-nums ${
-                  stock.change >= 0 ? "text-positive" : "text-negative"
-                }`}
-              >
-                {stock.change >= 0 ? "+" : ""}
-                {stock.changePercent?.toFixed(2)}%
-              </span>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Bell className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Star className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+      {/* Key Statistics Grid - Yahoo Finance Style */}
+      <section className="bg-surface rounded-xl border border-border/50 p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatItem label="Previous Close" value={formatPrice(stock.previousClose)} />
+          <StatItem label="Open" value={formatPrice(stock.open)} />
+          <StatItem label="Bid" value={stock.bid ? `${formatPrice(stock.bid)} x ${stock.bidSize || '—'}` : '—'} />
+          <StatItem label="Ask" value={stock.ask ? `${formatPrice(stock.ask)} x ${stock.askSize || '—'}` : '—'} />
+          <StatItem label="Day's Range" value={`${formatPrice(stock.dayLow)} - ${formatPrice(stock.dayHigh)}`} />
+          <StatItem label="52 Week Range" value={`${formatPrice(stock.fiftyTwoWeekLow)} - ${formatPrice(stock.fiftyTwoWeekHigh)}`} />
+          <StatItem label="Volume" value={formatNumber(stock.volume)} />
+          <StatItem label="Avg. Volume" value={formatNumber(stock.avgVolume)} />
+          <StatItem label="Market Cap" value={formatLargeNumber(stock.marketCap)} />
+          <StatItem label="Beta (5Y)" value={stock.beta?.toFixed(2) || '—'} />
+          <StatItem label="PE Ratio (TTM)" value={stock.trailingPE?.toFixed(2) || '—'} />
+          <StatItem label="EPS (TTM)" value={stock.eps ? formatPrice(stock.eps) : '—'} />
+          <StatItem label="Earnings Date" value={formatDate(stock.earningsDate)} />
+          <StatItem label="Dividend & Yield" value={formatDividend(stock.dividendRate, stock.dividendYield)} />
+          <StatItem label="Ex-Dividend Date" value={formatDate(stock.exDividendDate)} />
+          <StatItem label="1Y Target Est" value={stock.targetMeanPrice ? formatPrice(stock.targetMeanPrice) : '—'} />
         </div>
-      </div>
+      </section>
 
-      {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Column */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Price Header */}
-            <section className="bg-surface rounded-2xl border border-border/50 p-6 sm:p-8">
-              <StockPriceHeader stock={stock} />
-            </section>
-
-            {/* Chart */}
-            <section className="bg-surface rounded-2xl border border-border/50 p-6 sm:p-8">
-              <StockChartSection symbol={upperSymbol} />
-            </section>
-
-            {/* Company Description */}
-            {stock.description && (
-              <section className="bg-surface rounded-2xl border border-border/50 p-6 sm:p-8">
-                <h2 className="text-lg font-semibold mb-4">About {stock.name}</h2>
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-6">
-                  {stock.description}
-                </p>
-                {stock.employees && (
-                  <p className="text-sm text-muted-foreground mt-4">
-                    <span className="font-medium text-foreground">Employees:</span>{" "}
-                    {stock.employees.toLocaleString()}
-                  </p>
-                )}
-              </section>
+      {/* Company Overview */}
+      {stock.description && (
+        <section className="bg-surface rounded-xl border border-border/50 p-6">
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h2 className="text-lg font-semibold">
+              {stock.name} Overview
+              {stock.sector && (
+                <span className="text-muted-foreground font-normal text-sm ml-2">
+                  — {stock.industry} / {stock.sector}
+                </span>
+              )}
+            </h2>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+            {stock.description}
+          </p>
+          <div className="flex flex-wrap items-center gap-6 text-sm">
+            {stock.employees && (
+              <div>
+                <span className="text-muted-foreground">Full Time Employees:</span>{" "}
+                <span className="font-medium">{stock.employees.toLocaleString()}</span>
+              </div>
             )}
-
-            {/* News Section */}
-            <section className="bg-surface rounded-2xl border border-border/50 p-6 sm:p-8">
-              <h2 className="text-lg font-semibold mb-4">Latest News</h2>
-              <StockNews symbol={upperSymbol} />
-            </section>
+            {stock.website && (
+              <a
+                href={stock.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-primary hover:underline"
+              >
+                <Globe className="h-4 w-4" />
+                {new URL(stock.website).hostname}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
+        </section>
+      )}
 
-          {/* Sidebar - Statistics */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-[7.5rem]">
-              <section className="bg-surface rounded-2xl border border-border/50 p-6">
-                <h2 className="text-lg font-semibold mb-6">Key Statistics</h2>
-                <StockStatistics stock={stock} currency={stock.currency} />
-              </section>
-            </div>
-          </div>
-        </div>
-      </div>
-      </main>
-      <Footer />
+      {/* News Section */}
+      <section className="bg-surface rounded-xl border border-border/50 p-6">
+        <h2 className="text-lg font-semibold mb-4">Recent News: {upperSymbol}</h2>
+        <StockNews symbol={upperSymbol} />
+      </section>
     </div>
   );
+}
+
+function StatItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border/30 last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+function formatPrice(price: number | undefined | null): string {
+  if (price === undefined || price === null) return '—';
+  return `$${price.toFixed(2)}`;
+}
+
+function formatNumber(num: number | undefined | null): string {
+  if (num === undefined || num === null) return '—';
+  return num.toLocaleString();
+}
+
+function formatLargeNumber(num: number | undefined | null): string {
+  if (num === undefined || num === null) return '—';
+  if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
+  return `$${num.toLocaleString()}`;
+}
+
+function formatDate(date: string | Date | undefined | null): string {
+  if (!date) return '—';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDividend(rate: number | undefined | null, yieldVal: number | undefined | null): string {
+  if (!rate) return '—';
+  // dividendYield from Yahoo Finance is already a decimal (e.g., 0.0037 for 0.37%)
+  const yieldPercent = yieldVal ? (yieldVal * 100).toFixed(2) : '0.00';
+  return `$${rate.toFixed(2)} (${yieldPercent}%)`;
 }

@@ -5,6 +5,8 @@ export { AdvancedStockChart } from "./AdvancedStockChart";
 export { StockChartSection } from "./StockChartSection";
 export { StockStatistics } from "./StockStatistics";
 export { StockNews } from "./StockNews";
+export { StockSidebar } from "./StockSidebar";
+export { StockMobileTabs } from "./StockMobileTabs";
 export { TrendingStockCard } from "./TrendingStockCard";
 export { StockHeatmap } from "./StockHeatmap";
 export { SectorCard, SectorCardCompact } from "./SectorCard";
