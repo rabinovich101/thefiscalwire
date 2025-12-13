@@ -104,31 +104,34 @@ export function EarningsTable({ earnings, className, showWeekSelector = true, is
     return `${startStr} - ${endStr}`;
   }, [weekDates]);
 
-  // Update selected date when week changes - select first day with earnings in new week
+  // Update selected date when week changes - select today for current week, or first day with earnings for other weeks
   useEffect(() => {
     if (weekDates.length === 0) return;
 
-    // Check if current selectedDate is in the current week
-    const selectedInCurrentWeek = weekDates.find(d => d.dateStr === selectedDate);
+    // Check if current selectedDate is in the current week with earnings
+    const selectedInCurrentWeek = weekDates.find(d => d.dateStr === selectedDate && d.count > 0);
 
-    if (!selectedInCurrentWeek || !selectedInCurrentWeek.count) {
+    if (!selectedInCurrentWeek) {
       // Selected date is not in current week or has no earnings, find a new one
-      // First try to select today if it's in this week and has earnings
-      const todayInWeek = weekDates.find(d => d.dateStr === todayStr && d.count > 0);
-      if (todayInWeek) {
-        setSelectedDate(todayStr);
-      } else {
-        // Find first day with earnings in this week
-        const firstDayWithEarnings = weekDates.find(d => d.count > 0);
-        if (firstDayWithEarnings) {
-          setSelectedDate(firstDayWithEarnings.dateStr);
-        } else {
-          // No earnings this week, clear selection
-          setSelectedDate(null);
+      // For current week (weekOffset === 0), always select today
+      if (weekOffset === 0) {
+        const todayInWeek = weekDates.find(d => d.dateStr === todayStr);
+        if (todayInWeek) {
+          setSelectedDate(todayStr);
+          return;
         }
       }
+
+      // For other weeks or if today is not in week, find first day with earnings
+      const firstDayWithEarnings = weekDates.find(d => d.count > 0);
+      if (firstDayWithEarnings) {
+        setSelectedDate(firstDayWithEarnings.dateStr);
+      } else {
+        // No earnings this week, select first day
+        setSelectedDate(weekDates[0]?.dateStr || null);
+      }
     }
-  }, [weekDates, todayStr, selectedDate]);
+  }, [weekDates, todayStr, selectedDate, weekOffset]);
 
   // Filter earnings by selected date (using corrected date when available)
   const filteredEarnings = useMemo(() => {

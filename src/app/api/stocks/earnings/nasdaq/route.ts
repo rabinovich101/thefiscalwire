@@ -109,10 +109,18 @@ async function fetchNasdaqEarnings(date: string): Promise<EarningsCalendarEntry[
       if (reportedEPS !== null && estimate !== null) {
         surprise = reportedEPS - estimate;
         // Calculate surprise percentage if NASDAQ didn't provide it
-        if (surprisePercent === null && estimate !== 0) {
-          surprisePercent = ((reportedEPS - estimate) / Math.abs(estimate)) * 100;
-          // Round to 2 decimal places
-          surprisePercent = Math.round(surprisePercent * 100) / 100;
+        if (surprisePercent === null) {
+          if (estimate !== 0) {
+            // Normal calculation: (actual - expected) / |expected| * 100
+            surprisePercent = ((reportedEPS - estimate) / Math.abs(estimate)) * 100;
+            // Round to 2 decimal places
+            surprisePercent = Math.round(surprisePercent * 100) / 100;
+          } else if (reportedEPS === 0) {
+            // Both are 0, no surprise
+            surprisePercent = 0;
+          }
+          // If estimate is 0 but reportedEPS is not, leave surprisePercent as null
+          // (infinite/undefined percentage)
         }
       }
 
