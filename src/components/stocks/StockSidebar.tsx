@@ -8,7 +8,7 @@ const STOCK_TABS = [
   { id: "summary", label: "Summary", href: "" },
   { id: "news", label: "News", href: "/news" },
   { id: "chart", label: "Chart", href: "/chart" },
-  { id: "conversations", label: "Conversations", href: "/conversations" },
+  { id: "short-interest", label: "Short Interest", href: "/short-interest" },
   { id: "statistics", label: "Statistics", href: "/statistics" },
   { id: "historical", label: "Historical Data", href: "/historical" },
   { id: "profile", label: "Profile", href: "/profile" },
