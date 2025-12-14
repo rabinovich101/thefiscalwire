@@ -156,7 +156,8 @@
       "WebFetch(domain:yfiua.github.io)",
       "WebFetch(domain:api.nasdaq.com)",
       "WebFetch(domain:docs.diadata.org)",
-      "WebFetch(domain:www.diadata.org)"
+      "WebFetch(domain:www.diadata.org)",
+      "Bash(git diff:*)"
     ],
     "deny": [],
     "ask": []

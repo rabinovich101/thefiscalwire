@@ -16,3 +16,4 @@ export { SectorStocksTable } from "./SectorStocksTable";
 export { EarningsCalendar } from "./EarningsCalendar";
 export { EarningsCard } from "./EarningsCard";
 export { EarningsTable } from "./EarningsTable";
+export { StockStatsTable } from "./StockStatsTable";
