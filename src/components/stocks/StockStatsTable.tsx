@@ -56,6 +56,7 @@ interface StockData {
   currentRatio?: number | null;
   bookValue?: number | null;
   totalCashPerShare?: number | null;
+  freeCashflow?: number | null;
 
   // Dividend
   dividendRate?: number | null;
