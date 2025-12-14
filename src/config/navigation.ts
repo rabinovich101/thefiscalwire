@@ -30,20 +30,6 @@ export const navigationConfig: NavConfig = [
     ],
   },
   {
-    label: "Markets Research",
-    href: "/stocks",
-    items: [
-      { label: "All Stocks", href: "/stocks", description: "Browse all stocks" },
-      { label: "Earnings Calendar", href: "/stocks/earnings", description: "Upcoming earnings reports" },
-      { label: "Heatmap", href: "/stocks/heatmap", description: "S&P 500 & NASDAQ visualization" },
-      { label: "By Sector", href: "/stocks/sectors", description: "Tech, Healthcare, Finance..." },
-      { label: "Top 10 Gainers", href: "/stocks/gainers", description: "Today's biggest winners" },
-      { label: "Top 10 Losers", href: "/stocks/losers", description: "Today's biggest losers" },
-      { label: "Most Active", href: "/stocks/active", description: "Highest trading volume" },
-      { label: "Trending", href: "/stocks/trending", description: "Most searched stocks" },
-    ],
-  },
-  {
     label: "Business",
     href: "/",
     items: [
@@ -59,6 +45,20 @@ export const navigationConfig: NavConfig = [
       { label: "Politics", href: "/politics", description: "Political news and policy" },
       { label: "Consumption", href: "/consumption", description: "Consumer spending and retail" },
       { label: "Opinion", href: "/opinion", description: "Opinion and editorial content" },
+    ],
+  },
+  {
+    label: "Markets Research",
+    href: "/stocks",
+    items: [
+      { label: "All Stocks", href: "/stocks", description: "Browse all stocks" },
+      { label: "Earnings Calendar", href: "/stocks/earnings", description: "Upcoming earnings reports" },
+      { label: "Heatmap", href: "/stocks/heatmap", description: "S&P 500 & NASDAQ visualization" },
+      { label: "By Sector", href: "/stocks/sectors", description: "Tech, Healthcare, Finance..." },
+      { label: "Top 10 Gainers", href: "/stocks/gainers", description: "Today's biggest winners" },
+      { label: "Top 10 Losers", href: "/stocks/losers", description: "Today's biggest losers" },
+      { label: "Most Active", href: "/stocks/active", description: "Highest trading volume" },
+      { label: "Trending", href: "/stocks/trending", description: "Most searched stocks" },
     ],
   },
 ];
