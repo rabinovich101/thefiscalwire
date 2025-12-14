@@ -1,16 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Treemap, ResponsiveContainer, Tooltip } from "recharts";
-import Link from "next/link";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Maximize2, Share2, X, Minus, Plus } from "lucide-react";
+import { HeatmapSidebar } from "./HeatmapSidebar";
+import { HeatmapTreemap } from "./HeatmapTreemap";
+import { HeatmapIndex, INDEX_INFO, DATA_TYPE_OPTIONS } from "@/lib/stock-lists";
 
 interface HeatmapStock {
   symbol: string;
@@ -20,379 +14,238 @@ interface HeatmapStock {
   changePercent: number;
   marketCap: number;
   sector: string;
+  sectorId: string;
+  industryId: string;
+  value: number;
 }
-
-interface TreemapData {
-  name: string;
-  symbol: string;
-  size: number;
-  changePercent: number;
-  price: number;
-  change: number;
-  marketCap: number;
-  sector: string;
-  fill: string;
-}
-
-// Color scale for percentage changes - TradingView exact colors (softer palette)
-function getColorForChange(changePercent: number): string {
-  // Soft coral/salmon reds like TradingView
-  if (changePercent <= -3) return "#f23645"; // TradingView deep red
-  if (changePercent <= -2) return "#f4555f"; // Coral red
-  if (changePercent <= -1) return "#eb7a7f"; // Soft red
-  if (changePercent < -0.3) return "#eda5a9"; // Light pink/salmon
-  // Gray zone for near-zero (light silver like TradingView)
-  if (changePercent < 0.3) return "#b0b0b0"; // Silver gray
-  // Soft greens like TradingView
-  if (changePercent < 1) return "#7dc88c"; // Light mint green
-  if (changePercent < 2) return "#4db065"; // Soft green
-  if (changePercent < 3) return "#26a641"; // Medium green
-  return "#1a9035"; // Deep green
-}
-
-// Get text color - dark text on light backgrounds, white on dark
-function getTextColor(changePercent: number): string {
-  // Light backgrounds need dark text
-  if (changePercent > -0.3 && changePercent < 0.3) return "#1a1a1a"; // Gray zone
-  if (changePercent >= -0.3 && changePercent < 0) return "#1a1a1a"; // Light pink
-  if (changePercent >= 0 && changePercent < 1) return "#1a1a1a"; // Light green
-  return "#ffffff"; // White for darker backgrounds
-}
-
-function formatMarketCap(marketCap: number): string {
-  if (marketCap >= 1e12) return `$${(marketCap / 1e12).toFixed(2)}T`;
-  if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(2)}B`;
-  if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(2)}M`;
-  return `$${marketCap.toFixed(2)}`;
-}
-
-function formatPrice(price: number): string {
-  return price.toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
-// Custom content renderer for treemap cells
-interface CustomContentProps {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  name: string;
-  symbol: string;
-  changePercent: number;
-  fill: string;
-  depth: number;
-  index: number;
-}
-
-const CustomContent = (props: CustomContentProps) => {
-  const { x, y, width, height, symbol, changePercent, fill, depth } = props;
-
-  if (depth !== 1) return null;
-
-  // More aggressive thresholds to show text on smaller boxes
-  const showSymbol = width > 30 && height > 20;
-  const showPercent = width > 45 && height > 35;
-
-  // Dynamic font sizing based on box dimensions
-  const symbolFontSize = Math.min(
-    Math.max(width / 5, 10),
-    Math.max(height / 3, 10),
-    16
-  );
-  const percentFontSize = Math.min(symbolFontSize - 2, 12);
-
-  // Get appropriate text color based on background
-  const textColor = getTextColor(changePercent);
-
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={fill}
-        stroke="#1e293b"
-        strokeWidth={1}
-        rx={2}
-        className="cursor-pointer transition-opacity hover:opacity-80"
-      />
-      {showSymbol && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2 - (showPercent ? 7 : 0)}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill={textColor}
-          stroke="none"
-          fontSize={symbolFontSize}
-          fontWeight="500"
-          className="pointer-events-none"
-          style={{ textShadow: 'none', WebkitTextStroke: '0' }}
-        >
-          {symbol}
-        </text>
-      )}
-      {showPercent && (
-        <text
-          x={x + width / 2}
-          y={y + height / 2 + 9}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill={textColor}
-          stroke="none"
-          fontSize={percentFontSize}
-          fontWeight="400"
-          className="pointer-events-none"
-          style={{ textShadow: 'none', WebkitTextStroke: '0' }}
-        >
-          {changePercent >= 0 ? "+" : ""}
-          {changePercent.toFixed(2)}%
-        </text>
-      )}
-    </g>
-  );
-};
-
-// Custom tooltip
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    payload: TreemapData;
-  }>;
-}
-
-const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
-  if (!active || !payload || !payload.length) return null;
-
-  const data = payload[0].payload;
-  const isPositive = data.changePercent >= 0;
-
-  return (
-    <div className="bg-surface border border-border rounded-lg shadow-xl p-4 min-w-[200px]">
-      <div className="flex items-center justify-between mb-2">
-        <span className="font-bold text-lg">{data.symbol}</span>
-        <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded">
-          {data.sector}
-        </span>
-      </div>
-      <p className="text-sm text-muted-foreground mb-3 truncate">{data.name}</p>
-
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Price</span>
-          <span className="font-medium">{formatPrice(data.price)}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Change</span>
-          <span className={`font-medium ${isPositive ? "text-green-500" : "text-red-500"}`}>
-            {isPositive ? "+" : ""}
-            {data.change.toFixed(2)} ({isPositive ? "+" : ""}
-            {data.changePercent.toFixed(2)}%)
-          </span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Market Cap</span>
-          <span className="font-medium">{formatMarketCap(data.marketCap)}</span>
-        </div>
-      </div>
-
-      <div className="mt-3 pt-3 border-t border-border">
-        <p className="text-xs text-muted-foreground text-center">Click to view details</p>
-      </div>
-    </div>
-  );
-};
 
 export function StockHeatmap() {
-  const [index, setIndex] = useState<"sp500" | "nasdaq">("sp500");
+  const [index, setIndex] = useState<HeatmapIndex>("sp500");
+  const [dataType, setDataType] = useState<string>("d1");
   const [stocks, setStocks] = useState<HeatmapStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [highlightedStock, setHighlightedStock] = useState<string | null>(null);
 
+  // Fetch data
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/stocks/heatmap?index=${index}`);
+      const response = await fetch(`/api/stocks/heatmap?index=${index}&dataType=${dataType}`);
       if (!response.ok) throw new Error("Failed to fetch heatmap data");
       const data = await response.json();
-      setStocks(data.stocks);
+      setStocks(data.stocks || []);
     } catch (err) {
       console.error("Error fetching heatmap:", err);
       setError("Failed to load heatmap data. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [index]);
+  }, [index, dataType]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Transform data for treemap
-  const treemapData = useMemo(() => {
-    return stocks.map((stock) => ({
-      name: stock.name,
-      symbol: stock.symbol,
-      size: stock.marketCap,
-      changePercent: stock.changePercent,
-      price: stock.price,
-      change: stock.change,
-      marketCap: stock.marketCap,
-      sector: stock.sector,
-      fill: getColorForChange(stock.changePercent),
-    }));
-  }, [stocks]);
-
-  // Handle click on treemap cell
-  interface TreemapClickNode {
-    symbol?: string;
-    name?: string;
-    value?: number;
-  }
-  const handleClick = (node: TreemapClickNode) => {
-    const symbol = node?.symbol;
-    if (symbol) {
-      window.location.href = `/stocks/${symbol}`;
+  // Handle fullscreen toggle
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+      }).catch((err) => {
+        console.error("Error entering fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+      }).catch((err) => {
+        console.error("Error exiting fullscreen:", err);
+      });
     }
+  }, []);
+
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  // Handle escape key to exit fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isFullscreen) {
+        document.exitFullscreen();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isFullscreen]);
+
+  // Get index display name
+  const indexName = useMemo(() => {
+    const info = INDEX_INFO.find((i) => i.id === index);
+    return info?.name || "S&P 500";
+  }, [index]);
+
+  // Get data type display name
+  const dataTypeName = useMemo(() => {
+    const option = DATA_TYPE_OPTIONS.find((opt) => opt.id === dataType);
+    return option?.label || "1-Week Performance";
+  }, [dataType]);
+
+  // Handle stock click from sidebar
+  const handleStockClickFromSidebar = (symbol: string) => {
+    setHighlightedStock(symbol);
+    // Navigate to stock details
+    window.location.href = `/stocks/${symbol}`;
   };
 
-  // Calculate market stats
+  // Calculate stats
   const stats = useMemo(() => {
     if (stocks.length === 0) return null;
 
-    const gainers = stocks.filter((s) => s.changePercent > 0).length;
-    const losers = stocks.filter((s) => s.changePercent < 0).length;
-    const unchanged = stocks.length - gainers - losers;
-    const avgChange = stocks.reduce((sum, s) => sum + s.changePercent, 0) / stocks.length;
+    const isPerformanceMetric = dataType.startsWith("d") || dataType.startsWith("w") || dataType.startsWith("m") || dataType.startsWith("y") || dataType === "intraday" || dataType === "mtd" || dataType === "ytd";
 
-    return { gainers, losers, unchanged, avgChange };
-  }, [stocks]);
+    if (isPerformanceMetric) {
+      const gainers = stocks.filter((s) => s.value > 0).length;
+      const losers = stocks.filter((s) => s.value < 0).length;
+      const unchanged = stocks.length - gainers - losers;
+      const avgChange = stocks.reduce((sum, s) => sum + s.value, 0) / stocks.length;
+      return { gainers, losers, unchanged, avgChange };
+    }
+
+    return null;
+  }, [stocks, dataType]);
+
+  // Color legend values
+  const colorLegend = [
+    { color: "#7c0a02", label: "-6%" },
+    { color: "#b33a2c", label: "-4%" },
+    { color: "#d85a4a", label: "-2%" },
+    { color: "#444444", label: "0%" },
+    { color: "#3a9a3a", label: "+2%" },
+    { color: "#1aba1a", label: "+4%" },
+    { color: "#00ea00", label: "+6%" },
+  ];
 
   return (
-    <div className="space-y-6">
-      {/* Header with controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Market Heatmap</h2>
-          <p className="text-muted-foreground">
-            Visualize market performance by market cap
-          </p>
-        </div>
-
+    <div className={`flex flex-col bg-[#0f172a] ${isFullscreen ? "fixed inset-0 z-50" : "rounded-xl border border-[#1f2937] overflow-hidden"}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-[#111827] border-b border-[#1f2937]">
         <div className="flex items-center gap-4">
-          <Select value={index} onValueChange={(v) => setIndex(v as "sp500" | "nasdaq")}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select Index" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sp500">S&P 500 Top 100</SelectItem>
-              <SelectItem value="nasdaq">NASDAQ-100</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-white">{indexName} Map</span>
+          </div>
+          <span className="text-xs text-gray-400">
+            {indexName} index stocks categorized by sectors and industries. Size represents market cap.
+          </span>
         </div>
-      </div>
 
-      {/* Stats bar */}
-      {stats && !loading && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-surface border border-border rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-green-500">{stats.gainers}</p>
-            <p className="text-sm text-muted-foreground">Advancing</p>
-          </div>
-          <div className="bg-surface border border-border rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-red-500">{stats.losers}</p>
-            <p className="text-sm text-muted-foreground">Declining</p>
-          </div>
-          <div className="bg-surface border border-border rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-gray-500">{stats.unchanged}</p>
-            <p className="text-sm text-muted-foreground">Unchanged</p>
-          </div>
-          <div className="bg-surface border border-border rounded-lg p-4 text-center">
-            <p className={`text-2xl font-bold ${stats.avgChange >= 0 ? "text-green-500" : "text-red-500"}`}>
-              {stats.avgChange >= 0 ? "+" : ""}{stats.avgChange.toFixed(2)}%
-            </p>
-            <p className="text-sm text-muted-foreground">Avg Change</p>
-          </div>
-        </div>
-      )}
-
-      {/* Color legend */}
-      <div className="flex items-center justify-center gap-1 text-sm">
-        <span className="text-muted-foreground mr-2">Change:</span>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#991b1b" }} />
-          <span className="text-xs text-muted-foreground">-5%</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#dc2626" }} />
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#ef4444" }} />
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#fca5a5" }} />
-          <span className="text-xs text-muted-foreground">0%</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#86efac" }} />
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#22c55e" }} />
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-6 h-4 rounded" style={{ backgroundColor: "#15803d" }} />
-          <span className="text-xs text-muted-foreground">+5%</span>
-        </div>
-      </div>
-
-      {/* Heatmap */}
-      <div className="bg-surface border border-border rounded-xl p-4">
-        {loading ? (
-          <div className="h-[600px] flex items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
-              <p className="text-muted-foreground">Loading {index === "sp500" ? "S&P 500" : "NASDAQ-100"} data...</p>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="h-[600px] flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
-              <button
-                onClick={fetchData}
-                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                Try Again
-              </button>
-            </div>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={600}>
-            <Treemap
-              data={treemapData}
-              dataKey="size"
-              aspectRatio={4 / 3}
-              stroke="#1f2937"
-              content={<CustomContent x={0} y={0} width={0} height={0} name="" symbol="" changePercent={0} fill="" depth={0} index={0} />}
-              onClick={handleClick}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleFullscreen}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#1f2937] rounded transition-colors"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            <span>Fullscreen</span>
+          </button>
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#1f2937] rounded transition-colors"
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+            }}
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Share Map</span>
+          </button>
+          {isFullscreen && (
+            <button
+              onClick={() => document.exitFullscreen()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#1f2937] rounded transition-colors"
             >
-              <Tooltip content={<CustomTooltip />} />
-            </Treemap>
-          </ResponsiveContainer>
-        )}
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Help text */}
-      <p className="text-center text-sm text-muted-foreground">
-        Box size represents market capitalization. Click on any stock to view details.
-      </p>
+      {/* Main content */}
+      <div className="flex" style={{ height: isFullscreen ? "calc(100vh - 110px)" : "600px" }}>
+        {/* Sidebar */}
+        <HeatmapSidebar
+          selectedIndex={index}
+          onIndexChange={setIndex}
+          selectedDataType={dataType}
+          onDataTypeChange={setDataType}
+        />
+
+        {/* Treemap area */}
+        <div className="flex-1 relative h-full overflow-hidden">
+          {loading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#111827]">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+                <p className="text-gray-400">Loading {indexName} data...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#111827]">
+              <div className="text-center">
+                <p className="text-red-400 mb-4">{error}</p>
+                <button
+                  onClick={fetchData}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          ) : (
+            <HeatmapTreemap
+              stocks={stocks}
+              dataType={dataType}
+              onStockHover={setHighlightedStock}
+              highlightedStock={highlightedStock}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Footer with legend and help text */}
+      <div className="px-4 py-3 bg-[#111827] border-t border-[#1f2937]">
+        <div className="flex items-center justify-between">
+          {/* Help text */}
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-gray-500" />
+              Use mouse wheel to zoom in and out. Drag zoomed map to pan it.
+            </span>
+            <span>Double-click a ticker to display detailed information.</span>
+          </div>
+
+          {/* Color legend */}
+          <div className="flex items-center gap-1">
+            {colorLegend.map((item, i) => (
+              <div key={i} className="flex items-center gap-0.5">
+                <div
+                  className="w-8 h-4 rounded-sm"
+                  style={{ backgroundColor: item.color }}
+                />
+                {(i === 0 || i === colorLegend.length - 1 || i === Math.floor(colorLegend.length / 2)) && (
+                  <span className="text-xs text-gray-400 ml-0.5">{item.label}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

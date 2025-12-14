@@ -152,7 +152,11 @@
       "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude commit -m \"$(cat <<''EOF''\nAllow all HTTPS images in Next.js config\n\nSimplified image remote patterns to allow any HTTPS hostname.\nThis prevents future issues with image URLs from any domain.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude log -1 --oneline)",
       "WebFetch(domain:investors.broadcom.com)",
-      "WebFetch(domain:unsplash.com)"
+      "WebFetch(domain:unsplash.com)",
+      "WebFetch(domain:yfiua.github.io)",
+      "WebFetch(domain:api.nasdaq.com)",
+      "WebFetch(domain:docs.diadata.org)",
+      "WebFetch(domain:www.diadata.org)"
     ],
     "deny": [],
     "ask": []

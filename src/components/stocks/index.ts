@@ -9,6 +9,8 @@ export { StockSidebar } from "./StockSidebar";
 export { StockMobileTabs } from "./StockMobileTabs";
 export { TrendingStockCard } from "./TrendingStockCard";
 export { StockHeatmap } from "./StockHeatmap";
+export { HeatmapSidebar } from "./HeatmapSidebar";
+export { HeatmapTreemap } from "./HeatmapTreemap";
 export { SectorCard, SectorCardCompact } from "./SectorCard";
 export { SectorStocksTable } from "./SectorStocksTable";
 export { EarningsCalendar } from "./EarningsCalendar";
