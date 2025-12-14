@@ -613,7 +613,7 @@ export function HeatmapTreemap({
                     y={industry.y + 10}
                     fill="var(--heatmap-industry-label)"
                     fontSize={9}
-                    fontWeight={500}
+                    fontWeight={700}
                     className="pointer-events-none select-none"
                   >
                     {industry.name.length > Math.floor(industry.width / 6)

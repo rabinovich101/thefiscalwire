@@ -109,7 +109,7 @@
   --heatmap-surface: #1f2937;
   --heatmap-border: #374151;
   --heatmap-sector-label: #ffffff;
-  --heatmap-industry-label: #6b7280;
+  --heatmap-industry-label: #ffffff;
   --heatmap-stock-text: #ffffff;
   --heatmap-help-text: #6b7280;
   --heatmap-loss-6: #7c0a02;
@@ -194,7 +194,7 @@
   --heatmap-surface: #ffffff;
   --heatmap-border: #e2e8f0;
   --heatmap-sector-label: #ffffff;
-  --heatmap-industry-label: #64748b;
+  --heatmap-industry-label: #ffffff;
   --heatmap-stock-text: #ffffff;
   --heatmap-help-text: #64748b;
   --heatmap-loss-6: #991b1b;
