@@ -7,6 +7,26 @@ import {
   getSectorName,
   getIndustryName,
 } from "@/lib/stock-lists";
+import { useTheme } from "@/components/providers/ThemeProvider";
+
+// Color scales for dark and light modes
+const DARK_COLOR_SCALE = {
+  loss6: "#7c0a02", loss5: "#8b1a10", loss4: "#9c2a1e", loss3: "#b33a2c",
+  loss2: "#c74a3a", loss1: "#d85a4a", loss05: "#e06a5a", loss0: "#e57a6a",
+  neutral: "#444444",
+  gain0: "#4a7a4a", gain05: "#4a8a4a", gain1: "#3a9a3a", gain2: "#2aaa2a",
+  gain3: "#1aba1a", gain4: "#0aca0a", gain5: "#00da00", gain6: "#00ea00",
+  fallback: "#4a5568",
+};
+
+const LIGHT_COLOR_SCALE = {
+  loss6: "#991b1b", loss5: "#a32828", loss4: "#b33a2c", loss3: "#c74a3a",
+  loss2: "#dc5c4c", loss1: "#e87a6a", loss05: "#f08a7a", loss0: "#f5a090",
+  neutral: "#94a3b8",
+  gain0: "#4a9a4a", gain05: "#3aaa3a", gain1: "#2ab82a", gain2: "#1ac61a",
+  gain3: "#10d410", gain4: "#00e000", gain5: "#00ec00", gain6: "#00f800",
+  fallback: "#64748b",
+};
 
 // Types
 interface HeatmapStock {
@@ -58,31 +78,33 @@ interface HeatmapTreemapProps {
   height?: number;
 }
 
-// Color scale for percentage changes (finviz-style)
-function getColorForValue(value: number, dataType: string): string {
+// Color scale for percentage changes (finviz-style, theme-aware)
+function getColorForValue(value: number, dataType: string, isLightMode: boolean): string {
+  const colors = isLightMode ? LIGHT_COLOR_SCALE : DARK_COLOR_SCALE;
+
   // For performance metrics, use the standard red-green scale
   if (dataType.startsWith("d") || dataType.startsWith("w") || dataType.startsWith("m") || dataType.startsWith("y") || dataType === "intraday" || dataType === "mtd" || dataType === "ytd") {
-    if (value <= -6) return "#7c0a02";
-    if (value <= -5) return "#8b1a10";
-    if (value <= -4) return "#9c2a1e";
-    if (value <= -3) return "#b33a2c";
-    if (value <= -2) return "#c74a3a";
-    if (value <= -1) return "#d85a4a";
-    if (value <= -0.5) return "#e06a5a";
-    if (value < 0) return "#e57a6a";
-    if (value === 0) return "#444444";
-    if (value < 0.5) return "#4a7a4a";
-    if (value < 1) return "#4a8a4a";
-    if (value < 2) return "#3a9a3a";
-    if (value < 3) return "#2aaa2a";
-    if (value < 4) return "#1aba1a";
-    if (value < 5) return "#0aca0a";
-    if (value < 6) return "#00da00";
-    return "#00ea00";
+    if (value <= -6) return colors.loss6;
+    if (value <= -5) return colors.loss5;
+    if (value <= -4) return colors.loss4;
+    if (value <= -3) return colors.loss3;
+    if (value <= -2) return colors.loss2;
+    if (value <= -1) return colors.loss1;
+    if (value <= -0.5) return colors.loss05;
+    if (value < 0) return colors.loss0;
+    if (value === 0) return colors.neutral;
+    if (value < 0.5) return colors.gain0;
+    if (value < 1) return colors.gain05;
+    if (value < 2) return colors.gain1;
+    if (value < 3) return colors.gain2;
+    if (value < 4) return colors.gain3;
+    if (value < 5) return colors.gain4;
+    if (value < 6) return colors.gain5;
+    return colors.gain6;
   }
 
-  // For other metrics (P/E, etc.), use a blue scale
-  return "#4a5568";
+  // For other metrics (P/E, etc.), use a neutral color
+  return colors.fallback;
 }
 
 // Get text color based on background
@@ -403,6 +425,8 @@ export function HeatmapTreemap({
   height = 700,
 }: HeatmapTreemapProps) {
   const router = useRouter();
+  const { theme } = useTheme();
+  const isLightMode = theme === "light";
   const containerRef = useRef<HTMLDivElement>(null);
   const lastZoomTime = useRef<number>(0);
   const originalOverflow = useRef<string>('');
@@ -536,8 +560,8 @@ export function HeatmapTreemap({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full bg-[#111827] overflow-hidden"
-      style={{ touchAction: 'none' }}
+      className="relative w-full h-full overflow-hidden"
+      style={{ touchAction: 'none', backgroundColor: 'var(--heatmap-bg)' }}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -560,8 +584,8 @@ export function HeatmapTreemap({
               y={sector.y}
               width={sector.width}
               height={sector.height}
-              fill="#111827"
-              stroke="#1f2937"
+              fill="var(--heatmap-bg)"
+              stroke="var(--heatmap-border)"
               strokeWidth={2}
             />
 
@@ -570,9 +594,9 @@ export function HeatmapTreemap({
               <text
                 x={sector.x + 4}
                 y={sector.y + 14}
-                fill="#9ca3af"
+                fill="var(--heatmap-sector-label)"
                 fontSize={11}
-                fontWeight={600}
+                fontWeight={900}
                 className="pointer-events-none select-none"
               >
                 {sector.name}
@@ -587,7 +611,7 @@ export function HeatmapTreemap({
                   <text
                     x={industry.x + 3}
                     y={industry.y + 10}
-                    fill="#6b7280"
+                    fill="var(--heatmap-industry-label)"
                     fontSize={9}
                     fontWeight={500}
                     className="pointer-events-none select-none"
@@ -601,8 +625,8 @@ export function HeatmapTreemap({
                 {/* Stocks */}
                 {industry.children.map((node) => {
                   const stock = node.stock;
-                  const bgColor = getColorForValue(stock.value, dataType);
-                  const textColor = getTextColor(stock.value, dataType);
+                  const bgColor = getColorForValue(stock.value, dataType, isLightMode);
+                  const textColor = "var(--heatmap-stock-text)";
                   const isHighlighted = highlightedStock === stock.symbol;
                   const isHovered = hoveredStock?.symbol === stock.symbol;
 
@@ -638,7 +662,7 @@ export function HeatmapTreemap({
                         width={node.width}
                         height={node.height}
                         fill={bgColor}
-                        stroke={isHighlighted || isHovered ? "#ffffff" : "#1f2937"}
+                        stroke={isHighlighted || isHovered ? (isLightMode ? "#000000" : "#ffffff") : "var(--heatmap-border)"}
                         strokeWidth={isHighlighted || isHovered ? 2 : 0.5}
                         rx={1}
                         className="transition-all duration-100"
@@ -690,37 +714,40 @@ export function HeatmapTreemap({
       {/* Tooltip */}
       {hoveredStock && (
         <div
-          className="absolute pointer-events-none z-50 bg-[#1f2937] border border-[#374151] rounded-lg shadow-xl p-3 min-w-[200px]"
+          className="absolute pointer-events-none z-50 rounded-lg shadow-xl p-3 min-w-[200px]"
           style={{
             left: Math.min(mousePos.x + 15, dimensions.width - 220),
             top: Math.min(mousePos.y + 15, dimensions.height - 150),
+            backgroundColor: 'var(--heatmap-surface)',
+            borderColor: 'var(--heatmap-border)',
+            borderWidth: '1px',
+            borderStyle: 'solid',
           }}
         >
           <div className="flex items-center justify-between mb-1">
-            <span className="font-bold text-white text-base">
+            <span className="font-bold text-base" style={{ color: 'var(--foreground)' }}>
               {hoveredStock.symbol}
             </span>
             <span
-              className={`text-sm font-semibold ${
-                hoveredStock.value >= 0 ? "text-green-400" : "text-red-400"
-              }`}
+              className="text-sm font-semibold"
+              style={{ color: hoveredStock.value >= 0 ? 'var(--positive)' : 'var(--negative)' }}
             >
               {formatValue(hoveredStock.value, dataType)}
             </span>
           </div>
-          <p className="text-gray-400 text-xs mb-2 truncate">
+          <p className="text-xs mb-2 truncate" style={{ color: 'var(--muted-foreground)' }}>
             {hoveredStock.name}
           </p>
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div>
-              <span className="text-gray-500">Price</span>
-              <p className="text-white font-medium">
+              <span style={{ color: 'var(--heatmap-help-text)' }}>Price</span>
+              <p className="font-medium" style={{ color: 'var(--foreground)' }}>
                 ${hoveredStock.price.toFixed(2)}
               </p>
             </div>
             <div>
-              <span className="text-gray-500">Market Cap</span>
-              <p className="text-white font-medium">
+              <span style={{ color: 'var(--heatmap-help-text)' }}>Market Cap</span>
+              <p className="font-medium" style={{ color: 'var(--foreground)' }}>
                 {formatMarketCap(hoveredStock.marketCap)}
               </p>
             </div>

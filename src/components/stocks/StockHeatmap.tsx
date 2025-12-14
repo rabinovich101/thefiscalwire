@@ -5,6 +5,28 @@ import { Loader2, Maximize2, Share2, X, Minus, Plus } from "lucide-react";
 import { HeatmapSidebar } from "./HeatmapSidebar";
 import { HeatmapTreemap } from "./HeatmapTreemap";
 import { HeatmapIndex, INDEX_INFO, DATA_TYPE_OPTIONS } from "@/lib/stock-lists";
+import { useTheme } from "@/components/providers/ThemeProvider";
+
+// Theme-aware color legends
+const DARK_COLOR_LEGEND = [
+  { color: "#7c0a02", label: "-6%" },
+  { color: "#b33a2c", label: "-4%" },
+  { color: "#d85a4a", label: "-2%" },
+  { color: "#444444", label: "0%" },
+  { color: "#3a9a3a", label: "+2%" },
+  { color: "#1aba1a", label: "+4%" },
+  { color: "#00ea00", label: "+6%" },
+];
+
+const LIGHT_COLOR_LEGEND = [
+  { color: "#991b1b", label: "-6%" },
+  { color: "#c74a3a", label: "-4%" },
+  { color: "#e87a6a", label: "-2%" },
+  { color: "#94a3b8", label: "0%" },
+  { color: "#2ab82a", label: "+2%" },
+  { color: "#10d410", label: "+4%" },
+  { color: "#00f800", label: "+6%" },
+];
 
 interface HeatmapStock {
   symbol: string;
@@ -20,6 +42,10 @@ interface HeatmapStock {
 }
 
 export function StockHeatmap() {
+  const { theme } = useTheme();
+  const isLightMode = theme === "light";
+  const colorLegend = isLightMode ? LIGHT_COLOR_LEGEND : DARK_COLOR_LEGEND;
+
   const [index, setIndex] = useState<HeatmapIndex>("sp500");
   const [dataType, setDataType] = useState<string>("d1");
   const [stocks, setStocks] = useState<HeatmapStock[]>([]);
@@ -124,26 +150,31 @@ export function StockHeatmap() {
     return null;
   }, [stocks, dataType]);
 
-  // Color legend values
-  const colorLegend = [
-    { color: "#7c0a02", label: "-6%" },
-    { color: "#b33a2c", label: "-4%" },
-    { color: "#d85a4a", label: "-2%" },
-    { color: "#444444", label: "0%" },
-    { color: "#3a9a3a", label: "+2%" },
-    { color: "#1aba1a", label: "+4%" },
-    { color: "#00ea00", label: "+6%" },
-  ];
-
   return (
-    <div className={`flex flex-col bg-[#0f172a] ${isFullscreen ? "fixed inset-0 z-50" : "rounded-xl border border-[#1f2937] overflow-hidden"}`}>
+    <div
+      className={`flex flex-col ${isFullscreen ? "fixed inset-0 z-50" : "rounded-xl overflow-hidden"}`}
+      style={{
+        backgroundColor: 'var(--heatmap-bg)',
+        borderColor: 'var(--heatmap-border)',
+        borderWidth: isFullscreen ? '0' : '1px',
+        borderStyle: 'solid',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#111827] border-b border-[#1f2937]">
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{
+          backgroundColor: 'var(--heatmap-bg)',
+          borderBottomColor: 'var(--heatmap-border)',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'solid',
+        }}
+      >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-white">{indexName} Map</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{indexName} Map</span>
           </div>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
             {indexName} index stocks categorized by sectors and industries. Size represents market cap.
           </span>
         </div>
@@ -151,13 +182,31 @@ export function StockHeatmap() {
         <div className="flex items-center gap-2">
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#1f2937] rounded transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors"
+            style={{ color: 'var(--heatmap-sector-label)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
+              e.currentTarget.style.color = 'var(--foreground)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--heatmap-sector-label)';
+            }}
           >
             <Maximize2 className="w-3.5 h-3.5" />
             <span>Fullscreen</span>
           </button>
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#1f2937] rounded transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors"
+            style={{ color: 'var(--heatmap-sector-label)' }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
+              e.currentTarget.style.color = 'var(--foreground)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = 'var(--heatmap-sector-label)';
+            }}
             onClick={() => {
               navigator.clipboard.writeText(window.location.href);
             }}
@@ -168,7 +217,16 @@ export function StockHeatmap() {
           {isFullscreen && (
             <button
               onClick={() => document.exitFullscreen()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 hover:text-white hover:bg-[#1f2937] rounded transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors"
+              style={{ color: 'var(--heatmap-sector-label)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
+                e.currentTarget.style.color = 'var(--foreground)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--heatmap-sector-label)';
+              }}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -189,16 +247,22 @@ export function StockHeatmap() {
         {/* Treemap area */}
         <div className="flex-1 relative h-full overflow-hidden">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#111827]">
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ backgroundColor: 'var(--heatmap-bg)' }}
+            >
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
-                <p className="text-gray-400">Loading {indexName} data...</p>
+                <p style={{ color: 'var(--heatmap-sector-label)' }}>Loading {indexName} data...</p>
               </div>
             </div>
           ) : error ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-[#111827]">
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ backgroundColor: 'var(--heatmap-bg)' }}
+            >
               <div className="text-center">
-                <p className="text-red-400 mb-4">{error}</p>
+                <p style={{ color: 'var(--negative)' }} className="mb-4">{error}</p>
                 <button
                   onClick={fetchData}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -219,12 +283,20 @@ export function StockHeatmap() {
       </div>
 
       {/* Footer with legend and help text */}
-      <div className="px-4 py-3 bg-[#111827] border-t border-[#1f2937]">
+      <div
+        className="px-4 py-3"
+        style={{
+          backgroundColor: 'var(--heatmap-bg)',
+          borderTopColor: 'var(--heatmap-border)',
+          borderTopWidth: '1px',
+          borderTopStyle: 'solid',
+        }}
+      >
         <div className="flex items-center justify-between">
           {/* Help text */}
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-gray-500" />
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--heatmap-help-text)' }} />
               Use mouse wheel to zoom in and out. Drag zoomed map to pan it.
             </span>
             <span>Double-click a ticker to display detailed information.</span>
@@ -239,7 +311,7 @@ export function StockHeatmap() {
                   style={{ backgroundColor: item.color }}
                 />
                 {(i === 0 || i === colorLegend.length - 1 || i === Math.floor(colorLegend.length / 2)) && (
-                  <span className="text-xs text-gray-400 ml-0.5">{item.label}</span>
+                  <span className="text-xs ml-0.5" style={{ color: 'var(--heatmap-sector-label)' }}>{item.label}</span>
                 )}
               </div>
             ))}

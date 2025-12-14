@@ -9,6 +9,7 @@ import {
   DATA_TYPE_CATEGORIES,
   DataTypeCategory,
 } from "@/lib/stock-lists";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface HeatmapSidebarProps {
   selectedIndex: HeatmapIndex;
@@ -23,6 +24,8 @@ export function HeatmapSidebar({
   selectedDataType,
   onDataTypeChange,
 }: HeatmapSidebarProps) {
+  const { theme } = useTheme();
+  const isLightMode = theme === "light";
   const [isDataTypeOpen, setIsDataTypeOpen] = useState(false);
 
   // Get current data type label
@@ -43,28 +46,63 @@ export function HeatmapSidebar({
   }, []);
 
   return (
-    <div className="w-[220px] min-w-[220px] bg-[#111827] border-r border-[#1f2937] flex flex-col h-full overflow-hidden">
+    <div
+      className="w-[220px] min-w-[220px] flex flex-col h-full overflow-hidden"
+      style={{
+        backgroundColor: 'var(--heatmap-bg)',
+        borderRightColor: 'var(--heatmap-border)',
+        borderRightWidth: '1px',
+        borderRightStyle: 'solid',
+      }}
+    >
       {/* Map Filter Header */}
-      <div className="px-4 py-3 border-b border-[#1f2937]">
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+      <div
+        className="px-4 py-3"
+        style={{
+          borderBottomColor: 'var(--heatmap-border)',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'solid',
+        }}
+      >
+        <h2
+          className="text-xs font-semibold uppercase tracking-wider"
+          style={{ color: 'var(--heatmap-help-text)' }}
+        >
           Map Filter
         </h2>
       </div>
 
       {/* Index Selection */}
-      <div className="px-3 py-2 space-y-0.5 border-b border-[#1f2937]">
+      <div
+        className="px-3 py-2 space-y-0.5"
+        style={{
+          borderBottomColor: 'var(--heatmap-border)',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'solid',
+        }}
+      >
         {INDEX_INFO.map((indexInfo) => (
           <button
             key={indexInfo.id}
             onClick={() => onIndexChange(indexInfo.id)}
-            className={`
-              w-full text-left px-3 py-1.5 rounded text-sm transition-colors
-              ${
-                selectedIndex === indexInfo.id
-                  ? "bg-[#1d4ed8] text-white font-medium"
-                  : "text-gray-300 hover:bg-[#1f2937] hover:text-white"
+            className="w-full text-left px-3 py-1.5 rounded text-sm transition-colors"
+            style={{
+              backgroundColor: selectedIndex === indexInfo.id ? '#1d4ed8' : 'transparent',
+              color: selectedIndex === indexInfo.id ? '#ffffff' : 'var(--heatmap-sector-label)',
+              fontWeight: selectedIndex === indexInfo.id ? 500 : 400,
+            }}
+            onMouseEnter={(e) => {
+              if (selectedIndex !== indexInfo.id) {
+                e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
+                e.currentTarget.style.color = 'var(--foreground)';
               }
-            `}
+            }}
+            onMouseLeave={(e) => {
+              if (selectedIndex !== indexInfo.id) {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--heatmap-sector-label)';
+              }
+            }}
           >
             {indexInfo.name}
           </button>
@@ -72,11 +110,25 @@ export function HeatmapSidebar({
       </div>
 
       {/* Data Type Dropdown */}
-      <div className="px-3 py-3 border-b border-[#1f2937]">
+      <div
+        className="px-3 py-3"
+        style={{
+          borderBottomColor: 'var(--heatmap-border)',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'solid',
+        }}
+      >
         <div className="relative">
           <button
             onClick={() => setIsDataTypeOpen(!isDataTypeOpen)}
-            className="w-full flex items-center justify-between px-3 py-2 bg-[#1f2937] border border-[#374151] rounded text-sm text-gray-200 hover:border-[#4b5563] transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2 rounded text-sm transition-colors"
+            style={{
+              backgroundColor: 'var(--heatmap-surface)',
+              borderColor: 'var(--heatmap-border)',
+              borderWidth: '1px',
+              borderStyle: 'solid',
+              color: 'var(--foreground)',
+            }}
           >
             <span className="truncate">{selectedDataTypeLabel}</span>
             <ChevronDown
@@ -96,14 +148,28 @@ export function HeatmapSidebar({
               />
 
               {/* Menu */}
-              <div className="absolute left-0 right-0 top-full mt-1 bg-[#1f2937] border border-[#374151] rounded-lg shadow-xl z-50 max-h-[400px] overflow-y-auto">
+              <div
+                className="absolute left-0 right-0 top-full mt-1 rounded-lg shadow-xl z-50 max-h-[400px] overflow-y-auto"
+                style={{
+                  backgroundColor: 'var(--heatmap-surface)',
+                  borderColor: 'var(--heatmap-border)',
+                  borderWidth: '1px',
+                  borderStyle: 'solid',
+                }}
+              >
                 {DATA_TYPE_CATEGORIES.map((category) => {
                   const options = groupedDataTypes[category.id];
                   if (options.length === 0) return null;
 
                   return (
                     <div key={category.id}>
-                      <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider bg-[#111827] sticky top-0">
+                      <div
+                        className="px-3 py-2 text-xs font-semibold uppercase tracking-wider sticky top-0"
+                        style={{
+                          backgroundColor: 'var(--heatmap-bg)',
+                          color: 'var(--heatmap-help-text)',
+                        }}
+                      >
                         {category.label}
                       </div>
                       {options.map((option) => (
@@ -113,14 +179,21 @@ export function HeatmapSidebar({
                             onDataTypeChange(option.id);
                             setIsDataTypeOpen(false);
                           }}
-                          className={`
-                            w-full flex items-center justify-between px-3 py-2 text-sm transition-colors
-                            ${
-                              selectedDataType === option.id
-                                ? "bg-[#1d4ed8] text-white"
-                                : "text-gray-300 hover:bg-[#374151]"
+                          className="w-full flex items-center justify-between px-3 py-2 text-sm transition-colors"
+                          style={{
+                            backgroundColor: selectedDataType === option.id ? '#1d4ed8' : 'transparent',
+                            color: selectedDataType === option.id ? '#ffffff' : 'var(--heatmap-sector-label)',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (selectedDataType !== option.id) {
+                              e.currentTarget.style.backgroundColor = 'var(--heatmap-bg)';
                             }
-                          `}
+                          }}
+                          onMouseLeave={(e) => {
+                            if (selectedDataType !== option.id) {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
+                          }}
                         >
                           <span>{option.label}</span>
                           {selectedDataType === option.id && (
