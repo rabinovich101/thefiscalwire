@@ -475,17 +475,35 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
         <div className="relative">
           <select
             value={interval}
-            onChange={(e) => setInterval(e.target.value as Interval)}
+            onChange={(e) => {
+              const newInterval = e.target.value as Interval;
+              if (getValidIntervals(period).includes(newInterval)) {
+                setInterval(newInterval);
+              }
+            }}
             className="appearance-none bg-muted/50 border border-border/50 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-foreground cursor-pointer hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
           >
-            {INTERVALS.filter(i => getValidIntervals(period).includes(i.value)).map((i) => (
-              <option key={i.value} value={i.value}>
-                {i.label}
-              </option>
-            ))}
+            {INTERVALS.map((i) => {
+              const isValid = getValidIntervals(period).includes(i.value);
+              return (
+                <option
+                  key={i.value}
+                  value={i.value}
+                  disabled={!isValid}
+                  className={!isValid ? "text-muted-foreground" : ""}
+                >
+                  {i.label}{!isValid ? " (N/A)" : ""}
+                </option>
+              );
+            })}
           </select>
           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         </div>
+
+        {/* Data availability note */}
+        <span className="text-xs text-muted-foreground hidden sm:inline">
+          Shorter intervals available for shorter periods
+        </span>
 
         {/* Indicators Dropdown */}
         <div className="relative">

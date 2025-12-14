@@ -18,7 +18,8 @@ function getPeriodConfig(period: Period): { startDate: Date; interval: Interval 
   switch (period) {
     case "1d":
       const dayStart = new Date(now);
-      dayStart.setDate(dayStart.getDate() - 1);
+      // Look back 3 days to capture last trading day (handles weekends/holidays)
+      dayStart.setDate(dayStart.getDate() - 3);
       return { startDate: dayStart, interval: "5m" };
 
     case "5d":
