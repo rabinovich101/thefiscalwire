@@ -172,43 +172,43 @@ export default async function StockLayout({ children, params }: LayoutProps) {
       <Header />
 
       {/* Sticky Price Header Bar */}
-      <div className="sticky top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="py-4">
+      <div className="sticky top-14 sm:top-16 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+          <div className="py-3 sm:py-4">
             {/* Stock Info */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-1.5 sm:gap-2 sm:flex-row sm:items-center sm:justify-between">
               {/* Left: Symbol, Name, Exchange */}
-              <div className="flex items-center gap-4">
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <h1 className="text-xl font-bold">{upperSymbol}</h1>
-                    <span className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-baseline gap-1.5 sm:gap-2">
+                    <h1 className="text-lg sm:text-xl font-bold">{upperSymbol}</h1>
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       {stock.exchange}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{stock.name}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">{stock.name}</p>
                 </div>
               </div>
 
               {/* Right: Price and Change */}
-              <div className="flex items-center gap-4">
-                <span className="text-2xl font-bold tabular-nums">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <span className="text-xl sm:text-2xl font-bold tabular-nums">
                   {formatPrice(stock.price)}
                 </span>
                 <div
                   className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-md",
+                    "flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md",
                     isPositive ? "bg-positive/10" : "bg-negative/10"
                   )}
                 >
                   {isPositive ? (
-                    <TrendingUp className="h-4 w-4 text-positive" />
+                    <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-positive" />
                   ) : (
-                    <TrendingDown className="h-4 w-4 text-negative" />
+                    <TrendingDown className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-negative" />
                   )}
                   <span
                     className={cn(
-                      "text-sm font-semibold tabular-nums",
+                      "text-xs sm:text-sm font-semibold tabular-nums",
                       isPositive ? "text-positive" : "text-negative"
                     )}
                   >
@@ -222,13 +222,13 @@ export default async function StockLayout({ children, params }: LayoutProps) {
       </div>
 
       {/* Mobile Tabs - Only visible on mobile/tablet */}
-      <div className="lg:hidden sticky top-[7.5rem] z-30 bg-background">
+      <div className="lg:hidden sticky top-[6rem] sm:top-[7rem] z-30 bg-background">
         <StockMobileTabs symbol={upperSymbol} />
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
           <div className="flex gap-8">
             {/* Left Sidebar - Desktop only */}
             <aside className="hidden lg:block w-48 flex-shrink-0">

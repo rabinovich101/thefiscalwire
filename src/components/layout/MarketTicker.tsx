@@ -93,32 +93,32 @@ export function MarketTicker({ initialIndices = [] }: MarketTickerProps) {
 
   if (displayIndices.length === 0 && isLoading) {
     return (
-      <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
-        <div className="h-12 flex items-center justify-center">
-          <span className="text-sm text-muted-foreground">Loading market data...</span>
+      <div className="sticky top-14 sm:top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+        <div className="h-10 sm:h-12 flex items-center justify-center">
+          <span className="text-xs sm:text-sm text-muted-foreground">Loading market data...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="sticky top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
-      <div className="relative h-12 overflow-hidden">
+    <div className="sticky top-14 sm:top-16 z-40 w-full border-b border-border/40 bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+      <div className="relative h-10 sm:h-12 overflow-hidden">
         {/* Market Status Indicator */}
-        <div className="absolute left-0 top-0 z-10 flex h-full items-center bg-surface px-4 border-r border-border/40">
-          <div className="flex items-center gap-2">
+        <div className="absolute left-0 top-0 z-10 flex h-full items-center bg-surface px-2 sm:px-4 border-r border-border/40">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-positive opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-positive"></span>
             </span>
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <span className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Live
             </span>
           </div>
         </div>
 
         {/* Scrolling Ticker */}
-        <div className="flex h-full items-center animate-ticker pl-24">
+        <div className="flex h-full items-center animate-ticker pl-16 sm:pl-24">
           {allItems.map((item, index) => (
             <TickerItem
               key={`${item.symbol}-${index}`}

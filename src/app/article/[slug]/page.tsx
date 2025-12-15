@@ -45,8 +45,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <ArticleHero article={article} />
 
         {/* Content Grid */}
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
             {/* Main Content - 2/3 width on desktop */}
             <div className="lg:col-span-2">
               <ArticleBody article={article} />

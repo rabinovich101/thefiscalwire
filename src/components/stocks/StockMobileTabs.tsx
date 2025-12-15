@@ -38,7 +38,7 @@ export function StockMobileTabs({ symbol }: StockMobileTabsProps) {
 
   return (
     <div className="overflow-x-auto scrollbar-hide border-b border-border bg-background">
-      <div className="flex min-w-max px-4">
+      <div className="flex min-w-max px-2 sm:px-4">
         {STOCK_TABS.map((tab) => {
           const isActive = isActiveTab(tab.href);
           const href = tab.href ? `${baseUrl}${tab.href}` : baseUrl;
@@ -48,7 +48,7 @@ export function StockMobileTabs({ symbol }: StockMobileTabsProps) {
               key={tab.id}
               href={href}
               className={cn(
-                "px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors",
+                "px-3 sm:px-4 py-3 text-xs sm:text-sm whitespace-nowrap border-b-2 transition-colors min-h-[44px] flex items-center",
                 isActive
                   ? "border-primary text-primary font-medium"
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"

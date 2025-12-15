@@ -33,11 +33,11 @@ export function Header() {
         Skip to main content
       </a>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2 shrink-0">
           <div className="flex items-center">
-            <span className="text-xl font-bold tracking-tight text-foreground">
+            <span className="text-base sm:text-xl font-bold tracking-tight text-foreground">
               The Fiscal<span className="text-primary">Wire</span>
             </span>
           </div>

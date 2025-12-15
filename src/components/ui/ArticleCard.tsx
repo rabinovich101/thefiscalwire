@@ -60,35 +60,35 @@ export function ArticleCard({ article, variant = "default" }: ArticleCardProps) 
             onError={handleImageError}
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute top-3 left-3 flex gap-1">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 flex flex-wrap gap-1">
             <Badge
               variant="secondary"
-              className={`text-[10px] font-semibold uppercase ${article.marketsCategoryColor} text-white border-0`}
+              className={`text-[9px] sm:text-[10px] font-semibold uppercase ${article.marketsCategoryColor} text-white border-0`}
             >
               {article.marketsCategory}
             </Badge>
             <Badge
               variant="secondary"
-              className={`text-[10px] font-semibold uppercase ${article.businessCategoryColor} text-white border-0`}
+              className={`text-[9px] sm:text-[10px] font-semibold uppercase ${article.businessCategoryColor} text-white border-0`}
             >
               {article.businessCategory}
             </Badge>
           </div>
-          <div className="absolute top-3 right-3">
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
             <BookmarkButton articleId={article.slug} variant="overlay" />
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-4">
-          <h3 className="text-base font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-2">
+        <div className="p-3 sm:p-4">
+          <h3 className="text-sm sm:text-base font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors mb-1.5 sm:mb-2">
             {article.title}
           </h3>
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+          <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-2 sm:mb-3">
             {article.excerpt}
           </p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{article.author}</span>
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
+            <span className="truncate max-w-[100px] sm:max-w-none">{article.author}</span>
             <span>•</span>
             <span>{article.publishedAt}</span>
           </div>

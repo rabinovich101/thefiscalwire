@@ -38,24 +38,24 @@ export default async function StocksPage() {
       <Header />
       <main className="flex-1">
       {/* Hero Section with Search */}
-      <section className="relative py-16 sm:py-24 border-b border-border/50">
+      <section className="relative py-8 sm:py-16 lg:py-24 border-b border-border/50">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center space-y-6 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <Sparkles className="h-4 w-4" />
+        <div className="relative mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
+          <div className="text-center space-y-4 sm:space-y-6 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Real-time Market Data
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+            <h1 className="text-2xl sm:text-4xl lg:text-6xl font-bold tracking-tight">
               Search <span className="text-primary">Stocks</span>
             </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
               Get real-time quotes, interactive charts, and comprehensive financial data
               for any stock, ETF, or market index.
             </p>
 
             {/* Search Bar */}
-            <div className="pt-4">
+            <div className="pt-2 sm:pt-4">
               <StockSearchBar variant="hero" autoFocus />
             </div>
           </div>
@@ -123,13 +123,13 @@ export default async function StocksPage() {
       )}
 
       {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-6 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Popular Stocks */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4">
             <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Popular Stocks</h2>
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <h2 className="text-base sm:text-lg font-semibold">Popular Stocks</h2>
             </div>
             <div className="bg-surface rounded-2xl border border-border/50 divide-y divide-border/50">
               {POPULAR_STOCKS.map((stock) => (
@@ -151,12 +151,12 @@ export default async function StocksPage() {
           </div>
 
           {/* Gainers & Losers */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {/* Top Gainers */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-positive" />
-                <h2 className="text-lg font-semibold">Top Gainers</h2>
+                <Flame className="h-4 w-4 sm:h-5 sm:w-5 text-positive" />
+                <h2 className="text-base sm:text-lg font-semibold">Top Gainers</h2>
               </div>
               <div className="bg-surface rounded-2xl border border-border/50 divide-y divide-border/50">
                 {gainers.length > 0 ? (
@@ -193,10 +193,10 @@ export default async function StocksPage() {
             </div>
 
             {/* Top Losers */}
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div className="flex items-center gap-2">
-                <TrendingDown className="h-5 w-5 text-negative" />
-                <h2 className="text-lg font-semibold">Top Losers</h2>
+                <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-negative" />
+                <h2 className="text-base sm:text-lg font-semibold">Top Losers</h2>
               </div>
               <div className="bg-surface rounded-2xl border border-border/50 divide-y divide-border/50">
                 {losers.length > 0 ? (

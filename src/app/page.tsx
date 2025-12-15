@@ -153,15 +153,15 @@ export default async function Home() {
         <CategoryNav />
 
         {/* Main Content Grid */}
-        <section className="py-8">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <section className="py-6 sm:py-8">
+          <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8">
             {/* Section Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-foreground">Top Stories</h2>
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground">Top Stories</h2>
             </div>
 
             {/* Grid Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
               {/* Article Grid - 2/3 width - use zone if configured (filtered to exclude hero articles) */}
               <div className="lg:col-span-2">
                 {usePageBuilder && articleGridZone && articleGridZone.content.length > 0 ? (

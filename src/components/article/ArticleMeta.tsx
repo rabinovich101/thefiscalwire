@@ -35,21 +35,21 @@ export function ArticleMeta({ author, publishedAt, readTime, className = "" }: A
   };
 
   return (
-    <div className={`flex flex-wrap items-center gap-4 ${className}`}>
+    <div className={`flex flex-wrap items-center gap-2 sm:gap-4 ${className}`}>
       {/* Author & Time Info */}
-      <div className="flex items-center gap-4 text-sm text-gray-400">
-        <span className="font-medium text-gray-300">{author}</span>
-        <span>•</span>
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-4 text-xs sm:text-sm text-gray-400">
+        <span className="font-medium text-gray-300 truncate max-w-[120px] sm:max-w-none">{author}</span>
+        <span className="hidden sm:inline">•</span>
         <span>{publishedAt}</span>
-        <span>•</span>
-        <span className="flex items-center gap-1">
+        <span className="hidden sm:inline">•</span>
+        <span className="hidden sm:flex items-center gap-1">
           <Clock className="h-3.5 w-3.5" />
           {readTime} min read
         </span>
       </div>
 
-      {/* Share Buttons */}
-      <div className="flex items-center gap-1 ml-auto">
+      {/* Share Buttons - hide on very small screens */}
+      <div className="hidden sm:flex items-center gap-1 ml-auto">
         <Button
           variant="ghost"
           size="sm"
