@@ -295,7 +295,13 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs border-collapse bg-surface">
+      <table
+        className="w-full text-xs border-collapse bg-surface"
+        aria-label={`Financial statistics for ${stock.symbol}`}
+      >
+        <caption className="sr-only">
+          Key financial metrics and statistics for {stock.symbol} stock including valuation ratios, earnings data, ownership breakdown, and technical indicators.
+        </caption>
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr key={rowIndex} className="border-b border-border/30">

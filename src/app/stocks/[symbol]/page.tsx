@@ -47,20 +47,35 @@ export default async function StockSummaryPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Chart Section */}
-      <section className="bg-surface rounded-xl border border-border/50 p-6">
+      <section
+        className="bg-surface rounded-xl border border-border/50 p-6"
+        aria-labelledby="chart-section-heading"
+      >
+        <h2 id="chart-section-heading" className="sr-only">
+          {upperSymbol} Price Chart
+        </h2>
         <StockChartSection symbol={upperSymbol} />
       </section>
 
       {/* Key Statistics */}
-      <section className="bg-surface rounded-xl border border-border/50 overflow-hidden">
+      <section
+        className="bg-surface rounded-xl border border-border/50 overflow-hidden"
+        aria-labelledby="stats-section-heading"
+      >
+        <h2 id="stats-section-heading" className="sr-only">
+          {upperSymbol} Key Statistics
+        </h2>
         <StockStatsTable stock={stock} />
       </section>
 
       {/* Company Overview */}
       {stock.description && (
-        <section className="bg-surface rounded-xl border border-border/50 p-6">
+        <section
+          className="bg-surface rounded-xl border border-border/50 p-6"
+          aria-labelledby="overview-section-heading"
+        >
           <div className="flex items-start justify-between gap-4 mb-4">
-            <h2 className="text-lg font-semibold">
+            <h2 id="overview-section-heading" className="text-lg font-semibold">
               {stock.name} Overview
               {stock.sector && (
                 <span className="text-muted-foreground font-normal text-sm ml-2">
@@ -96,8 +111,13 @@ export default async function StockSummaryPage({ params }: PageProps) {
       )}
 
       {/* News Section */}
-      <section className="bg-surface rounded-xl border border-border/50 p-6">
-        <h2 className="text-lg font-semibold mb-4">Recent News: {upperSymbol}</h2>
+      <section
+        className="bg-surface rounded-xl border border-border/50 p-6"
+        aria-labelledby="news-section-heading"
+      >
+        <h2 id="news-section-heading" className="text-lg font-semibold mb-4">
+          Recent News: {upperSymbol}
+        </h2>
         <StockNews symbol={upperSymbol} />
       </section>
     </div>
