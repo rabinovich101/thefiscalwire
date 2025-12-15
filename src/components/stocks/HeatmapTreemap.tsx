@@ -448,6 +448,10 @@ export function HeatmapTreemap({
     lastTouchCount: number;
   } | null>(null);
 
+  // Track if we're in a gesture (to prevent tooltip during pinch/drag)
+  const isGesturing = useRef(false);
+  const lastGestureTime = useRef(0);
+
   // Calculate distance between two touch points
   const getTouchDistance = (t1: Touch, t2: Touch) => {
     const dx = t1.clientX - t2.clientX;
@@ -524,6 +528,7 @@ export function HeatmapTreemap({
       if (e.touches.length === 2) {
         // Pinch gesture start
         e.preventDefault();
+        isGesturing.current = true;
         const touch1 = e.touches[0];
         const touch2 = e.touches[1];
         touchState.current = {
@@ -536,11 +541,11 @@ export function HeatmapTreemap({
       } else if (e.touches.length === 1 && transform.scale > 1) {
         // Single touch drag (when zoomed in)
         e.preventDefault();
-        const touch = e.touches[0];
+        isGesturing.current = true;
         setIsDragging(true);
         setDragStart({
-          x: touch.clientX - transform.translateX,
-          y: touch.clientY - transform.translateY,
+          x: e.touches[0].clientX - transform.translateX,
+          y: e.touches[0].clientY - transform.translateY,
         });
         touchState.current = {
           startDistance: 0,
@@ -597,7 +602,12 @@ export function HeatmapTreemap({
 
     const handleTouchEnd = (e: TouchEvent) => {
       if (e.touches.length === 0) {
+        // Record gesture end time to prevent tooltip showing right after gesture
+        if (isGesturing.current) {
+          lastGestureTime.current = Date.now();
+        }
         touchState.current = null;
+        isGesturing.current = false;
         setIsDragging(false);
       } else if (e.touches.length === 1 && touchState.current?.lastTouchCount === 2) {
         // Transitioning from pinch to single touch - reset state
@@ -631,6 +641,47 @@ export function HeatmapTreemap({
     }
     router.push(`/stocks/${stock.symbol}`);
   };
+
+  // Handle touch tap on stock to show tooltip (mobile/tablet)
+  const handleStockTouchEnd = useCallback((e: React.TouchEvent, stock: HeatmapStock) => {
+    // Don't show tooltip if we just finished a gesture (pinch/drag)
+    if (Date.now() - lastGestureTime.current < 200) {
+      return;
+    }
+
+    // Get touch position for tooltip placement
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect && e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
+      setMousePos({
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top,
+      });
+    }
+
+    // Toggle tooltip - if same stock is tapped, hide it; otherwise show new stock
+    if (hoveredStock?.symbol === stock.symbol) {
+      setHoveredStock(null);
+      onStockHover?.(null);
+    } else {
+      setHoveredStock(stock);
+      onStockHover?.(stock.symbol);
+    }
+  }, [hoveredStock, onStockHover]);
+
+  // Handle touch on container background to clear tooltip
+  const handleContainerTouchEnd = useCallback((e: React.TouchEvent) => {
+    // Only clear if we weren't just gesturing
+    if (Date.now() - lastGestureTime.current < 200) {
+      return;
+    }
+
+    // Clear tooltip when tapping background (not on a stock)
+    if (hoveredStock) {
+      setHoveredStock(null);
+      onStockHover?.(null);
+    }
+  }, [hoveredStock, onStockHover]);
 
   // Handle mouse move for tooltip and panning
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -693,6 +744,7 @@ export function HeatmapTreemap({
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onMouseUp={handleMouseUp}
+      onTouchEnd={handleContainerTouchEnd}
     >
       <svg
         width={dimensions.width}
@@ -780,6 +832,10 @@ export function HeatmapTreemap({
                       onMouseLeave={() => {
                         setHoveredStock(null);
                         onStockHover?.(null);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation();
+                        handleStockTouchEnd(e, stock);
                       }}
                       className="cursor-pointer"
                     >
