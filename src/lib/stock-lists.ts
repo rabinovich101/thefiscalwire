@@ -1259,6 +1259,127 @@ export async function fetchCryptoPrices(): Promise<Map<string, CryptoQuote>> {
   return cryptoMap;
 }
 
+// =============================================================================
+// PERIOD-BASED PRICE CHANGE (Yahoo Finance Spark API)
+// =============================================================================
+
+// Cache for period-specific changes
+const periodChangeCache = new Map<string, { data: Map<string, number>; timestamp: number }>();
+const PERIOD_CACHE_TTL = {
+  d1: 60 * 1000,      // 1 minute for daily
+  w1: 5 * 60 * 1000,  // 5 minutes for weekly
+  m1: 5 * 60 * 1000,  // 5 minutes for monthly
+};
+
+// Convert Nasdaq symbol to Yahoo format (e.g., BF-B -> BF.B)
+function toYahooSymbol(symbol: string): string {
+  return symbol.replace('-', '.');
+}
+
+// Convert Yahoo symbol back to Nasdaq format (e.g., BF.B -> BF-B)
+function fromYahooSymbol(symbol: string): string {
+  return symbol.replace('.', '-');
+}
+
+/**
+ * Fetch period-specific price change data from Yahoo Finance Spark API
+ * Returns percentage change for each symbol over the specified period
+ */
+export async function fetchPeriodChangeData(
+  symbols: string[],
+  period: 'd1' | 'w1' | 'm1'
+): Promise<Map<string, number>> {
+  // For 1D, return empty map - we'll use existing Nasdaq data
+  if (period === 'd1') {
+    return new Map();
+  }
+
+  // Check cache
+  const cacheKey = `${period}-${symbols.length}`;
+  const cached = periodChangeCache.get(cacheKey);
+  const cacheTTL = PERIOD_CACHE_TTL[period];
+  if (cached && Date.now() - cached.timestamp < cacheTTL) {
+    return cached.data;
+  }
+
+  const range = period === 'w1' ? '5d' : '1mo';
+  const changeMap = new Map<string, number>();
+
+  // Convert symbols to Yahoo format
+  const yahooSymbols = symbols.map(toYahooSymbol);
+
+  // Batch into chunks of 20 (smaller to avoid 414 URI too long errors)
+  const chunks: string[][] = [];
+  for (let i = 0; i < yahooSymbols.length; i += 20) {
+    chunks.push(yahooSymbols.slice(i, i + 20));
+  }
+
+  // Fetch chunks with limited concurrency (5 at a time to avoid rate limits)
+  const startTime = Date.now();
+  const CONCURRENCY = 5;
+
+  for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+    const batch = chunks.slice(i, i + CONCURRENCY);
+
+    await Promise.all(batch.map(async (chunk) => {
+      try {
+        const symbolsParam = chunk.join(',');
+        const url = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbolsParam)}&range=${range}&interval=1d`;
+        const res = await fetch(url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+        });
+
+        if (!res.ok) {
+          // Try without encoding if encoded version fails
+          const url2 = `https://query1.finance.yahoo.com/v7/finance/spark?symbols=${symbolsParam}&range=${range}&interval=1d`;
+          const res2 = await fetch(url2, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+          });
+          if (!res2.ok) {
+            console.error(`Yahoo Spark API error: ${res2.status} for ${chunk.length} symbols`);
+            return;
+          }
+          const data2 = await res2.json();
+          processYahooResults(data2, changeMap);
+          return;
+        }
+
+        const data = await res.json();
+        processYahooResults(data, changeMap);
+      } catch (error) {
+        console.error('Error fetching Yahoo Spark data:', error);
+      }
+    }));
+  }
+
+  const elapsed = Date.now() - startTime;
+  console.log(`Yahoo Spark ${period}: ${changeMap.size} stocks loaded in ${elapsed}ms`);
+
+  // Cache the results
+  periodChangeCache.set(cacheKey, { data: changeMap, timestamp: Date.now() });
+
+  return changeMap;
+}
+
+// Helper to process Yahoo Finance results
+function processYahooResults(data: { spark?: { result?: Array<{ symbol: string; response?: Array<{ indicators?: { quote?: Array<{ close?: (number | null)[] }> } }> }> } }, changeMap: Map<string, number>) {
+  for (const result of data.spark?.result || []) {
+    const closes = result.response?.[0]?.indicators?.quote?.[0]?.close;
+    if (closes && closes.length >= 2) {
+      // Filter out null values
+      const validCloses = closes.filter((c): c is number => c !== null);
+      if (validCloses.length >= 2) {
+        const first = validCloses[0];
+        const last = validCloses[validCloses.length - 1];
+        const pctChange = ((last - first) / first) * 100;
+        // Convert back to Nasdaq symbol format
+        const nasdaqSymbol = fromYahooSymbol(result.symbol);
+        changeMap.set(nasdaqSymbol, pctChange);
+      }
+    }
+  }
+}
+
 /**
  * Get stock symbols for an index (static fallback)
  */

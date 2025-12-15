@@ -157,7 +157,9 @@
       "WebFetch(domain:api.nasdaq.com)",
       "WebFetch(domain:docs.diadata.org)",
       "WebFetch(domain:www.diadata.org)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude add src/components/stocks/StockStatsTable.tsx)",
+      "Bash(git -C /Users/olegrabinovich/Documents/ooo/newswebbyclaude commit -m \"$(cat <<''EOF''\nAdd freeCashflow to StockData interface\n\nFix TypeScript build error - the freeCashflow property was used in \nP/FCF calculation but missing from the StockData interface definition.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

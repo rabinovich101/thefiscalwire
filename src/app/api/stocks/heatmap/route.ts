@@ -9,6 +9,7 @@ import {
   NasdaqStock,
   fetchETFPrices,
   fetchCryptoPrices,
+  fetchPeriodChangeData,
 } from "@/lib/stock-lists";
 
 export const dynamic = "force-dynamic";
@@ -124,6 +125,10 @@ async function fetchHeatmapData(
     fetchSectorMapping(),
   ]);
 
+  // For non-daily periods, fetch period-specific change data
+  const periodType = dataType as 'd1' | 'w1' | 'm1';
+  const periodChangeMap = await fetchPeriodChangeData(symbols, periodType);
+
   // Map symbols to heatmap data
   const stocks: HeatmapStock[] = [];
   for (const symbol of symbols) {
@@ -132,6 +137,11 @@ async function fetchHeatmapData(
       const stock = convertNasdaqToHeatmapStock(nasdaqStock, sectorMap);
       // Only include stocks with valid market cap
       if (stock.marketCap > 0) {
+        // Use period-specific change for value if available, otherwise use daily change
+        const periodChange = periodChangeMap.get(symbol);
+        if (periodChange !== undefined) {
+          stock.value = periodChange;
+        }
         stocks.push(stock);
       }
     }
