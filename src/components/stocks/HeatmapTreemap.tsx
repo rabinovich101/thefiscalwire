@@ -439,6 +439,28 @@ export function HeatmapTreemap({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // Touch gesture state for pinch-to-zoom
+  const touchState = useRef<{
+    startDistance: number;
+    startScale: number;
+    startMidpoint: { x: number; y: number };
+    startTranslate: { x: number; y: number };
+    lastTouchCount: number;
+  } | null>(null);
+
+  // Calculate distance between two touch points
+  const getTouchDistance = (t1: Touch, t2: Touch) => {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Get midpoint between two touches
+  const getTouchMidpoint = (t1: Touch, t2: Touch, rect: DOMRect) => ({
+    x: (t1.clientX + t2.clientX) / 2 - rect.left,
+    y: (t1.clientY + t2.clientY) / 2 - rect.top,
+  });
+
   // Handle resize
   useEffect(() => {
     const container = containerRef.current;
@@ -490,6 +512,111 @@ export function HeatmapTreemap({
     container.addEventListener('wheel', handleWheelNative, { passive: false });
     return () => container.removeEventListener('wheel', handleWheelNative);
   }, []);
+
+  // Handle touch events for pinch-to-zoom and touch drag
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      const rect = container.getBoundingClientRect();
+
+      if (e.touches.length === 2) {
+        // Pinch gesture start
+        e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        touchState.current = {
+          startDistance: getTouchDistance(touch1, touch2),
+          startScale: transform.scale,
+          startMidpoint: getTouchMidpoint(touch1, touch2, rect),
+          startTranslate: { x: transform.translateX, y: transform.translateY },
+          lastTouchCount: 2,
+        };
+      } else if (e.touches.length === 1 && transform.scale > 1) {
+        // Single touch drag (when zoomed in)
+        e.preventDefault();
+        const touch = e.touches[0];
+        setIsDragging(true);
+        setDragStart({
+          x: touch.clientX - transform.translateX,
+          y: touch.clientY - transform.translateY,
+        });
+        touchState.current = {
+          startDistance: 0,
+          startScale: transform.scale,
+          startMidpoint: { x: 0, y: 0 },
+          startTranslate: { x: transform.translateX, y: transform.translateY },
+          lastTouchCount: 1,
+        };
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchState.current) return;
+      const rect = container.getBoundingClientRect();
+
+      if (e.touches.length === 2) {
+        // Pinch zoom
+        e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const newDistance = getTouchDistance(touch1, touch2);
+        const newMidpoint = getTouchMidpoint(touch1, touch2, rect);
+
+        // Calculate new scale
+        const zoomFactor = newDistance / touchState.current.startDistance;
+        const newScale = Math.min(Math.max(touchState.current.startScale * zoomFactor, 1), 5);
+
+        if (newScale === 1) {
+          setTransform({ scale: 1, translateX: 0, translateY: 0 });
+        } else {
+          // Zoom towards pinch midpoint
+          const ratio = newScale / touchState.current.startScale;
+          const midX = touchState.current.startMidpoint.x;
+          const midY = touchState.current.startMidpoint.y;
+
+          setTransform({
+            scale: newScale,
+            translateX: midX - (midX - touchState.current.startTranslate.x) * ratio + (newMidpoint.x - midX),
+            translateY: midY - (midY - touchState.current.startTranslate.y) * ratio + (newMidpoint.y - midY),
+          });
+        }
+        lastZoomTime.current = Date.now();
+      } else if (e.touches.length === 1 && isDragging && transform.scale > 1) {
+        // Touch drag (pan)
+        e.preventDefault();
+        const touch = e.touches[0];
+        setTransform(prev => ({
+          ...prev,
+          translateX: touch.clientX - dragStart.x,
+          translateY: touch.clientY - dragStart.y,
+        }));
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        touchState.current = null;
+        setIsDragging(false);
+      } else if (e.touches.length === 1 && touchState.current?.lastTouchCount === 2) {
+        // Transitioning from pinch to single touch - reset state
+        touchState.current = null;
+      }
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: false });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [transform.scale, transform.translateX, transform.translateY, isDragging, dragStart]);
 
   // Build treemap data
   const treemapData = useMemo(() => {
