@@ -3,6 +3,7 @@ import { InlineQuote } from "./InlineQuote";
 import { InlineCallout } from "./InlineCallout";
 import { InlineStockChart } from "./InlineStockChart";
 import { ArticleTags } from "./ArticleTags";
+import { linkTickersInText } from "@/lib/ticker-linker";
 import type { ArticleContentBlock, ArticleDetail } from "@/lib/data";
 
 interface ArticleBodyProps {
@@ -14,7 +15,11 @@ function isPaidPlanMessage(text: string | undefined | null): boolean {
   return !!text && text.toUpperCase().includes('ONLY AVAILABLE IN PAID PLANS');
 }
 
-function renderContentBlock(block: ArticleContentBlock, index: number) {
+function renderContentBlock(
+  block: ArticleContentBlock,
+  index: number,
+  relevantTickers: string[]
+) {
   switch (block.type) {
     case "paragraph":
       // Skip paragraphs with paid plan message
@@ -28,7 +33,7 @@ function renderContentBlock(block: ArticleContentBlock, index: number) {
             index === 0 ? "text-xl lg:text-2xl" : ""
           }`}
         >
-          {block.content}
+          {linkTickersInText(block.content || "", relevantTickers)}
         </p>
       );
 
@@ -85,7 +90,7 @@ function renderContentBlock(block: ArticleContentBlock, index: number) {
               key={i}
               className="text-lg text-foreground/90 list-disc marker:text-primary"
             >
-              {item}
+              {linkTickersInText(item, relevantTickers)}
             </li>
           ))}
         </ul>
@@ -118,11 +123,15 @@ function renderContentBlock(block: ArticleContentBlock, index: number) {
 }
 
 export function ArticleBody({ article }: ArticleBodyProps) {
+  const relevantTickers = article.relevantTickers || [];
+
   return (
     <article className="max-w-none">
       {/* Article Content */}
       <div className="article-content">
-        {article.content.map((block, index) => renderContentBlock(block, index))}
+        {article.content.map((block, index) =>
+          renderContentBlock(block, index, relevantTickers)
+        )}
       </div>
 
       {/* Tags */}

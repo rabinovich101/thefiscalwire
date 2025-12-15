@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -50,18 +51,43 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
     };
   }
 
+  // Dynamic description based on performance
+  const changePercent = (stock.changePercent || 0) * 100;
+  const absChange = Math.abs(changePercent);
+  let trend = "trading";
+  if (changePercent > 5) trend = "surging";
+  else if (changePercent > 2) trend = "rising";
+  else if (changePercent > 0) trend = "up";
+  else if (changePercent > -2) trend = "slightly down";
+  else if (changePercent > -5) trend = "falling";
+  else if (changePercent <= -5) trend = "plunging";
+
+  const nearHigh = stock.fiftyTwoWeekHigh && stock.price >= stock.fiftyTwoWeekHigh * 0.95;
+  const nearLow = stock.fiftyTwoWeekLow && stock.price <= stock.fiftyTwoWeekLow * 1.05;
+  let context = nearHigh ? ", near 52-week high" : nearLow ? ", near 52-week low" : "";
+
   const priceFormatted = stock.price?.toFixed(2) || "N/A";
-  const changeFormatted =
-    stock.change >= 0
-      ? `+${stock.change?.toFixed(2)}`
-      : stock.change?.toFixed(2);
+  const description = `${stock.name} (${upperSymbol}) is ${trend} ${absChange.toFixed(2)}% at $${priceFormatted}${context}. Get real-time quotes, charts, news, and analysis.`;
 
   return {
     title: `${stock.name} (${upperSymbol}) Stock Price, Quote & News | The Fiscal Wire`,
-    description: `Get the latest ${stock.name} (${upperSymbol}) stock price, news, and financial data. Current price: $${priceFormatted} (${changeFormatted})`,
+    description,
+    alternates: {
+      canonical: `https://thefiscalwire.com/stocks/${upperSymbol}`,
+    },
     openGraph: {
       title: `${upperSymbol} - $${priceFormatted} | The Fiscal Wire`,
-      description: `${stock.name} stock quote and analysis`,
+      description,
+      url: `https://thefiscalwire.com/stocks/${upperSymbol}`,
+      siteName: "The Fiscal Wire",
+      images: [`https://thefiscalwire.com/api/og/stock/${upperSymbol}`],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${upperSymbol} Stock - $${priceFormatted} (${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%)`,
+      description,
+      images: [`https://thefiscalwire.com/api/og/stock/${upperSymbol}`],
     },
   };
 }
@@ -85,8 +111,64 @@ export default async function StockLayout({ children, params }: LayoutProps) {
     return `${sign}${change?.toFixed(2) || "0.00"} (${sign}${percentDisplay}%)`;
   };
 
+  // JSON-LD Schema for SEO
+  const stockSchema = {
+    "@context": "https://schema.org",
+    "@type": "FinancialProduct",
+    name: `${stock.name} (${upperSymbol}) Stock Quote`,
+    url: `https://thefiscalwire.com/stocks/${upperSymbol}`,
+    description: `Real-time stock quote and analysis for ${stock.name}`,
+    provider: {
+      "@type": "Organization",
+      name: stock.name,
+      tickerSymbol: upperSymbol,
+    },
+    offers: {
+      "@type": "Offer",
+      price: stock.price,
+      priceCurrency: "USD",
+      priceValidUntil: new Date(Date.now() + 3600000).toISOString(),
+    },
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: "https://thefiscalwire.com" },
+      { "@type": "ListItem", position: 2, name: "Stocks", item: "https://thefiscalwire.com/stocks" },
+      { "@type": "ListItem", position: 3, name: upperSymbol },
+    ],
+  };
+
+  const webPageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: `${stock.name} (${upperSymbol}) Stock Price`,
+    description: `Current price: $${stock.price?.toFixed(2)}`,
+    url: `https://thefiscalwire.com/stocks/${upperSymbol}`,
+    mainEntity: stockSchema,
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {/* JSON-LD Schema Markup for SEO */}
+      <Script
+        id="stock-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(stockSchema) }}
+      />
+      <Script
+        id="breadcrumb-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <Script
+        id="webpage-schema"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageSchema) }}
+      />
+
       <Header />
 
       {/* Sticky Price Header Bar */}

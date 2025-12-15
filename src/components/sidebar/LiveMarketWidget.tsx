@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { TrendingUp, TrendingDown, Loader2 } from "lucide-react";
 
 interface MarketQuote {
@@ -70,12 +71,13 @@ export function LiveMarketWidget({ tickers }: LiveMarketWidgetProps) {
           stocks.map((stock) => {
             const isPositive = stock.change >= 0;
             return (
-              <div
+              <Link
                 key={stock.symbol}
-                className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                href={`/stocks/${stock.symbol}`}
+                className="flex items-center justify-between py-2 border-b border-border last:border-0 hover:bg-muted/50 transition-colors -mx-2 px-2 rounded-md"
               >
                 <div>
-                  <span className="text-sm font-semibold text-foreground">
+                  <span className="text-sm font-semibold text-foreground group-hover:text-primary">
                     {stock.symbol}
                   </span>
                   <p className="text-xs text-muted-foreground truncate max-w-[100px]">
@@ -102,7 +104,7 @@ export function LiveMarketWidget({ tickers }: LiveMarketWidgetProps) {
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })
         )}
