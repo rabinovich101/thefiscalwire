@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Loader2, Maximize2, Share2, X, Minus, Plus } from "lucide-react";
+import { Loader2, Maximize2, Share2, X, Menu } from "lucide-react";
 import { HeatmapSidebar } from "./HeatmapSidebar";
 import { HeatmapTreemap } from "./HeatmapTreemap";
 import { HeatmapIndex, INDEX_INFO, DATA_TYPE_OPTIONS } from "@/lib/stock-lists";
@@ -53,6 +53,7 @@ export function StockHeatmap() {
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [highlightedStock, setHighlightedStock] = useState<string | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -162,7 +163,7 @@ export function StockHeatmap() {
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 sm:px-4 py-2 sm:py-3 gap-2 sm:gap-4"
         style={{
           backgroundColor: 'var(--heatmap-bg)',
           borderBottomColor: 'var(--heatmap-border)',
@@ -170,19 +171,30 @@ export function StockHeatmap() {
           borderBottomStyle: 'solid',
         }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="md:hidden flex items-center justify-center w-8 h-8 rounded transition-colors"
+            style={{
+              backgroundColor: 'var(--heatmap-surface)',
+              color: 'var(--foreground)'
+            }}
+          >
+            <Menu className="w-4 h-4" />
+          </button>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>{indexName} Map</span>
+            <span className="text-xs sm:text-sm font-medium" style={{ color: 'var(--foreground)' }}>{indexName} Map</span>
           </div>
-          <span className="text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
+          <span className="hidden lg:inline text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
             {indexName} index stocks categorized by sectors and industries. Size represents market cap.
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button
             onClick={toggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors"
+            className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs rounded transition-colors"
             style={{ color: 'var(--heatmap-sector-label)' }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
@@ -194,10 +206,10 @@ export function StockHeatmap() {
             }}
           >
             <Maximize2 className="w-3.5 h-3.5" />
-            <span>Fullscreen</span>
+            <span className="hidden sm:inline">Fullscreen</span>
           </button>
           <button
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs rounded transition-colors"
             style={{ color: 'var(--heatmap-sector-label)' }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
@@ -212,12 +224,12 @@ export function StockHeatmap() {
             }}
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>Share Map</span>
+            <span className="hidden sm:inline">Share Map</span>
           </button>
           {isFullscreen && (
             <button
               onClick={() => document.exitFullscreen()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors"
+              className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 text-xs rounded transition-colors"
               style={{ color: 'var(--heatmap-sector-label)' }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = 'var(--heatmap-surface)';
@@ -234,15 +246,57 @@ export function StockHeatmap() {
         </div>
       </div>
 
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div className="md:hidden fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          {/* Sidebar */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-[280px] shadow-xl"
+            style={{ backgroundColor: 'var(--heatmap-bg)' }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--heatmap-border)' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>Filters</span>
+              <button
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="p-1 rounded"
+                style={{ color: 'var(--heatmap-sector-label)' }}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <HeatmapSidebar
+              selectedIndex={index}
+              onIndexChange={(newIndex) => {
+                setIndex(newIndex);
+                setIsMobileSidebarOpen(false);
+              }}
+              selectedDataType={dataType}
+              onDataTypeChange={(newDataType) => {
+                setDataType(newDataType);
+                setIsMobileSidebarOpen(false);
+              }}
+              isMobile
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main content */}
-      <div className="flex" style={{ height: isFullscreen ? "calc(100vh - 110px)" : "600px" }}>
-        {/* Sidebar */}
-        <HeatmapSidebar
-          selectedIndex={index}
-          onIndexChange={setIndex}
-          selectedDataType={dataType}
-          onDataTypeChange={setDataType}
-        />
+      <div className="flex h-[350px] sm:h-[450px] md:h-[550px] lg:h-[600px]" style={{ height: isFullscreen ? "calc(100vh - 110px)" : undefined }}>
+        {/* Desktop Sidebar */}
+        <div className="hidden md:block">
+          <HeatmapSidebar
+            selectedIndex={index}
+            onIndexChange={setIndex}
+            selectedDataType={dataType}
+            onDataTypeChange={setDataType}
+          />
+        </div>
 
         {/* Treemap area */}
         <div className="flex-1 relative h-full overflow-hidden">
@@ -284,7 +338,7 @@ export function StockHeatmap() {
 
       {/* Footer with legend and help text */}
       <div
-        className="px-4 py-3"
+        className="px-3 sm:px-4 py-2 sm:py-3"
         style={{
           backgroundColor: 'var(--heatmap-bg)',
           borderTopColor: 'var(--heatmap-border)',
@@ -292,26 +346,30 @@ export function StockHeatmap() {
           borderTopStyle: 'solid',
         }}
       >
-        <div className="flex items-center justify-between">
-          {/* Help text */}
-          <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
+          {/* Help text - hidden on mobile */}
+          <div className="hidden md:flex items-center gap-4 text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--heatmap-help-text)' }} />
               Use mouse wheel to zoom in and out. Drag zoomed map to pan it.
             </span>
             <span>Double-click a ticker to display detailed information.</span>
           </div>
+          {/* Mobile help text - shorter */}
+          <div className="md:hidden text-[10px]" style={{ color: 'var(--heatmap-help-text)' }}>
+            Pinch to zoom. Tap a ticker for details.
+          </div>
 
           {/* Color legend */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap">
             {colorLegend.map((item, i) => (
               <div key={i} className="flex items-center gap-0.5">
                 <div
-                  className="w-8 h-4 rounded-sm"
+                  className="w-5 h-3 sm:w-8 sm:h-4 rounded-sm"
                   style={{ backgroundColor: item.color }}
                 />
                 {(i === 0 || i === colorLegend.length - 1 || i === Math.floor(colorLegend.length / 2)) && (
-                  <span className="text-xs ml-0.5" style={{ color: 'var(--heatmap-sector-label)' }}>{item.label}</span>
+                  <span className="text-[10px] sm:text-xs ml-0.5" style={{ color: 'var(--heatmap-sector-label)' }}>{item.label}</span>
                 )}
               </div>
             ))}

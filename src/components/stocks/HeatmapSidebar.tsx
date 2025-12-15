@@ -16,6 +16,7 @@ interface HeatmapSidebarProps {
   onIndexChange: (index: HeatmapIndex) => void;
   selectedDataType: string;
   onDataTypeChange: (dataType: string) => void;
+  isMobile?: boolean;
 }
 
 export function HeatmapSidebar({
@@ -23,6 +24,7 @@ export function HeatmapSidebar({
   onIndexChange,
   selectedDataType,
   onDataTypeChange,
+  isMobile = false,
 }: HeatmapSidebarProps) {
   const { theme } = useTheme();
   const isLightMode = theme === "light";
@@ -47,11 +49,11 @@ export function HeatmapSidebar({
 
   return (
     <div
-      className="w-[220px] min-w-[220px] flex flex-col h-full overflow-hidden"
+      className={`flex flex-col h-full overflow-hidden ${isMobile ? 'w-full' : 'w-[220px] min-w-[220px]'}`}
       style={{
         backgroundColor: 'var(--heatmap-bg)',
-        borderRightColor: 'var(--heatmap-border)',
-        borderRightWidth: '1px',
+        borderRightColor: isMobile ? 'transparent' : 'var(--heatmap-border)',
+        borderRightWidth: isMobile ? '0' : '1px',
         borderRightStyle: 'solid',
       }}
     >
