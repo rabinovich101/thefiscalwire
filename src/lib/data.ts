@@ -28,6 +28,7 @@ export interface ArticleDetail extends Article {
   tags: string[]
   relevantTickers: string[]
   headings: ArticleHeading[]
+  sourceUrl?: string | null
 }
 
 export interface ArticleContentBlock {
@@ -142,6 +143,7 @@ interface PrismaArticleWithRelations {
   content: unknown
   headings: unknown
   relevantTickers: string[]
+  sourceUrl?: string | null
   category?: { slug: string; color: string | null } | null
   marketsCategory?: { slug: string; color: string | null } | null
   businessCategory?: { slug: string; color: string | null } | null
@@ -189,6 +191,7 @@ function transformArticleDetail(article: PrismaArticleWithRelations): ArticleDet
     tags: article.tags?.map((t) => t.name) || [],
     relevantTickers: article.relevantTickers || [],
     headings: (article.headings as ArticleHeading[]) || [],
+    sourceUrl: article.sourceUrl,
   }
 }
 

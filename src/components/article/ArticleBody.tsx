@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { ExternalLink } from "lucide-react";
 import { InlineQuote } from "./InlineQuote";
 import { InlineCallout } from "./InlineCallout";
 import { InlineStockChart } from "./InlineStockChart";
@@ -133,6 +134,21 @@ export function ArticleBody({ article }: ArticleBodyProps) {
           renderContentBlock(block, index, relevantTickers)
         )}
       </div>
+
+      {/* Source Link */}
+      {article.sourceUrl && (
+        <div className="mt-8 pt-6 border-t border-border">
+          <a
+            href={article.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <ExternalLink className="h-4 w-4" />
+            <span>View Original Source</span>
+          </a>
+        </div>
+      )}
 
       {/* Tags */}
       <ArticleTags tags={article.tags} />

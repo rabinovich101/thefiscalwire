@@ -111,6 +111,19 @@ export async function logNewsApiUsage(details: NewsApiDetails) {
   });
 }
 
+// Log Fiscal Wire API usage
+export async function logFiscalWireApiUsage(details: NewsApiDetails) {
+  const action = `Fetched ${details.resultsCount} articles from FiscalWire (${details.filteredCount} valid)`;
+
+  return logActivity({
+    type: 'NEWS_API',
+    action,
+    details: JSON.parse(JSON.stringify({ ...details, source: 'FiscalWire' })),
+    count: details.resultsCount,
+    status: 'SUCCESS',
+  });
+}
+
 // Log errors
 export async function logError(details: ErrorDetails, errorMessage: string) {
   const action = `Error in ${details.source}: ${details.operation}`;
