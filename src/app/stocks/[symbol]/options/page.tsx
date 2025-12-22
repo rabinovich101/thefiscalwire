@@ -235,6 +235,15 @@ export default function OptionsPage() {
     return value.toFixed(2);
   };
 
+  // Format ROI % (mid price / stock price * 100)
+  const formatROI = (bid: number | null, ask: number | null) => {
+    const stockPrice = data?.quote?.price;
+    if (bid === null || ask === null || !stockPrice) return "--";
+    const midPrice = (bid + ask) / 2;
+    const roi = (midPrice / stockPrice) * 100;
+    return roi.toFixed(1) + "%";
+  };
+
   if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -253,8 +262,8 @@ export default function OptionsPage() {
 
   const expiryDates = Object.keys(filteredGroupedByExpiry).sort();
 
-  // Column count for each table (Strike + 12 data columns)
-  const tableColSpan = 13;
+  // Column count for each table (Strike + 13 data columns including ROI %)
+  const tableColSpan = 14;
 
   // Render table for Calls or Puts
   const renderOptionsTable = (type: "calls" | "puts") => {
@@ -273,6 +282,7 @@ export default function OptionsPage() {
               <th className="text-right font-normal py-1.5 px-1">Change</th>
               <th className="text-right font-normal py-1.5 px-1">Bid</th>
               <th className="text-right font-normal py-1.5 px-1">Ask</th>
+              <th className="text-right font-normal py-1.5 px-1">ROI %</th>
               <th className="text-right font-normal py-1.5 px-1">Volume</th>
               <th className="text-right font-normal py-1.5 px-1">Open Int.</th>
               <th className="text-right font-normal py-1.5 px-1">IV</th>
@@ -343,6 +353,13 @@ export default function OptionsPage() {
                           side.inTheMoney && bgColor
                         )}>
                           {formatPrice(side.ask)}
+                        </td>
+                        {/* ROI % */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatROI(side.bid, side.ask)}
                         </td>
                         {/* Volume */}
                         <td className={cn(
