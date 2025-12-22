@@ -254,8 +254,8 @@ export default function OptionsPage() {
   const expiryDates = Object.keys(filteredGroupedByExpiry).sort();
 
   // Calculate column counts for spanning
-  // Exp Date, Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 13
-  const callsColSpan = 13;
+  // Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 12
+  const callsColSpan = 12;
   // Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 12
   const putsColSpan = 12;
   const totalColSpan = strategy === "all" ? callsColSpan + 1 + putsColSpan : (strategy === "calls" ? callsColSpan + 1 : 1 + putsColSpan);
@@ -372,7 +372,6 @@ export default function OptionsPage() {
               <tr className="border-b border-border text-xs text-muted-foreground">
                 {(strategy === "all" || strategy === "calls") && (
                   <>
-                    <th className="text-left font-normal py-1.5 px-1">Exp. Date</th>
                     <th className="text-right font-normal py-1.5 px-1">Last</th>
                     <th className="text-right font-normal py-1.5 px-1">Change</th>
                     <th className="text-right font-normal py-1.5 px-1">Bid</th>
@@ -431,12 +430,6 @@ export default function OptionsPage() {
                         {/* Calls data */}
                         {(strategy === "all" || strategy === "calls") && (
                           <>
-                            <td className={cn(
-                              "py-1 px-1 text-left tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {option.expiryDateShort}
-                            </td>
                             <td className={cn(
                               "py-1 px-1 text-right tabular-nums",
                               option.call.inTheMoney && "bg-blue-500/10"
