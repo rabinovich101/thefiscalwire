@@ -212,9 +212,14 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
     const typeParam = searchParams.get("type"); // e.g., "all", "week", "stad"
 
     // Build Nasdaq API URL
-    let apiUrl = `https://api.nasdaq.com/api/quote/${upperSymbol}/option-chain?assetclass=stocks&limit=1000`;
+    // Use fromdate=all for initial load to get all available expiration dates
+    // Otherwise use the specific date requested
+    let apiUrl = `https://api.nasdaq.com/api/quote/${upperSymbol}/option-chain?assetclass=stocks&limit=5000`;
     if (fromDateParam) {
       apiUrl += `&fromdate=${fromDateParam}`;
+    } else {
+      // Request all dates for initial load to extract all unique expiration dates
+      apiUrl += `&fromdate=all`;
     }
     if (excodeParam) {
       apiUrl += `&excode=${excodeParam}`;
@@ -242,41 +247,53 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
 
     const rows = data.data?.table?.rows || [];
 
-    // Extract all individual expiration dates from the filter list
+    // Extract all individual expiration dates from the expirygroup headers in rows
+    // NOT from the filter list (which only gives month-level ranges)
     const expirationMonths: Array<{ label: string; value: string; fromdate: string }> = [];
-    const filterDates = data.data?.filterlist?.fromdate?.filter || [];
+    const uniqueDates = new Set<string>();
 
-    for (const filter of filterDates) {
-      if (filter.value && filter.value !== "all") {
-        // Split pipe-separated dates: "2025-12-19|2025-12-26|..."
-        const dates = filter.value.split("|");
-        for (const dateStr of dates) {
-          if (dateStr && !expirationMonths.find(d => d.fromdate === dateStr)) {
-            // Format: "19 DEC 2025 (Weekly)" or "20 DEC 2025 (Monthly)" from "2025-12-19"
-            const date = new Date(dateStr + "T12:00:00");
-            const day = date.getDate().toString().padStart(2, "0");
-            const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
+    for (const row of rows) {
+      // Check if this is an expiry group header (has expirygroup but no strike)
+      if (row.expirygroup && row.strike === null) {
+        // expirygroup format: "December 26, 2025"
+        try {
+          const date = new Date(row.expirygroup);
+          if (!isNaN(date.getTime())) {
             const year = date.getFullYear();
-
-            // Determine if Monthly (3rd Friday) or Weekly
-            const dayOfMonth = date.getDate();
-            const dayOfWeek = date.getDay(); // 0=Sun, 5=Fri
-            const isThirdFriday = dayOfWeek === 5 && dayOfMonth >= 15 && dayOfMonth <= 21;
-            const typeLabel = isThirdFriday ? "(Monthly)" : "(Weekly)";
-
-            const label = `${day} ${month} ${year} ${typeLabel}`;
-
-            expirationMonths.push({
-              label,
-              value: dateStr,
-              fromdate: dateStr
-            });
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            const formatted = `${year}-${month}-${day}`;
+            uniqueDates.add(formatted);
           }
+        } catch {
+          // Skip invalid dates
         }
       }
     }
 
-    // Sort by date
+    // Build expirationMonths from unique dates
+    for (const dateStr of Array.from(uniqueDates).sort()) {
+      const date = new Date(dateStr + "T12:00:00");
+      const day = date.getDate().toString().padStart(2, "0");
+      const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
+      const year = date.getFullYear();
+
+      // Determine if Monthly (3rd Friday) or Weekly
+      const dayOfMonth = date.getDate();
+      const dayOfWeek = date.getDay(); // 0=Sun, 5=Fri
+      const isThirdFriday = dayOfWeek === 5 && dayOfMonth >= 15 && dayOfMonth <= 21;
+      const typeLabel = isThirdFriday ? "(Monthly)" : "(Weekly)";
+
+      const label = `${day} ${month} ${year} ${typeLabel}`;
+
+      expirationMonths.push({
+        label,
+        value: dateStr,
+        fromdate: dateStr
+      });
+    }
+
+    // Already sorted from the Set iteration above, but ensure correct order
     expirationMonths.sort((a, b) => a.fromdate.localeCompare(b.fromdate));
 
     // Fetch Yahoo IV data and stock data in parallel
