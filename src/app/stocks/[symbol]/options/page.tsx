@@ -253,12 +253,164 @@ export default function OptionsPage() {
 
   const expiryDates = Object.keys(filteredGroupedByExpiry).sort();
 
-  // Calculate column counts for spanning
-  // Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 12
-  const callsColSpan = 12;
-  // Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 12
-  const putsColSpan = 12;
-  const totalColSpan = strategy === "all" ? callsColSpan + 1 + putsColSpan : (strategy === "calls" ? callsColSpan + 1 : 1 + putsColSpan);
+  // Column count for each table (Strike + 12 data columns)
+  const tableColSpan = 13;
+
+  // Render table for Calls or Puts
+  const renderOptionsTable = (type: "calls" | "puts") => {
+    const isCall = type === "calls";
+    const bgColor = isCall ? "bg-blue-500/10" : "bg-pink-500/10";
+    const title = isCall ? "Calls" : "Puts";
+
+    return (
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold mb-3">{title}</h2>
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border text-xs text-muted-foreground">
+              <th className="text-left font-normal py-1.5 px-2">Strike</th>
+              <th className="text-right font-normal py-1.5 px-1">Last</th>
+              <th className="text-right font-normal py-1.5 px-1">Change</th>
+              <th className="text-right font-normal py-1.5 px-1">Bid</th>
+              <th className="text-right font-normal py-1.5 px-1">Ask</th>
+              <th className="text-right font-normal py-1.5 px-1">Volume</th>
+              <th className="text-right font-normal py-1.5 px-1">Open Int.</th>
+              <th className="text-right font-normal py-1.5 px-1">IV</th>
+              <th className="text-right font-normal py-1.5 px-1">Delta</th>
+              <th className="text-right font-normal py-1.5 px-1">Gamma</th>
+              <th className="text-right font-normal py-1.5 px-1">Theta</th>
+              <th className="text-right font-normal py-1.5 px-1">Vega</th>
+              <th className="text-right font-normal py-1.5 px-1">Rho</th>
+            </tr>
+          </thead>
+          <tbody>
+            {expiryDates.map((expiryDate) => {
+              const rows = filteredGroupedByExpiry[expiryDate];
+              const groupHeader = rows[0]?.expiryGroupHeader || expiryDate;
+
+              return (
+                <React.Fragment key={expiryDate}>
+                  {/* Expiration Group Header */}
+                  <tr className="border-b border-border">
+                    <td
+                      colSpan={tableColSpan}
+                      className="py-2 px-1 font-medium text-sm"
+                    >
+                      {groupHeader}
+                    </td>
+                  </tr>
+                  {/* Data rows */}
+                  {rows.map((option, idx) => {
+                    const side = isCall ? option.call : option.put;
+                    return (
+                      <tr
+                        key={`${expiryDate}-${option.strike}-${idx}`}
+                        className="hover:bg-surface-hover cursor-pointer"
+                      >
+                        {/* Strike */}
+                        <td className="py-1 px-2 text-left tabular-nums">
+                          <Link
+                            href={`/stocks/${symbol}/options/${option.strike}`}
+                            className="text-[#0891b2] hover:underline font-medium"
+                          >
+                            {option.strike.toFixed(2)}
+                          </Link>
+                        </td>
+                        {/* Last */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatPrice(side.last)}
+                        </td>
+                        {/* Change */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {renderChange(side.change)}
+                        </td>
+                        {/* Bid */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatPrice(side.bid)}
+                        </td>
+                        {/* Ask */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatPrice(side.ask)}
+                        </td>
+                        {/* Volume */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatNumber(side.volume)}
+                        </td>
+                        {/* Open Interest */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatNumber(side.openInterest)}
+                        </td>
+                        {/* IV */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatIV(side.iv)}
+                        </td>
+                        {/* Delta */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatDelta(side.delta)}
+                        </td>
+                        {/* Gamma */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatGamma(side.gamma)}
+                        </td>
+                        {/* Theta */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatTheta(side.theta)}
+                        </td>
+                        {/* Vega */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatVega(side.vega)}
+                        </td>
+                        {/* Rho */}
+                        <td className={cn(
+                          "py-1 px-1 text-right tabular-nums",
+                          side.inTheMoney && bgColor
+                        )}>
+                          {formatRho(side.rho)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <div className="p-4">
@@ -268,7 +420,7 @@ export default function OptionsPage() {
       {/* Title */}
       <h1 className="text-xl font-semibold mb-4">{symbol} Option Chain</h1>
 
-      {/* Filter Controls - 5 Dropdowns */}
+      {/* Filter Controls - 4 Dropdowns */}
       <div className="flex flex-wrap items-end gap-4 mb-6">
         {/* 1. Expiration Dates */}
         <div>
@@ -345,258 +497,18 @@ export default function OptionsPage() {
 
       </div>
 
-      {/* Options Table - BORDERLESS Design */}
+      {/* Options Tables - Two Separate Tables */}
       {expiryDates.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           No options available for this period
         </div>
       ) : (
-        <div className="overflow-x-auto text-[13px]">
-          <table className="w-full">
-            {/* Calls / Puts header row */}
-            <thead>
-              <tr className="border-b border-border">
-                {(strategy === "all" || strategy === "calls") && (
-                  <th colSpan={callsColSpan} className="text-left font-medium py-2 px-1">
-                    Calls
-                  </th>
-                )}
-                <th className="py-2 px-1"></th>
-                {(strategy === "all" || strategy === "puts") && (
-                  <th colSpan={putsColSpan} className="text-left font-medium py-2 px-1">
-                    Puts
-                  </th>
-                )}
-              </tr>
-              {/* Column headers */}
-              <tr className="border-b border-border text-xs text-muted-foreground">
-                {(strategy === "all" || strategy === "calls") && (
-                  <>
-                    <th className="text-right font-normal py-1.5 px-1">Last</th>
-                    <th className="text-right font-normal py-1.5 px-1">Change</th>
-                    <th className="text-right font-normal py-1.5 px-1">Bid</th>
-                    <th className="text-right font-normal py-1.5 px-1">Ask</th>
-                    <th className="text-right font-normal py-1.5 px-1">Volume</th>
-                    <th className="text-right font-normal py-1.5 px-1">Open Int.</th>
-                    <th className="text-right font-normal py-1.5 px-1">IV</th>
-                    <th className="text-right font-normal py-1.5 px-1">Delta</th>
-                    <th className="text-right font-normal py-1.5 px-1">Gamma</th>
-                    <th className="text-right font-normal py-1.5 px-1">Theta</th>
-                    <th className="text-right font-normal py-1.5 px-1">Vega</th>
-                    <th className="text-right font-normal py-1.5 px-1">Rho</th>
-                  </>
-                )}
-                <th className="text-center font-normal py-1.5 px-2">Strike</th>
-                {(strategy === "all" || strategy === "puts") && (
-                  <>
-                    <th className="text-right font-normal py-1.5 px-1">Last</th>
-                    <th className="text-right font-normal py-1.5 px-1">Change</th>
-                    <th className="text-right font-normal py-1.5 px-1">Bid</th>
-                    <th className="text-right font-normal py-1.5 px-1">Ask</th>
-                    <th className="text-right font-normal py-1.5 px-1">Volume</th>
-                    <th className="text-right font-normal py-1.5 px-1">Open Int.</th>
-                    <th className="text-right font-normal py-1.5 px-1">IV</th>
-                    <th className="text-right font-normal py-1.5 px-1">Delta</th>
-                    <th className="text-right font-normal py-1.5 px-1">Gamma</th>
-                    <th className="text-right font-normal py-1.5 px-1">Theta</th>
-                    <th className="text-right font-normal py-1.5 px-1">Vega</th>
-                    <th className="text-right font-normal py-1.5 px-1">Rho</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {expiryDates.map((expiryDate) => {
-                const rows = filteredGroupedByExpiry[expiryDate];
-                const groupHeader = rows[0]?.expiryGroupHeader || expiryDate;
+        <div className="text-[13px]">
+          {/* Calls Table */}
+          {(strategy === "all" || strategy === "calls") && renderOptionsTable("calls")}
 
-                return (
-                  <React.Fragment key={expiryDate}>
-                    {/* Expiration Group Header */}
-                    <tr className="border-b border-border">
-                      <td
-                        colSpan={totalColSpan}
-                        className="py-2 px-1 font-medium text-sm"
-                      >
-                        {groupHeader}
-                      </td>
-                    </tr>
-                    {/* Data rows */}
-                    {rows.map((option, idx) => (
-                      <tr
-                        key={`${expiryDate}-${option.strike}-${idx}`}
-                        className="hover:bg-surface-hover cursor-pointer"
-                      >
-                        {/* Calls data */}
-                        {(strategy === "all" || strategy === "calls") && (
-                          <>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatPrice(option.call.last)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {renderChange(option.call.change)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatPrice(option.call.bid)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatPrice(option.call.ask)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatNumber(option.call.volume)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatNumber(option.call.openInterest)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatIV(option.call.iv)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatDelta(option.call.delta)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatGamma(option.call.gamma)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatTheta(option.call.theta)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatVega(option.call.vega)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.call.inTheMoney && "bg-blue-500/10"
-                            )}>
-                              {formatRho(option.call.rho)}
-                            </td>
-                          </>
-                        )}
-                        {/* Strike */}
-                        <td className="py-1 px-2 text-center tabular-nums">
-                          <Link
-                            href={`/stocks/${symbol}/options/${option.strike}`}
-                            className="text-[#0891b2] hover:underline font-medium"
-                          >
-                            {option.strike.toFixed(2)}
-                          </Link>
-                        </td>
-                        {/* Puts data */}
-                        {(strategy === "all" || strategy === "puts") && (
-                          <>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatPrice(option.put.last)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {renderChange(option.put.change)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatPrice(option.put.bid)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatPrice(option.put.ask)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatNumber(option.put.volume)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatNumber(option.put.openInterest)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatIV(option.put.iv)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatDelta(option.put.delta)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatGamma(option.put.gamma)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatTheta(option.put.theta)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatVega(option.put.vega)}
-                            </td>
-                            <td className={cn(
-                              "py-1 px-1 text-right tabular-nums",
-                              option.put.inTheMoney && "bg-pink-500/10"
-                            )}>
-                              {formatRho(option.put.rho)}
-                            </td>
-                          </>
-                        )}
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+          {/* Puts Table */}
+          {(strategy === "all" || strategy === "puts") && renderOptionsTable("puts")}
         </div>
       )}
 
