@@ -17,6 +17,13 @@ interface OptionSide {
   volume: number | null;
   openInterest: number | null;
   inTheMoney: boolean;
+  // Greeks and IV
+  iv: number | null;
+  delta: number | null;
+  gamma: number | null;
+  theta: number | null;
+  vega: number | null;
+  rho: number | null;
 }
 
 interface OptionRow {
@@ -192,6 +199,42 @@ export default function OptionsPage() {
     );
   };
 
+  // Format IV as percentage (e.g., 45.2%)
+  const formatIV = (value: number | null) => {
+    if (value === null) return "--";
+    return (value * 100).toFixed(1) + "%";
+  };
+
+  // Format Delta (4 decimal places)
+  const formatDelta = (value: number | null) => {
+    if (value === null) return "--";
+    return value.toFixed(4);
+  };
+
+  // Format Gamma (4 decimal places)
+  const formatGamma = (value: number | null) => {
+    if (value === null) return "--";
+    return value.toFixed(4);
+  };
+
+  // Format Theta (2 decimal places)
+  const formatTheta = (value: number | null) => {
+    if (value === null) return "--";
+    return value.toFixed(2);
+  };
+
+  // Format Vega (2 decimal places)
+  const formatVega = (value: number | null) => {
+    if (value === null) return "--";
+    return value.toFixed(2);
+  };
+
+  // Format Rho (2 decimal places)
+  const formatRho = (value: number | null) => {
+    if (value === null) return "--";
+    return value.toFixed(2);
+  };
+
   if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -211,8 +254,10 @@ export default function OptionsPage() {
   const expiryDates = Object.keys(filteredGroupedByExpiry).sort();
 
   // Calculate column counts for spanning
-  const callsColSpan = 7; // Exp Date, Last, Change, Bid, Ask, Volume, Open Int
-  const putsColSpan = 6;  // Last, Change, Bid, Ask, Volume, Open Int
+  // Exp Date, Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 13
+  const callsColSpan = 13;
+  // Last, Change, Bid, Ask, Volume, Open Int, IV, Delta, Gamma, Theta, Vega, Rho = 12
+  const putsColSpan = 12;
   const totalColSpan = strategy === "all" ? callsColSpan + 1 + putsColSpan : (strategy === "calls" ? callsColSpan + 1 : 1 + putsColSpan);
 
   return (
@@ -334,6 +379,12 @@ export default function OptionsPage() {
                     <th className="text-right font-normal py-1.5 px-1">Ask</th>
                     <th className="text-right font-normal py-1.5 px-1">Volume</th>
                     <th className="text-right font-normal py-1.5 px-1">Open Int.</th>
+                    <th className="text-right font-normal py-1.5 px-1">IV</th>
+                    <th className="text-right font-normal py-1.5 px-1">Delta</th>
+                    <th className="text-right font-normal py-1.5 px-1">Gamma</th>
+                    <th className="text-right font-normal py-1.5 px-1">Theta</th>
+                    <th className="text-right font-normal py-1.5 px-1">Vega</th>
+                    <th className="text-right font-normal py-1.5 px-1">Rho</th>
                   </>
                 )}
                 <th className="text-center font-normal py-1.5 px-2">Strike</th>
@@ -345,6 +396,12 @@ export default function OptionsPage() {
                     <th className="text-right font-normal py-1.5 px-1">Ask</th>
                     <th className="text-right font-normal py-1.5 px-1">Volume</th>
                     <th className="text-right font-normal py-1.5 px-1">Open Int.</th>
+                    <th className="text-right font-normal py-1.5 px-1">IV</th>
+                    <th className="text-right font-normal py-1.5 px-1">Delta</th>
+                    <th className="text-right font-normal py-1.5 px-1">Gamma</th>
+                    <th className="text-right font-normal py-1.5 px-1">Theta</th>
+                    <th className="text-right font-normal py-1.5 px-1">Vega</th>
+                    <th className="text-right font-normal py-1.5 px-1">Rho</th>
                   </>
                 )}
               </tr>
@@ -416,6 +473,42 @@ export default function OptionsPage() {
                             )}>
                               {formatNumber(option.call.openInterest)}
                             </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.call.inTheMoney && "bg-blue-500/10"
+                            )}>
+                              {formatIV(option.call.iv)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.call.inTheMoney && "bg-blue-500/10"
+                            )}>
+                              {formatDelta(option.call.delta)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.call.inTheMoney && "bg-blue-500/10"
+                            )}>
+                              {formatGamma(option.call.gamma)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.call.inTheMoney && "bg-blue-500/10"
+                            )}>
+                              {formatTheta(option.call.theta)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.call.inTheMoney && "bg-blue-500/10"
+                            )}>
+                              {formatVega(option.call.vega)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.call.inTheMoney && "bg-blue-500/10"
+                            )}>
+                              {formatRho(option.call.rho)}
+                            </td>
                           </>
                         )}
                         {/* Strike */}
@@ -465,6 +558,42 @@ export default function OptionsPage() {
                               option.put.inTheMoney && "bg-pink-500/10"
                             )}>
                               {formatNumber(option.put.openInterest)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.put.inTheMoney && "bg-pink-500/10"
+                            )}>
+                              {formatIV(option.put.iv)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.put.inTheMoney && "bg-pink-500/10"
+                            )}>
+                              {formatDelta(option.put.delta)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.put.inTheMoney && "bg-pink-500/10"
+                            )}>
+                              {formatGamma(option.put.gamma)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.put.inTheMoney && "bg-pink-500/10"
+                            )}>
+                              {formatTheta(option.put.theta)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.put.inTheMoney && "bg-pink-500/10"
+                            )}>
+                              {formatVega(option.put.vega)}
+                            </td>
+                            <td className={cn(
+                              "py-1 px-1 text-right tabular-nums",
+                              option.put.inTheMoney && "bg-pink-500/10"
+                            )}>
+                              {formatRho(option.put.rho)}
                             </td>
                           </>
                         )}

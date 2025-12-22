@@ -1,6 +1,100 @@
 import { NextRequest, NextResponse } from "next/server";
+import YahooFinance from "yahoo-finance2";
+import {
+  calculateCallGreeks,
+  calculatePutGreeks,
+  calculateDaysToExpiry,
+  daysToYears,
+  getRiskFreeRate,
+  GreeksResult,
+} from "@/lib/black-scholes";
 
 export const dynamic = "force-dynamic";
+
+// Create Yahoo Finance singleton
+const yahooFinance = new YahooFinance();
+
+// Cache for Yahoo options data (5 minutes)
+const yahooOptionsCache = new Map<string, { data: Map<string, { callIV: number | null; putIV: number | null }>; expires: number }>();
+const YAHOO_CACHE_TTL = 5 * 60 * 1000;
+
+// Cache for stock data (dividend yield)
+const stockDataCache = new Map<string, { price: number; dividendYield: number; expires: number }>();
+const STOCK_CACHE_TTL = 5 * 60 * 1000;
+
+interface YahooOption {
+  strike: number;
+  impliedVolatility?: number;
+}
+
+interface YahooOptionsChain {
+  options?: Array<{
+    calls?: YahooOption[];
+    puts?: YahooOption[];
+  }>;
+}
+
+/**
+ * Fetch IV data from Yahoo Finance for all options
+ * Returns a map keyed by strike price
+ */
+async function fetchYahooOptionsIV(symbol: string): Promise<Map<string, { callIV: number | null; putIV: number | null }>> {
+  const cacheKey = `yahoo_options_${symbol}`;
+  const cached = yahooOptionsCache.get(cacheKey);
+
+  if (cached && cached.expires > Date.now()) {
+    return cached.data;
+  }
+
+  try {
+    const optionsData = await yahooFinance.options(symbol) as YahooOptionsChain;
+    const ivMap = new Map<string, { callIV: number | null; putIV: number | null }>();
+
+    for (const expiration of optionsData.options || []) {
+      for (const call of expiration.calls || []) {
+        const key = String(call.strike);
+        const existing = ivMap.get(key) || { callIV: null, putIV: null };
+        existing.callIV = call.impliedVolatility ?? null;
+        ivMap.set(key, existing);
+      }
+      for (const put of expiration.puts || []) {
+        const key = String(put.strike);
+        const existing = ivMap.get(key) || { callIV: null, putIV: null };
+        existing.putIV = put.impliedVolatility ?? null;
+        ivMap.set(key, existing);
+      }
+    }
+
+    yahooOptionsCache.set(cacheKey, { data: ivMap, expires: Date.now() + YAHOO_CACHE_TTL });
+    return ivMap;
+  } catch (error) {
+    console.error(`Failed to fetch Yahoo options for ${symbol}:`, error);
+    return new Map();
+  }
+}
+
+/**
+ * Fetch stock price and dividend yield from Yahoo Finance
+ */
+async function fetchStockData(symbol: string): Promise<{ price: number; dividendYield: number }> {
+  const cached = stockDataCache.get(symbol);
+  if (cached && cached.expires > Date.now()) {
+    return { price: cached.price, dividendYield: cached.dividendYield };
+  }
+
+  try {
+    const quote = await yahooFinance.quote(symbol) as { regularMarketPrice?: number; dividendYield?: number };
+    const result = {
+      price: quote.regularMarketPrice || 0,
+      dividendYield: (quote.dividendYield || 0) / 100, // Convert percentage to decimal
+    };
+    stockDataCache.set(symbol, { ...result, expires: Date.now() + STOCK_CACHE_TTL });
+    return result;
+  } catch (error) {
+    console.error(`Failed to fetch stock data for ${symbol}:`, error);
+    return { price: 0, dividendYield: 0 };
+  }
+}
 
 interface OptionsParams {
   params: Promise<{ symbol: string }>;
@@ -185,6 +279,14 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
     // Sort by date
     expirationMonths.sort((a, b) => a.fromdate.localeCompare(b.fromdate));
 
+    // Fetch Yahoo IV data and stock data in parallel
+    const [yahooIVMap, stockData] = await Promise.all([
+      fetchYahooOptionsIV(upperSymbol),
+      fetchStockData(upperSymbol),
+    ]);
+
+    const riskFreeRate = getRiskFreeRate();
+
     // Parse rows into combined option chain data
     interface OptionSide {
       last: number | null;
@@ -194,6 +296,13 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
       volume: number | null;
       openInterest: number | null;
       inTheMoney: boolean;
+      // Greeks and IV
+      iv: number | null;
+      delta: number | null;
+      gamma: number | null;
+      theta: number | null;
+      vega: number | null;
+      rho: number | null;
     }
 
     interface OptionRow {
@@ -225,6 +334,39 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
       const expiryDate = expiryDates.full || "";
       const expiryDateShort = expiryDates.short || "";
 
+      // Get IV from Yahoo (keyed by strike)
+      const ivData = yahooIVMap.get(String(strike)) || { callIV: null, putIV: null };
+
+      // Calculate time to expiry
+      const daysToExpiry = calculateDaysToExpiry(expiryDate);
+      const timeToExpiry = daysToYears(daysToExpiry);
+
+      // Calculate Call Greeks
+      let callGreeks: GreeksResult | null = null;
+      if (ivData.callIV && stockData.price > 0 && timeToExpiry > 0) {
+        callGreeks = calculateCallGreeks({
+          stockPrice: stockData.price,
+          strikePrice: strike,
+          timeToExpiry,
+          riskFreeRate,
+          volatility: ivData.callIV,
+          dividendYield: stockData.dividendYield,
+        });
+      }
+
+      // Calculate Put Greeks
+      let putGreeks: GreeksResult | null = null;
+      if (ivData.putIV && stockData.price > 0 && timeToExpiry > 0) {
+        putGreeks = calculatePutGreeks({
+          stockPrice: stockData.price,
+          strikePrice: strike,
+          timeToExpiry,
+          riskFreeRate,
+          volatility: ivData.putIV,
+          dividendYield: stockData.dividendYield,
+        });
+      }
+
       const optionRow: OptionRow = {
         expiryDate,
         expiryDateShort,
@@ -238,6 +380,12 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
           volume: parseNumber(row.c_Volume),
           openInterest: parseNumber(row.c_Openinterest),
           inTheMoney: row.c_colour === true,
+          iv: ivData.callIV,
+          delta: callGreeks?.delta ?? null,
+          gamma: callGreeks?.gamma ?? null,
+          theta: callGreeks?.theta ?? null,
+          vega: callGreeks?.vega ?? null,
+          rho: callGreeks?.rho ?? null,
         },
         put: {
           last: parseNumber(row.p_Last),
@@ -247,6 +395,12 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
           volume: parseNumber(row.p_Volume),
           openInterest: parseNumber(row.p_Openinterest),
           inTheMoney: row.p_colour === true,
+          iv: ivData.putIV,
+          delta: putGreeks?.delta ?? null,
+          gamma: putGreeks?.gamma ?? null,
+          theta: putGreeks?.theta ?? null,
+          vega: putGreeks?.vega ?? null,
+          rho: putGreeks?.rho ?? null,
         },
       };
 

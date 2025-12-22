@@ -163,7 +163,9 @@
       "Bash(mcp__playwright__browser_navigate http://localhost:3000/stocks/AAPL)",
       "Bash(docker compose:*)",
       "Bash(npx:*)",
-      "WebFetch(domain:api.thefiscalwire.com)"
+      "WebFetch(domain:api.thefiscalwire.com)",
+      "WebFetch(domain:scribbler.live)",
+      "WebFetch(domain:www.macroption.com)"
     ],
     "deny": [],
     "ask": []
