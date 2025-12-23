@@ -235,12 +235,21 @@ export default function OptionsPage() {
     return value.toFixed(2);
   };
 
-  // Format ROI % (mid price / stock price * 100)
-  const formatROI = (bid: number | null, ask: number | null) => {
+  // Format ROI % (mid price / stock price * 100, fallback to last price if bid/ask unavailable)
+  const formatROI = (bid: number | null, ask: number | null, last: number | null) => {
     const stockPrice = data?.quote?.price;
-    if (bid === null || ask === null || !stockPrice) return "--";
-    const midPrice = (bid + ask) / 2;
-    const roi = (midPrice / stockPrice) * 100;
+    if (!stockPrice) return "--";
+
+    // Try mid price first (bid + ask), fallback to last price
+    let optionPrice: number | null = null;
+    if (bid !== null && ask !== null) {
+      optionPrice = (bid + ask) / 2;
+    } else if (last !== null) {
+      optionPrice = last;
+    }
+
+    if (optionPrice === null) return "--";
+    const roi = (optionPrice / stockPrice) * 100;
     return roi.toFixed(1) + "%";
   };
 
@@ -359,7 +368,7 @@ export default function OptionsPage() {
                           "py-1 px-1 text-right tabular-nums",
                           side.inTheMoney && bgColor
                         )}>
-                          {formatROI(side.bid, side.ask)}
+                          {formatROI(side.bid, side.ask, side.last)}
                         </td>
                         {/* Volume */}
                         <td className={cn(
