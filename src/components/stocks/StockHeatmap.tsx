@@ -50,30 +50,47 @@ export function StockHeatmap() {
   const [dataType, setDataType] = useState<string>("d1");
   const [stocks, setStocks] = useState<HeatmapStock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [highlightedStock, setHighlightedStock] = useState<string | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-  // Fetch data
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  // Fetch data - supports background refresh without full loading state
+  const fetchData = useCallback(async (isBackground = false) => {
+    if (!isBackground) {
+      setLoading(true);
+    } else {
+      setIsUpdating(true);
+    }
     setError(null);
     try {
       const response = await fetch(`/api/stocks/heatmap?index=${index}&dataType=${dataType}`);
       if (!response.ok) throw new Error("Failed to fetch heatmap data");
       const data = await response.json();
       setStocks(data.stocks || []);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching heatmap:", err);
-      setError("Failed to load heatmap data. Please try again.");
+      if (!isBackground) {
+        setError("Failed to load heatmap data. Please try again.");
+      }
     } finally {
       setLoading(false);
+      setIsUpdating(false);
     }
   }, [index, dataType]);
 
+  // Initial fetch and polling interval (30 seconds)
   useEffect(() => {
     fetchData();
+
+    const interval = setInterval(() => {
+      fetchData(true); // Background refresh
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   // Handle fullscreen toggle
@@ -185,6 +202,18 @@ export function StockHeatmap() {
           </button>
           <div className="flex items-center gap-2">
             <span className="text-xs sm:text-sm font-medium" style={{ color: 'var(--foreground)' }}>{indexName} Map</span>
+            {/* Live indicator with pulse */}
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-[10px] sm:text-xs text-green-500 font-medium">Live</span>
+            </div>
+            {/* Updating indicator */}
+            {isUpdating && (
+              <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+            )}
           </div>
           <span className="hidden lg:inline text-xs" style={{ color: 'var(--heatmap-help-text)' }}>
             {indexName} index stocks categorized by sectors and industries. Size represents market cap.
@@ -318,7 +347,7 @@ export function StockHeatmap() {
               <div className="text-center">
                 <p style={{ color: 'var(--negative)' }} className="mb-4">{error}</p>
                 <button
-                  onClick={fetchData}
+                  onClick={() => fetchData()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Try Again
@@ -360,19 +389,27 @@ export function StockHeatmap() {
             Pinch to zoom. Tap a ticker for details.
           </div>
 
-          {/* Color legend */}
-          <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap">
-            {colorLegend.map((item, i) => (
-              <div key={i} className="flex items-center gap-0.5">
-                <div
-                  className="w-5 h-3 sm:w-8 sm:h-4 rounded-sm"
-                  style={{ backgroundColor: item.color }}
-                />
-                {(i === 0 || i === colorLegend.length - 1 || i === Math.floor(colorLegend.length / 2)) && (
-                  <span className="text-[10px] sm:text-xs ml-0.5" style={{ color: 'var(--heatmap-sector-label)' }}>{item.label}</span>
-                )}
-              </div>
-            ))}
+          {/* Color legend and last updated */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap">
+              {colorLegend.map((item, i) => (
+                <div key={i} className="flex items-center gap-0.5">
+                  <div
+                    className="w-5 h-3 sm:w-8 sm:h-4 rounded-sm"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  {(i === 0 || i === colorLegend.length - 1 || i === Math.floor(colorLegend.length / 2)) && (
+                    <span className="text-[10px] sm:text-xs ml-0.5" style={{ color: 'var(--heatmap-sector-label)' }}>{item.label}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Last updated timestamp */}
+            {lastUpdated && (
+              <span className="text-[10px] sm:text-xs whitespace-nowrap" style={{ color: 'var(--heatmap-help-text)' }}>
+                Updated {lastUpdated.toLocaleTimeString()}
+              </span>
+            )}
           </div>
         </div>
       </div>
