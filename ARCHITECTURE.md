@@ -1,0 +1,244 @@
+# The Fiscal Wire - Architecture & Deployment Guide
+
+## Overview
+**The Fiscal Wire** (thefiscalwire.com) is a financial news website built with Next.js, providing real-time market data, news articles, and stock analysis.
+
+---
+
+## Tech Stack
+
+### Frontend
+- **Framework**: Next.js 16 (App Router)
+- **UI**: React 19, Tailwind CSS, Radix UI, shadcn/ui components
+- **Charts**: Recharts, Lightweight Charts (TradingView)
+- **State**: React hooks (no external state management)
+- **Auth**: NextAuth v5 (beta)
+
+### Backend
+- **API**: Next.js API Routes (`/src/app/api/`)
+- **Database**: PostgreSQL (Railway hosted)
+- **ORM**: Prisma 6
+- **File Uploads**: UploadThing
+
+### External APIs
+- **Nasdaq API**: Stock quotes, options chains, market data
+- **NewsData.io**: News article imports
+- **Resend**: Email delivery
+
+---
+
+## Project Structure
+
+```
+newswebbyclaude/
+├── src/
+│   ├── app/                    # Next.js App Router pages
+│   │   ├── api/               # API routes
+│   │   │   ├── auth/          # NextAuth endpoints
+│   │   │   ├── stocks/        # Stock data APIs
+│   │   │   │   └── [symbol]/  # Per-stock endpoints
+│   │   │   │       ├── route.ts        # Stock summary
+│   │   │   │       ├── options/        # Options chain
+│   │   │   │       ├── chart/          # Chart data
+│   │   │   │       └── ...
+│   │   │   ├── news/          # News APIs
+│   │   │   └── cron/          # Scheduled jobs
+│   │   ├── stocks/            # Stock pages
+│   │   │   └── [symbol]/      # Individual stock pages
+│   │   │       ├── page.tsx           # Summary
+│   │   │       ├── options/page.tsx   # Options chain
+│   │   │       ├── chart/page.tsx     # Chart
+│   │   │       └── ...
+│   │   ├── markets/           # Market overview pages
+│   │   ├── admin/             # Admin dashboard
+│   │   ├── article/           # Article pages
+│   │   └── category/          # Category pages
+│   ├── components/            # React components
+│   │   ├── ui/               # shadcn/ui base components
+│   │   ├── stocks/           # Stock-related components
+│   │   ├── article/          # Article components
+│   │   ├── home/             # Homepage components
+│   │   ├── layout/           # Layout components
+│   │   └── admin/            # Admin components
+│   ├── lib/                   # Utility functions
+│   │   ├── prisma.ts         # Prisma client
+│   │   ├── auth.ts           # Auth config
+│   │   └── utils.ts          # Helpers
+│   ├── types/                 # TypeScript types
+│   └── data/                  # Static data files
+├── prisma/
+│   ├── schema.prisma         # Database schema
+│   ├── migrations/           # Database migrations
+│   └── seed.ts               # Seed script
+├── scripts/                   # Utility scripts
+│   └── import-news.ts        # News import script
+├── public/                    # Static assets
+│   └── uploads/              # Uploaded files
+└── package.json
+```
+
+---
+
+## Database Schema (Key Models)
+
+```prisma
+# News & Content
+- Article        # News articles with JSON content blocks
+- Author         # Article authors
+- Category       # Article categories (Markets/Business)
+- Tag            # Article tags
+
+# Users & Auth
+- User           # User accounts
+- Account        # OAuth accounts
+- Session        # User sessions
+
+# Site Configuration
+- PageDefinition # Page layout definitions
+- Zone           # Content zones for layouts
+```
+
+---
+
+## Deployment
+
+### Hosting: Coolify (Self-hosted PaaS)
+- **Server**: Proxmox VM running Ubuntu 24.04
+- **Platform**: Coolify (Docker-based deployment)
+- **SSH**: `ssh fiscalwire` (configured in ~/.ssh/config)
+- **Location**: `/data/coolify/`
+
+### Database: Railway
+- **Provider**: Railway PostgreSQL
+- **Connection**: Via `DATABASE_URL` environment variable
+- **Migrations**: Run with `npx prisma migrate deploy`
+
+### Deployment Flow
+1. Push code to GitHub (`rabinovich101/thefiscalwire`)
+2. Coolify detects push and triggers build
+3. Docker image built with `npm run build`
+4. Container deployed and restarted
+5. Prisma migrations run automatically
+
+### Server Access
+```bash
+# SSH to server
+ssh fiscalwire
+
+# Note: User 'ooo' needs to be added to docker group to run docker commands
+# Run on server: sudo usermod -aG docker ooo && newgrp docker
+```
+
+---
+
+## Environment Variables
+
+```env
+# Database
+DATABASE_URL="postgresql://..."
+
+# Auth
+NEXTAUTH_SECRET="..."
+NEXTAUTH_URL="https://thefiscalwire.com"
+
+# External APIs
+NEWSDATA_API_KEY="..."
+RESEND_API_KEY="..."
+
+# File Uploads
+UPLOADTHING_SECRET="..."
+UPLOADTHING_APP_ID="..."
+```
+
+---
+
+## Key Features
+
+### Stock Pages (`/stocks/[symbol]`)
+- **Summary**: Price, stats, company info
+- **Options**: Full options chain with Greeks (Nasdaq API)
+- **Chart**: Interactive TradingView-style charts
+- **News**: Stock-specific news
+- **Financials**: Income, balance sheet, cash flow
+- **Analysis**: Analyst ratings and price targets
+
+### Markets (`/markets`)
+- Market overview and indices
+- Sector heatmaps
+- Market movers
+
+### Admin (`/admin`)
+- Article management
+- Category/tag management
+- User management
+- Site configuration
+
+---
+
+## Scripts
+
+```bash
+# Development
+npm run dev              # Start dev server (localhost:3000)
+npm run build            # Production build
+npm run start            # Start production server
+
+# Database
+npm run db:migrate       # Run migrations
+npm run db:seed          # Seed database
+npm run db:studio        # Open Prisma Studio
+
+# Testing
+npm test                 # Run tests (Vitest)
+
+# News Import
+npm run import-news      # Import articles from NewsData.io
+```
+
+---
+
+## API Routes
+
+### Stock APIs (`/api/stocks/[symbol]/`)
+| Endpoint | Description |
+|----------|-------------|
+| `/api/stocks/[symbol]` | Stock summary & quote |
+| `/api/stocks/[symbol]/options` | Options chain |
+| `/api/stocks/[symbol]/chart` | OHLC chart data |
+| `/api/stocks/[symbol]/statistics` | Key statistics |
+| `/api/stocks/[symbol]/financials` | Financial statements |
+| `/api/stocks/[symbol]/analysis` | Analyst ratings |
+| `/api/stocks/[symbol]/holders` | Institutional holders |
+| `/api/stocks/[symbol]/short-interest` | Short interest data |
+
+### Other APIs
+| Endpoint | Description |
+|----------|-------------|
+| `/api/auth/*` | NextAuth endpoints |
+| `/api/news/*` | News article endpoints |
+| `/api/cron/import-news` | Scheduled news import |
+
+---
+
+## Troubleshooting
+
+### Deployment not updating
+1. Check Coolify dashboard for build status
+2. Verify GitHub webhook is configured
+3. Check Docker logs: `docker logs <container>`
+
+### Database issues
+1. Check Railway dashboard for DB status
+2. Run migrations: `npx prisma migrate deploy`
+3. Check connection: `npx prisma db pull`
+
+### Options showing limited strikes
+- Ensure `money` parameter is passed to Nasdaq API
+- `money=all` shows all strikes
+- Default `money=at` (Near the Money) shows only ~3 strikes
+
+---
+
+## Contact
+- **Repository**: https://github.com/rabinovich101/thefiscalwire
+- **Domain**: https://thefiscalwire.com
