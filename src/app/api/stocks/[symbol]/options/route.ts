@@ -100,6 +100,82 @@ interface OptionsParams {
   params: Promise<{ symbol: string }>;
 }
 
+const NASDAQ_HEADERS = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  "Accept": "application/json",
+};
+
+/**
+ * Fetch all options from Nasdaq API with pagination
+ * Returns all rows and the first response's metadata (filters, lastTrade, etc.)
+ */
+async function fetchAllNasdaqOptions(
+  symbol: string,
+  fromDateParam: string | null,
+  excodeParam: string | null,
+  typeParam: string | null,
+  moneyParam: string | null
+): Promise<{ rows: NasdaqOptionRow[]; firstResponse: NasdaqOptionsResponse }> {
+  const LIMIT = 5000;
+  let offset = 0;
+  let allRows: NasdaqOptionRow[] = [];
+  let firstResponse: NasdaqOptionsResponse | null = null;
+  let totalRecord = 0;
+
+  // Map our moneyness values to Nasdaq API values
+  const moneyMap: Record<string, string> = {
+    'near': 'at',
+    'itm': 'in',
+    'otm': 'out',
+    'all': 'all'
+  };
+  const nasdaqMoney = moneyMap[moneyParam || 'all'] || 'all';
+
+  // Build base URL params
+  let baseUrl = `https://api.nasdaq.com/api/quote/${symbol}/option-chain?assetclass=stocks&limit=${LIMIT}`;
+  if (fromDateParam) {
+    baseUrl += `&fromdate=${fromDateParam}`;
+  } else {
+    baseUrl += `&fromdate=all`;
+  }
+  if (excodeParam) {
+    baseUrl += `&excode=${excodeParam}`;
+  }
+  if (typeParam) {
+    baseUrl += `&type=${typeParam}`;
+  }
+  // Add moneyness filter
+  baseUrl += `&money=${nasdaqMoney}`;
+
+  do {
+    const url = offset === 0 ? baseUrl : `${baseUrl}&offset=${offset}`;
+
+    const response = await fetch(url, { headers: NASDAQ_HEADERS });
+    if (!response.ok) {
+      throw new Error(`Nasdaq API returned ${response.status}`);
+    }
+
+    const data: NasdaqOptionsResponse = await response.json();
+
+    if (data.status?.rCode !== 200) {
+      throw new Error("Nasdaq API error");
+    }
+
+    // Save first response for metadata
+    if (!firstResponse) {
+      firstResponse = data;
+      totalRecord = data.data?.totalRecord || 0;
+    }
+
+    const rows = data.data?.table?.rows || [];
+    allRows = [...allRows, ...rows];
+
+    offset += LIMIT;
+  } while (offset < totalRecord);
+
+  return { rows: allRows, firstResponse: firstResponse! };
+}
+
 interface NasdaqOptionRow {
   expirygroup?: string;
   expiryDate?: string | null;
@@ -210,42 +286,16 @@ export async function GET(request: NextRequest, { params }: OptionsParams) {
     const fromDateParam = searchParams.get("fromdate"); // Format: "2026-01-02" for specific date
     const excodeParam = searchParams.get("excode"); // e.g., "oprac" (Composite)
     const typeParam = searchParams.get("type"); // e.g., "all", "week", "stad"
+    const moneyParam = searchParams.get("money"); // near, itm, otm, all
 
-    // Build Nasdaq API URL
-    // Use fromdate=all for initial load to get all available expiration dates
-    // Otherwise use the specific date requested
-    let apiUrl = `https://api.nasdaq.com/api/quote/${upperSymbol}/option-chain?assetclass=stocks&limit=5000`;
-    if (fromDateParam) {
-      apiUrl += `&fromdate=${fromDateParam}`;
-    } else {
-      // Request all dates for initial load to extract all unique expiration dates
-      apiUrl += `&fromdate=all`;
-    }
-    if (excodeParam) {
-      apiUrl += `&excode=${excodeParam}`;
-    }
-    if (typeParam) {
-      apiUrl += `&type=${typeParam}`;
-    }
-
-    const response = await fetch(apiUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "application/json",
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Nasdaq API returned ${response.status}`);
-    }
-
-    const data: NasdaqOptionsResponse = await response.json();
-
-    if (data.status?.rCode !== 200) {
-      throw new Error("Nasdaq API error");
-    }
-
-    const rows = data.data?.table?.rows || [];
+    // Fetch all options with pagination
+    const { rows, firstResponse: data } = await fetchAllNasdaqOptions(
+      upperSymbol,
+      fromDateParam,
+      excodeParam,
+      typeParam,
+      moneyParam
+    );
 
     // Extract all individual expiration dates from the expirygroup headers in rows
     // NOT from the filter list (which only gives month-level ranges)

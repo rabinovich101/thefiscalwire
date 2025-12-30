@@ -76,11 +76,12 @@ export default function OptionsPage() {
   const [moneyness, setMoneyness] = useState<Moneyness>("near");
 
   // Initial fetch to get expiration months list and filter options
+  // Use money=all to get all expiration dates
   useEffect(() => {
     const fetchInitial = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/stocks/${symbol}/options`);
+        const res = await fetch(`/api/stocks/${symbol}/options?money=all`);
         const json = await res.json();
         if (!json.error) {
           setData(json);
@@ -111,7 +112,7 @@ export default function OptionsPage() {
     const fetchOptions = async () => {
       setIsLoading(true);
       try {
-        let url = `/api/stocks/${symbol}/options?fromdate=${selectedFromDate}`;
+        let url = `/api/stocks/${symbol}/options?fromdate=${selectedFromDate}&money=${moneyness}`;
         if (selectedExchange) {
           url += `&excode=${selectedExchange}`;
         }
@@ -128,7 +129,7 @@ export default function OptionsPage() {
     };
 
     fetchOptions();
-  }, [symbol, selectedFromDate, selectedExchange, expirationMonths.length]);
+  }, [symbol, selectedFromDate, selectedExchange, moneyness, expirationMonths.length]);
 
   // Group options by expiry date
   const groupedByExpiry = useMemo(() => {
@@ -142,38 +143,9 @@ export default function OptionsPage() {
     return groups;
   }, [data?.options]);
 
-  // Filter by moneyness
-  const filteredGroupedByExpiry = useMemo(() => {
-    if (moneyness === "all") return groupedByExpiry;
-
-    const quotePrice = data?.quote?.price;
-    if (!quotePrice) return groupedByExpiry;
-
-    const filtered: Record<string, OptionRow[]> = {};
-
-    for (const [date, rows] of Object.entries(groupedByExpiry)) {
-      const filteredRows = rows.filter(row => {
-        if (moneyness === "near") {
-          // Near the money: within 10% of current price
-          const pctDiff = Math.abs(row.strike - quotePrice) / quotePrice;
-          return pctDiff <= 0.10;
-        } else if (moneyness === "itm") {
-          // In the money: call strike < price, put strike > price
-          return row.call.inTheMoney || row.put.inTheMoney;
-        } else if (moneyness === "otm") {
-          // Out of the money
-          return !row.call.inTheMoney && !row.put.inTheMoney;
-        }
-        return true;
-      });
-
-      if (filteredRows.length > 0) {
-        filtered[date] = filteredRows;
-      }
-    }
-
-    return filtered;
-  }, [groupedByExpiry, moneyness, data?.quote?.price]);
+  // Moneyness filtering is now handled by the API via the money parameter
+  // Just use groupedByExpiry directly
+  const filteredGroupedByExpiry = groupedByExpiry;
 
   // Format price - NO commas, just number with 2 decimals
   const formatPrice = (value: number | null) => {
