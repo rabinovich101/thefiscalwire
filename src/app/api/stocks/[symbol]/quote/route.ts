@@ -3,9 +3,109 @@ import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance();
 
-// Simple in-memory cache to reduce Yahoo Finance API calls
+// Simple in-memory cache to reduce API calls
 const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 60 seconds
+
+// Nasdaq API fallback when Yahoo Finance is rate limited
+async function fetchFromNasdaq(symbol: string) {
+  const res = await fetch(
+    `https://api.nasdaq.com/api/quote/${symbol}/info?assetclass=stocks`,
+    { headers: { "User-Agent": "Mozilla/5.0 (compatible; FiscalWire/1.0)" } }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Nasdaq API returned ${res.status}`);
+  }
+
+  const data = await res.json();
+  if (!data.data?.primaryData) {
+    throw new Error("No data from Nasdaq API");
+  }
+
+  const pd = data.data.primaryData;
+  const ks = data.data.keyStats || {};
+
+  // Parse price values (remove $ and commas)
+  const parsePrice = (val: string | null) => {
+    if (!val) return 0;
+    return parseFloat(val.replace(/[$,]/g, '')) || 0;
+  };
+
+  // Parse 52-week range
+  let fiftyTwoWeekLow = 0, fiftyTwoWeekHigh = 0;
+  if (ks.fiftyTwoWeekHighLow?.value) {
+    const [low, high] = ks.fiftyTwoWeekHighLow.value.split(' - ').map(parsePrice);
+    fiftyTwoWeekLow = low;
+    fiftyTwoWeekHigh = high;
+  }
+
+  // Parse day range
+  let dayLow = 0, dayHigh = 0;
+  if (ks.dayrange?.value) {
+    const [low, high] = ks.dayrange.value.split(' - ').map(parsePrice);
+    dayLow = low;
+    dayHigh = high;
+  }
+
+  const price = parsePrice(pd.lastSalePrice);
+  const change = parseFloat(pd.netChange) || 0;
+  const changePercent = parseFloat((pd.percentageChange || "0").replace('%', '')) / 100;
+
+  return {
+    symbol: symbol.toUpperCase(),
+    name: data.data.companyName || symbol,
+    exchange: data.data.exchange || "NASDAQ",
+    currency: "USD",
+    type: data.data.stockType || "EQUITY",
+    price,
+    previousClose: price - change,
+    open: dayLow || price,
+    dayHigh: dayHigh || price,
+    dayLow: dayLow || price,
+    change,
+    changePercent,
+    volume: parseInt((pd.volume || "0").replace(/,/g, '')) || 0,
+    avgVolume: 0,
+    avgVolume10Day: 0,
+    bid: parsePrice(pd.bidPrice),
+    ask: parsePrice(pd.askPrice),
+    bidSize: parseInt(pd.bidSize) || null,
+    askSize: parseInt(pd.askSize) || null,
+    fiftyTwoWeekHigh,
+    fiftyTwoWeekLow,
+    fiftyDayAverage: 0,
+    twoHundredDayAverage: 0,
+    marketCap: 0,
+    enterpriseValue: 0,
+    // Most fields unavailable from Nasdaq basic API - set to null
+    trailingPE: null, forwardPE: null, pegRatio: null, priceToBook: null, priceToSales: null,
+    eps: null, forwardEps: null, bookValue: null,
+    dividendRate: null, dividendYield: null, exDividendDate: null, payoutRatio: null,
+    revenue: null, revenuePerShare: null, grossProfit: null, ebitda: null, netIncome: null,
+    profitMargin: null, operatingMargin: null, returnOnEquity: null, returnOnAssets: null,
+    totalCash: null, totalDebt: null, debtToEquity: null, currentRatio: null,
+    sharesOutstanding: null, impliedSharesOutstanding: null, floatShares: null,
+    sharesShort: null, shortRatio: null, shortPercentFloat: null, shortPercentSharesOut: null,
+    sharesShortPriorMonth: null, heldPercentInsiders: null, heldPercentInstitutions: null,
+    beta: null, fiftyTwoWeekChange: null, sandP52WeekChange: null,
+    enterpriseToRevenue: null, enterpriseToEbitda: null,
+    earningsQuarterlyGrowth: null, revenueGrowth: null,
+    operatingCashflow: null, freeCashflow: null, totalCashPerShare: null,
+    lastFiscalYearEnd: null, mostRecentQuarter: null,
+    trailingAnnualDividendRate: null, trailingAnnualDividendYield: null,
+    fiveYearAvgDividendYield: null, dividendDate: null,
+    lastSplitFactor: null, lastSplitDate: null,
+    targetMeanPrice: null, targetHighPrice: null, targetLowPrice: null,
+    numberOfAnalystOpinions: null, recommendationKey: null, earningsDate: null,
+    sector: null, industry: null, website: null, description: null, employees: null, headquarters: null,
+    marketState: data.data.marketStatus === "Open" ? "REGULAR" : "CLOSED",
+    preMarketPrice: null, preMarketChange: null, preMarketChangePercent: null,
+    postMarketPrice: null, postMarketChange: null, postMarketChangePercent: null,
+    regularMarketTime: null,
+    _source: "nasdaq", // Mark data source for debugging
+  };
+}
 
 function getCached(symbol: string) {
   const cached = cache.get(symbol);
@@ -36,6 +136,17 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
   try {
     const { symbol } = await params;
     const upperSymbol = symbol.toUpperCase();
+
+    // Special debug endpoint - return server IP
+    if (upperSymbol === "DEBUG-IP") {
+      try {
+        const ipResponse = await fetch("https://api.ipify.org?format=json");
+        const ipData = await ipResponse.json();
+        return NextResponse.json({ serverIP: ipData.ip, timestamp: new Date().toISOString() });
+      } catch {
+        return NextResponse.json({ error: "Failed to get IP" }, { status: 500 });
+      }
+    }
 
     // Check cache first
     const cached = getCached(upperSymbol);
@@ -261,11 +372,30 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
         "X-Cache": "MISS",
       },
     });
-  } catch (error) {
-    console.error("Stock quote error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch stock data" },
-      { status: 500 }
-    );
+  } catch (yahooError) {
+    console.error("Yahoo Finance error, trying Nasdaq fallback:", yahooError);
+
+    // Try Nasdaq API as fallback
+    try {
+      const { symbol } = await params;
+      const upperSymbol = symbol.toUpperCase();
+      const nasdaqData = await fetchFromNasdaq(upperSymbol);
+
+      // Cache the Nasdaq result
+      setCache(upperSymbol, nasdaqData);
+
+      return NextResponse.json(nasdaqData, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "X-Source": "nasdaq-fallback",
+        },
+      });
+    } catch (nasdaqError) {
+      console.error("Nasdaq fallback also failed:", nasdaqError);
+      return NextResponse.json(
+        { error: "Failed to fetch stock data from all sources" },
+        { status: 500 }
+      );
+    }
   }
 }
