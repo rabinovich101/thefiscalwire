@@ -3,6 +3,29 @@ import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance();
 
+// Simple in-memory cache to reduce Yahoo Finance API calls
+const cache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL = 60 * 1000; // 60 seconds
+
+function getCached(symbol: string) {
+  const cached = cache.get(symbol);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCache(symbol: string, data: unknown) {
+  cache.set(symbol, { data, timestamp: Date.now() });
+  // Clean old entries if cache gets too large
+  if (cache.size > 100) {
+    const oldest = [...cache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp);
+    for (let i = 0; i < 50; i++) {
+      cache.delete(oldest[i][0]);
+    }
+  }
+}
+
 export const dynamic = "force-dynamic";
 
 interface QuoteParams {
@@ -13,6 +36,17 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
   try {
     const { symbol } = await params;
     const upperSymbol = symbol.toUpperCase();
+
+    // Check cache first
+    const cached = getCached(upperSymbol);
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "X-Cache": "HIT",
+        },
+      });
+    }
 
     // Fetch comprehensive stock data using quoteSummary
     const result = await yahooFinance.quoteSummary(upperSymbol, {
@@ -218,9 +252,13 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
       regularMarketTime: price?.regularMarketTime || null,
     };
 
+    // Cache the result
+    setCache(upperSymbol, stockData);
+
     return NextResponse.json(stockData, {
       headers: {
         "Cache-Control": "no-cache, no-store, must-revalidate",
+        "X-Cache": "MISS",
       },
     });
   } catch (error) {
