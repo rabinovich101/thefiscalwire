@@ -1,12 +1,37 @@
 import { notFound } from "next/navigation";
 import { StockChartSection, StockStatistics, StockNews, StockStatsTable } from "@/components/stocks";
 import { Globe, ExternalLink } from "lucide-react";
-import { getStockData } from "@/lib/stock-data";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ symbol: string }>;
+}
+
+async function getStockData(symbol: string) {
+  try {
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl && process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (!baseUrl && process.env.RAILWAY_PUBLIC_DOMAIN) {
+      baseUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    } else if (!baseUrl) {
+      baseUrl = "http://localhost:3000";
+    }
+
+    const res = await fetch(`${baseUrl}/api/stocks/${symbol}/quote`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error("Failed to fetch stock data:", error);
+    return null;
+  }
 }
 
 export default async function StockSummaryPage({ params }: PageProps) {

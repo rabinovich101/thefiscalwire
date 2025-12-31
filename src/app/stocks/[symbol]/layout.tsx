@@ -7,11 +7,36 @@ import { Footer } from "@/components/layout/Footer";
 import { StockSidebar } from "@/components/stocks/StockSidebar";
 import { StockMobileTabs } from "@/components/stocks/StockMobileTabs";
 import { cn } from "@/lib/utils";
-import { getStockData } from "@/lib/stock-data";
 
 interface LayoutProps {
   children: React.ReactNode;
   params: Promise<{ symbol: string }>;
+}
+
+async function getStockData(symbol: string) {
+  try {
+    let baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl && process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (!baseUrl && process.env.RAILWAY_PUBLIC_DOMAIN) {
+      baseUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    } else if (!baseUrl) {
+      baseUrl = "http://localhost:3000";
+    }
+
+    const res = await fetch(`${baseUrl}/api/stocks/${symbol}/quote`, {
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      return null;
+    }
+
+    return res.json();
+  } catch (error) {
+    console.error("Failed to fetch stock data:", error);
+    return null;
+  }
 }
 
 export async function generateMetadata({ params }: LayoutProps): Promise<Metadata> {
