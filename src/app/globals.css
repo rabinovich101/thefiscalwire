@@ -310,15 +310,6 @@
     animation: ticker 30s linear infinite;
   }
 
-  @keyframes ticker {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
-
   /* Card hover effect - dark mode */
   .card-hover {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -343,5 +334,15 @@
     100% {
       transform: translateX(100%);
     }
+  }
+}
+
+/* Keyframes must be outside @layer for proper CSS scoping in Tailwind v4 */
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
