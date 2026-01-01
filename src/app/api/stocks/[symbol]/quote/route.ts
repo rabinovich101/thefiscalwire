@@ -7,6 +7,10 @@ const yahooFinance = new YahooFinance();
 const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 60 seconds
 
+// Finviz cache for scraped statistics
+const finvizCache = new Map<string, { data: Record<string, unknown>; timestamp: number }>();
+const FINVIZ_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Nasdaq API fallback when Yahoo Finance is rate limited
 async function fetchFromNasdaq(symbol: string) {
   const res = await fetch(
@@ -105,6 +109,136 @@ async function fetchFromNasdaq(symbol: string) {
     regularMarketTime: null,
     _source: "nasdaq", // Mark data source for debugging
   };
+}
+
+// Finviz scraping for detailed statistics when Yahoo fails
+async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unknown>> {
+  // Check cache first
+  const cached = finvizCache.get(symbol);
+  if (cached && Date.now() - cached.timestamp < FINVIZ_CACHE_TTL) {
+    return cached.data;
+  }
+
+  const res = await fetch(`https://finviz.com/quote.ashx?t=${symbol}&ty=c&ta=1&p=d`, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.5",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Finviz returned ${res.status}`);
+  }
+
+  const html = await res.text();
+
+  // Parse values from the Finviz snapshot table
+  const parseValue = (label: string): string | null => {
+    // Match pattern: <td ...>Label</td><td ...><b>Value</b></td>
+    const regex = new RegExp(`<td[^>]*>${label}</td>\\s*<td[^>]*><b[^>]*>([^<]+)</b></td>`, 'i');
+    const match = html.match(regex);
+    return match ? match[1].trim() : null;
+  };
+
+  const parseNumber = (val: string | null): number | null => {
+    if (!val || val === '-') return null;
+    const cleaned = val.replace(/[$,%]/g, '').replace(/[KMB]/g, (m) => {
+      return m === 'K' ? 'e3' : m === 'M' ? 'e6' : 'e9';
+    });
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : num;
+  };
+
+  const parsePercent = (val: string | null): number | null => {
+    if (!val || val === '-') return null;
+    const num = parseFloat(val.replace('%', ''));
+    return isNaN(num) ? null : num / 100;
+  };
+
+  const parseBigNumber = (val: string | null): number | null => {
+    if (!val || val === '-') return null;
+    const multipliers: Record<string, number> = { 'K': 1e3, 'M': 1e6, 'B': 1e9, 'T': 1e12 };
+    const match = val.match(/^([\d.]+)([KMBT])?$/);
+    if (!match) return null;
+    const num = parseFloat(match[1]);
+    const mult = match[2] ? multipliers[match[2]] : 1;
+    return isNaN(num) ? null : num * mult;
+  };
+
+  const data: Record<string, unknown> = {
+    // Valuation
+    marketCap: parseBigNumber(parseValue('Market Cap')),
+    trailingPE: parseNumber(parseValue('P/E')),
+    forwardPE: parseNumber(parseValue('Forward P/E')),
+    pegRatio: parseNumber(parseValue('PEG')),
+    priceToSales: parseNumber(parseValue('P/S')),
+    priceToBook: parseNumber(parseValue('P/B')),
+    // Per Share
+    eps: parseNumber(parseValue('EPS \\(ttm\\)')),
+    bookValue: parseNumber(parseValue('Book/sh')),
+    // Dividend
+    dividendYield: parsePercent(parseValue('Dividend %')),
+    dividendRate: parseNumber(parseValue('Dividend')),
+    payoutRatio: parsePercent(parseValue('Payout')),
+    // Profitability
+    profitMargin: parsePercent(parseValue('Profit Margin')),
+    operatingMargin: parsePercent(parseValue('Oper\\. Margin')),
+    grossMargin: parsePercent(parseValue('Gross Margin')),
+    returnOnEquity: parsePercent(parseValue('ROE')),
+    returnOnAssets: parsePercent(parseValue('ROA')),
+    // Growth
+    epsGrowthThisYear: parsePercent(parseValue('EPS this Y')),
+    epsGrowthNextYear: parsePercent(parseValue('EPS next Y')),
+    epsGrowthPast5Y: parsePercent(parseValue('EPS past 5Y')),
+    epsGrowthNext5Y: parsePercent(parseValue('EPS next 5Y')),
+    salesGrowthPast5Y: parsePercent(parseValue('Sales past 5Y')),
+    revenueGrowth: parsePercent(parseValue('Sales Q/Q')),
+    earningsQuarterlyGrowth: parsePercent(parseValue('EPS Q/Q')),
+    // Balance Sheet
+    currentRatio: parseNumber(parseValue('Current Ratio')),
+    quickRatio: parseNumber(parseValue('Quick Ratio')),
+    debtToEquity: parseNumber(parseValue('Debt/Eq')),
+    totalDebt: parseBigNumber(parseValue('LT Debt/Eq')),
+    // Shares & Short Interest
+    sharesOutstanding: parseBigNumber(parseValue('Shs Outstand')),
+    floatShares: parseBigNumber(parseValue('Shs Float')),
+    shortPercentFloat: parsePercent(parseValue('Short Float')),
+    shortRatio: parseNumber(parseValue('Short Ratio')),
+    heldPercentInsiders: parsePercent(parseValue('Insider Own')),
+    heldPercentInstitutions: parsePercent(parseValue('Inst Own')),
+    // Technical
+    beta: parseNumber(parseValue('Beta')),
+    fiftyDayAverage: parseNumber(parseValue('SMA50')),
+    twoHundredDayAverage: parseNumber(parseValue('SMA200')),
+    atr: parseNumber(parseValue('ATR')),
+    volatilityWeek: parsePercent(parseValue('Volatility')?.split(' ')[0] || null),
+    volatilityMonth: parsePercent(parseValue('Volatility')?.split(' ')[1] || null),
+    rsi: parseNumber(parseValue('RSI \\(14\\)')),
+    // Performance
+    perfWeek: parsePercent(parseValue('Perf Week')),
+    perfMonth: parsePercent(parseValue('Perf Month')),
+    perfQuarter: parsePercent(parseValue('Perf Quarter')),
+    perfHalfYear: parsePercent(parseValue('Perf Half Y')),
+    perfYear: parsePercent(parseValue('Perf Year')),
+    perfYTD: parsePercent(parseValue('Perf YTD')),
+    // Target
+    targetMeanPrice: parseNumber(parseValue('Target Price')),
+    recommendationKey: parseValue('Recom'),
+    numberOfAnalystOpinions: parseNumber(parseValue('Analysts')),
+    // Other
+    avgVolume: parseBigNumber(parseValue('Avg Volume')),
+    employees: parseNumber(parseValue('Employees')),
+    // Industry info from page title or sector field
+    sector: parseValue('Sector'),
+    industry: parseValue('Industry'),
+    _source: "finviz",
+  };
+
+  // Cache the result
+  finvizCache.set(symbol, { data, timestamp: Date.now() });
+
+  return data;
 }
 
 function getCached(symbol: string) {
@@ -373,21 +507,72 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
       },
     });
   } catch (yahooError) {
-    console.error("Yahoo Finance error, trying Nasdaq fallback:", yahooError);
+    console.error("Yahoo Finance error, trying Nasdaq + Finviz fallback:", yahooError);
 
-    // Try Nasdaq API as fallback
+    // Try Nasdaq API + Finviz scraping as fallback
     try {
       const { symbol } = await params;
       const upperSymbol = symbol.toUpperCase();
-      const nasdaqData = await fetchFromNasdaq(upperSymbol);
 
-      // Cache the Nasdaq result
-      setCache(upperSymbol, nasdaqData);
+      // Fetch from both sources in parallel
+      const [nasdaqData, finvizStats] = await Promise.all([
+        fetchFromNasdaq(upperSymbol),
+        fetchStatsFromFinviz(upperSymbol).catch((e) => {
+          console.error("Finviz scraping failed:", e);
+          return {} as Record<string, unknown>; // Return empty object if Finviz fails
+        }),
+      ]);
 
-      return NextResponse.json(nasdaqData, {
+      // Merge data: Nasdaq provides price, Finviz provides detailed stats
+      // Only use Finviz values if Nasdaq doesn't have them (non-null)
+      const mergedData = {
+        ...nasdaqData,
+        // Override null values from Nasdaq with Finviz data
+        marketCap: nasdaqData.marketCap || finvizStats.marketCap || 0,
+        trailingPE: nasdaqData.trailingPE ?? finvizStats.trailingPE ?? null,
+        forwardPE: nasdaqData.forwardPE ?? finvizStats.forwardPE ?? null,
+        pegRatio: nasdaqData.pegRatio ?? finvizStats.pegRatio ?? null,
+        priceToSales: nasdaqData.priceToSales ?? finvizStats.priceToSales ?? null,
+        priceToBook: nasdaqData.priceToBook ?? finvizStats.priceToBook ?? null,
+        eps: nasdaqData.eps ?? finvizStats.eps ?? null,
+        bookValue: nasdaqData.bookValue ?? finvizStats.bookValue ?? null,
+        dividendRate: nasdaqData.dividendRate ?? finvizStats.dividendRate ?? null,
+        dividendYield: nasdaqData.dividendYield ?? finvizStats.dividendYield ?? null,
+        payoutRatio: nasdaqData.payoutRatio ?? finvizStats.payoutRatio ?? null,
+        profitMargin: nasdaqData.profitMargin ?? finvizStats.profitMargin ?? null,
+        operatingMargin: nasdaqData.operatingMargin ?? finvizStats.operatingMargin ?? null,
+        returnOnEquity: nasdaqData.returnOnEquity ?? finvizStats.returnOnEquity ?? null,
+        returnOnAssets: nasdaqData.returnOnAssets ?? finvizStats.returnOnAssets ?? null,
+        currentRatio: nasdaqData.currentRatio ?? finvizStats.currentRatio ?? null,
+        debtToEquity: nasdaqData.debtToEquity ?? finvizStats.debtToEquity ?? null,
+        sharesOutstanding: nasdaqData.sharesOutstanding ?? finvizStats.sharesOutstanding ?? null,
+        floatShares: nasdaqData.floatShares ?? finvizStats.floatShares ?? null,
+        shortPercentFloat: nasdaqData.shortPercentFloat ?? finvizStats.shortPercentFloat ?? null,
+        shortRatio: nasdaqData.shortRatio ?? finvizStats.shortRatio ?? null,
+        heldPercentInsiders: nasdaqData.heldPercentInsiders ?? finvizStats.heldPercentInsiders ?? null,
+        heldPercentInstitutions: nasdaqData.heldPercentInstitutions ?? finvizStats.heldPercentInstitutions ?? null,
+        beta: nasdaqData.beta ?? finvizStats.beta ?? null,
+        fiftyDayAverage: nasdaqData.fiftyDayAverage || finvizStats.fiftyDayAverage || 0,
+        twoHundredDayAverage: nasdaqData.twoHundredDayAverage || finvizStats.twoHundredDayAverage || 0,
+        avgVolume: nasdaqData.avgVolume || finvizStats.avgVolume || 0,
+        targetMeanPrice: nasdaqData.targetMeanPrice ?? finvizStats.targetMeanPrice ?? null,
+        recommendationKey: nasdaqData.recommendationKey ?? finvizStats.recommendationKey ?? null,
+        numberOfAnalystOpinions: nasdaqData.numberOfAnalystOpinions ?? finvizStats.numberOfAnalystOpinions ?? null,
+        revenueGrowth: nasdaqData.revenueGrowth ?? finvizStats.revenueGrowth ?? null,
+        earningsQuarterlyGrowth: nasdaqData.earningsQuarterlyGrowth ?? finvizStats.earningsQuarterlyGrowth ?? null,
+        employees: nasdaqData.employees ?? finvizStats.employees ?? null,
+        sector: nasdaqData.sector ?? finvizStats.sector ?? null,
+        industry: nasdaqData.industry ?? finvizStats.industry ?? null,
+        _source: finvizStats._source ? "nasdaq+finviz" : "nasdaq",
+      };
+
+      // Cache the merged result
+      setCache(upperSymbol, mergedData);
+
+      return NextResponse.json(mergedData, {
         headers: {
           "Cache-Control": "no-cache, no-store, must-revalidate",
-          "X-Source": "nasdaq-fallback",
+          "X-Source": mergedData._source as string,
         },
       });
     } catch (nasdaqError) {
