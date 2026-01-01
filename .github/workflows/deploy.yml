@@ -14,9 +14,11 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           proxy_host: ${{ secrets.PROXY_HOST }}
           proxy_username: ${{ secrets.PROXY_USER }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          proxy_passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd /data/coolify
             docker compose pull
