@@ -138,9 +138,9 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
     // Match pattern handles:
     // 1. Optional <a> around label: <td><a>Label</a></td> or <td>Label</td>
     // 2. Optional <a> around value: <td><a><b>Value</b></a></td> or <td><b>Value</b></td>
-    // 3. Optional <span> inside <b>: <b><span>Value</span></b> or <b>Value</b>
+    // 3. Optional <span> or <small> inside <b>: <b><span>Value</span></b> or <b>Value</b>
     const regex = new RegExp(
-      `<td[^>]*>(?:<a[^>]*>)?${label}(?:</a>)?</td>\\s*<td[^>]*>(?:<a[^>]*>)?<b[^>]*>(?:<span[^>]*>)?([^<]+)(?:</span>)?</b>(?:</a>)?</td>`,
+      `<td[^>]*>(?:<a[^>]*>)?${label}(?:</a>)?</td>\\s*<td[^>]*>(?:<a[^>]*>)?<b[^>]*>(?:<span[^>]*>|<small[^>]*>)?([^<]+)(?:</span>|</small>)?</b>(?:</a>)?</td>`,
       'i'
     );
     const match = html.match(regex);
