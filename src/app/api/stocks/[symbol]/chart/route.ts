@@ -26,6 +26,50 @@ function setCache(key: string, data: unknown, symbol: string) {
   lastKnownChartData.set(symbol, data);
 }
 
+// Nasdaq API fallback when Yahoo Finance is blocked
+async function fetchChartFromNasdaq(symbol: string, period: Period) {
+  const res = await fetch(
+    `https://api.nasdaq.com/api/quote/${symbol}/chart?assetclass=stocks`,
+    { headers: { "User-Agent": "Mozilla/5.0 (compatible; FiscalWire/1.0)" } }
+  );
+
+  if (!res.ok) throw new Error(`Nasdaq API returned ${res.status}`);
+
+  const data = await res.json();
+  const chart = data?.data?.chart || [];
+  if (chart.length === 0) throw new Error("No chart data from Nasdaq");
+
+  // Transform Nasdaq format to our format
+  const chartData = chart.map((point: { x: number; y: number; z: { dateTime: string } }) => ({
+    time: point.z.dateTime.replace(" ET", ""),
+    timestamp: point.x,
+    price: point.y,
+    open: point.y,
+    high: point.y,
+    low: point.y,
+    volume: 0,
+  }));
+
+  const prices = chartData.map((d: { price: number }) => d.price);
+  const firstPrice = prices[0] || 0;
+  const lastPrice = prices[prices.length - 1] || 0;
+
+  return {
+    symbol: symbol.toUpperCase(),
+    period,
+    data: chartData,
+    summary: {
+      firstPrice,
+      lastPrice,
+      priceChange: lastPrice - firstPrice,
+      percentChange: firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0,
+      high: Math.max(...prices),
+      low: Math.min(...prices),
+    },
+    _source: "nasdaq",
+  };
+}
+
 type Period = "1d" | "5d" | "1mo" | "6mo" | "ytd" | "1y" | "5y" | "max";
 type Interval = "1m" | "5m" | "15m" | "30m" | "1h" | "1d" | "1wk" | "1mo";
 
@@ -192,44 +236,60 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
         "X-Cache": "MISS",
       },
     });
-  } catch (error) {
-    console.error("Stock chart error:", error);
+  } catch (yahooError) {
+    console.error("Yahoo Finance chart error, trying Nasdaq:", yahooError);
 
-    // Return last known good data if available
-    const lastKnown = lastKnownChartData.get(upperSymbol);
-    if (lastKnown) {
-      console.log(`Returning last known chart data for ${upperSymbol}`);
-      return NextResponse.json(lastKnown, {
+    // Try Nasdaq API as fallback
+    try {
+      const nasdaqData = await fetchChartFromNasdaq(upperSymbol, period);
+      setCache(cacheKey, nasdaqData, upperSymbol);
+
+      return NextResponse.json(nasdaqData, {
         headers: {
           "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-          "X-Cache": "STALE",
+          "X-Cache": "MISS",
+          "X-Source": "nasdaq-fallback",
         },
       });
-    }
+    } catch (nasdaqError) {
+      console.error("Nasdaq fallback also failed:", nasdaqError);
 
-    // Return empty fallback data instead of 500 error
-    console.log(`Returning fallback chart data for ${upperSymbol}`);
-    return NextResponse.json(
-      {
-        symbol: upperSymbol,
-        period,
-        data: [],
-        summary: {
-          firstPrice: 0,
-          lastPrice: 0,
-          priceChange: 0,
-          percentChange: 0,
-          high: 0,
-          low: 0,
-        },
-        fallback: true,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          "X-Cache": "FALLBACK",
-        },
+      // Return last known good data if available
+      const lastKnown = lastKnownChartData.get(upperSymbol);
+      if (lastKnown) {
+        console.log(`Returning last known chart data for ${upperSymbol}`);
+        return NextResponse.json(lastKnown, {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+            "X-Cache": "STALE",
+          },
+        });
       }
-    );
+
+      // Return empty fallback data instead of 500 error
+      console.log(`Returning fallback chart data for ${upperSymbol}`);
+      return NextResponse.json(
+        {
+          symbol: upperSymbol,
+          period,
+          data: [],
+          summary: {
+            firstPrice: 0,
+            lastPrice: 0,
+            priceChange: 0,
+            percentChange: 0,
+            high: 0,
+            low: 0,
+          },
+          fallback: true,
+        },
+        {
+          headers: {
+            "Cache-Control": "no-cache",
+            "X-Cache": "FALLBACK",
+          },
+        }
+      );
+    }
   }
 }
