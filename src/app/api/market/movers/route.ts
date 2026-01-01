@@ -12,20 +12,21 @@ const CACHE_TTL = 60 * 1000; // 60 seconds
 let lastKnownGoodData: { gainers?: unknown; losers?: unknown } = {};
 
 // Static fallback data when Yahoo Finance is rate-limited
+// Format matches MarketMovers component expectations: name, price, change, changePercent
 const STATIC_FALLBACK_GAINERS = [
-  { symbol: "NVDA", shortName: "NVIDIA Corporation", regularMarketPrice: 140.50, regularMarketChange: 5.25, regularMarketChangePercent: 3.88 },
-  { symbol: "TSLA", shortName: "Tesla, Inc.", regularMarketPrice: 425.00, regularMarketChange: 12.50, regularMarketChangePercent: 3.03 },
-  { symbol: "AMD", shortName: "Advanced Micro Devices", regularMarketPrice: 125.75, regularMarketChange: 3.25, regularMarketChangePercent: 2.65 },
-  { symbol: "META", shortName: "Meta Platforms, Inc.", regularMarketPrice: 605.00, regularMarketChange: 14.50, regularMarketChangePercent: 2.46 },
-  { symbol: "AAPL", shortName: "Apple Inc.", regularMarketPrice: 248.50, regularMarketChange: 4.75, regularMarketChangePercent: 1.95 },
+  { symbol: "NVDA", name: "NVIDIA Corporation", price: 140.50, change: 5.25, changePercent: 3.88 },
+  { symbol: "TSLA", name: "Tesla, Inc.", price: 425.00, change: 12.50, changePercent: 3.03 },
+  { symbol: "AMD", name: "Advanced Micro Devices", price: 125.75, change: 3.25, changePercent: 2.65 },
+  { symbol: "META", name: "Meta Platforms, Inc.", price: 605.00, change: 14.50, changePercent: 2.46 },
+  { symbol: "AAPL", name: "Apple Inc.", price: 248.50, change: 4.75, changePercent: 1.95 },
 ];
 
 const STATIC_FALLBACK_LOSERS = [
-  { symbol: "INTC", shortName: "Intel Corporation", regularMarketPrice: 20.25, regularMarketChange: -0.85, regularMarketChangePercent: -4.03 },
-  { symbol: "BA", shortName: "The Boeing Company", regularMarketPrice: 175.50, regularMarketChange: -5.25, regularMarketChangePercent: -2.90 },
-  { symbol: "DIS", shortName: "The Walt Disney Company", regularMarketPrice: 112.75, regularMarketChange: -2.50, regularMarketChangePercent: -2.17 },
-  { symbol: "NKE", shortName: "NIKE, Inc.", regularMarketPrice: 76.25, regularMarketChange: -1.45, regularMarketChangePercent: -1.87 },
-  { symbol: "PFE", shortName: "Pfizer Inc.", regularMarketPrice: 26.50, regularMarketChange: -0.45, regularMarketChangePercent: -1.67 },
+  { symbol: "INTC", name: "Intel Corporation", price: 20.25, change: -0.85, changePercent: -4.03 },
+  { symbol: "BA", name: "The Boeing Company", price: 175.50, change: -5.25, changePercent: -2.90 },
+  { symbol: "DIS", name: "The Walt Disney Company", price: 112.75, change: -2.50, changePercent: -2.17 },
+  { symbol: "NKE", name: "NIKE, Inc.", price: 76.25, change: -1.45, changePercent: -1.87 },
+  { symbol: "PFE", name: "Pfizer Inc.", price: 26.50, change: -0.45, changePercent: -1.67 },
 ];
 
 function getCached(key: string) {
