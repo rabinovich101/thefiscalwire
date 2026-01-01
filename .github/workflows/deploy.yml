@@ -11,15 +11,16 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
+          host: ${{ secrets.PROXY_HOST }}
+          username: ${{ secrets.PROXY_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
-          proxy_host: ${{ secrets.PROXY_HOST }}
-          proxy_username: ${{ secrets.PROXY_USER }}
-          proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          proxy_passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          port: 1000
           script: |
-            cd /data/coolify
-            docker compose pull
-            docker compose up -d --force-recreate
+            ssh -o StrictHostKeyChecking=no ooo@10.10.10.144 << 'DEPLOY'
+              cd /home/ooo/thefiscalwire
+              git pull origin main
+              docker compose build --no-cache
+              docker compose up -d
+              docker system prune -f
+            DEPLOY

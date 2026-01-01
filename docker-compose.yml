@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  app:
+    build: .
+    container_name: fiscalwire
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+    networks:
+      - coolify
+      - default
+
   postgres:
     image: postgres:16-alpine
     container_name: newswebbyclaude-db
@@ -21,3 +37,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  coolify:
+    external: true
