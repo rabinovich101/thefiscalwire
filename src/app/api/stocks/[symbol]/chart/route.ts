@@ -5,6 +5,27 @@ const yahooFinance = new YahooFinance();
 
 export const dynamic = "force-dynamic";
 
+// In-memory cache to reduce API calls and avoid rate limiting
+const chartCache = new Map<string, { data: unknown; timestamp: number }>();
+const CACHE_TTL = 60 * 1000; // 60 seconds
+
+// Last known good data as fallback when Yahoo Finance fails
+const lastKnownChartData = new Map<string, unknown>();
+
+function getCached(key: string) {
+  const cached = chartCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCache(key: string, data: unknown, symbol: string) {
+  chartCache.set(key, { data, timestamp: Date.now() });
+  // Also save as last known good data for this symbol
+  lastKnownChartData.set(symbol, data);
+}
+
 type Period = "1d" | "5d" | "1mo" | "6mo" | "ytd" | "1y" | "5y" | "max";
 type Interval = "1m" | "5m" | "15m" | "30m" | "1h" | "1d" | "1wk" | "1mo";
 
@@ -83,17 +104,30 @@ function formatChartDate(date: Date, period: Period): string {
 }
 
 export async function GET(request: NextRequest, { params }: ChartParams) {
+  const { symbol } = await params;
+  const upperSymbol = symbol.toUpperCase();
+
+  const searchParams = request.nextUrl.searchParams;
+  const period = (searchParams.get("period") || "1mo") as Period;
+  const customInterval = searchParams.get("interval") as Interval | null;
+
+  const { startDate, interval: defaultInterval } = getPeriodConfig(period);
+  const interval = customInterval || defaultInterval;
+
+  const cacheKey = `${upperSymbol}-${period}-${interval}`;
+
+  // Check cache first
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return NextResponse.json(cached, {
+      headers: {
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        "X-Cache": "HIT",
+      },
+    });
+  }
+
   try {
-    const { symbol } = await params;
-    const upperSymbol = symbol.toUpperCase();
-
-    const searchParams = request.nextUrl.searchParams;
-    const period = (searchParams.get("period") || "1mo") as Period;
-    const customInterval = searchParams.get("interval") as Interval | null;
-
-    const { startDate, interval: defaultInterval } = getPeriodConfig(period);
-    const interval = customInterval || defaultInterval;
-
     const result = await yahooFinance.chart(upperSymbol, {
       period1: startDate,
       period2: new Date(),
@@ -132,34 +166,70 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
     const high = prices.length > 0 ? Math.max(...prices) : 0;
     const low = prices.length > 0 ? Math.min(...prices) : 0;
 
+    const responseData = {
+      symbol: upperSymbol,
+      period,
+      data: chartData,
+      summary: {
+        firstPrice,
+        lastPrice,
+        priceChange,
+        percentChange,
+        high,
+        low,
+      },
+    };
+
+    // Cache the successful result
+    setCache(cacheKey, responseData, upperSymbol);
+
+    return NextResponse.json(responseData, {
+      headers: {
+        "Cache-Control":
+          period === "1d"
+            ? "no-cache"
+            : "public, s-maxage=300, stale-while-revalidate=600",
+        "X-Cache": "MISS",
+      },
+    });
+  } catch (error) {
+    console.error("Stock chart error:", error);
+
+    // Return last known good data if available
+    const lastKnown = lastKnownChartData.get(upperSymbol);
+    if (lastKnown) {
+      console.log(`Returning last known chart data for ${upperSymbol}`);
+      return NextResponse.json(lastKnown, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+          "X-Cache": "STALE",
+        },
+      });
+    }
+
+    // Return empty fallback data instead of 500 error
+    console.log(`Returning fallback chart data for ${upperSymbol}`);
     return NextResponse.json(
       {
         symbol: upperSymbol,
         period,
-        data: chartData,
+        data: [],
         summary: {
-          firstPrice,
-          lastPrice,
-          priceChange,
-          percentChange,
-          high,
-          low,
+          firstPrice: 0,
+          lastPrice: 0,
+          priceChange: 0,
+          percentChange: 0,
+          high: 0,
+          low: 0,
         },
+        fallback: true,
       },
       {
         headers: {
-          "Cache-Control":
-            period === "1d"
-              ? "no-cache"
-              : "public, s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": "no-cache",
+          "X-Cache": "FALLBACK",
         },
       }
-    );
-  } catch (error) {
-    console.error("Stock chart error:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch chart data", data: [] },
-      { status: 500 }
     );
   }
 }
