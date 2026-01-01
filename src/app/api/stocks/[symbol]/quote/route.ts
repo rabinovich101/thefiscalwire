@@ -135,8 +135,13 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
 
   // Parse values from the Finviz snapshot table
   const parseValue = (label: string): string | null => {
-    // Match pattern: <td ...>Label</td><td ...><b>Value</b></td>
-    const regex = new RegExp(`<td[^>]*>${label}</td>\\s*<td[^>]*><b[^>]*>([^<]+)</b></td>`, 'i');
+    // Match pattern handles optional span inside b tag:
+    // <td>Label</td><td><b>Value</b></td>  OR
+    // <td>Label</td><td><b><span>Value</span></b></td>
+    const regex = new RegExp(
+      `<td[^>]*>${label}</td>\\s*<td[^>]*><b[^>]*>(?:<span[^>]*>)?([^<]+)(?:</span>)?</b></td>`,
+      'i'
+    );
     const match = html.match(regex);
     return match ? match[1].trim() : null;
   };
