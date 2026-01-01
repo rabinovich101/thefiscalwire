@@ -1,42 +1,23 @@
-version: '3.8'
-
 services:
   app:
     build: .
     container_name: fiscalwire
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=production
     env_file:
       - .env.production
-    depends_on:
-      - postgres
     networks:
       - coolify
-      - default
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: newswebbyclaude-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-newsdb}
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-newsdb}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  postgres_data:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fiscalwire-http.entryPoints=http"
+      - "traefik.http.routers.fiscalwire-http.rule=Host(`thefiscalwire.com`)"
+      - "traefik.http.routers.fiscalwire-https.entryPoints=https"
+      - "traefik.http.routers.fiscalwire-https.rule=Host(`thefiscalwire.com`)"
+      - "traefik.http.routers.fiscalwire-https.tls=true"
+      - "traefik.http.routers.fiscalwire-https.tls.certresolver=letsencrypt"
+      - "traefik.http.services.fiscalwire.loadbalancer.server.port=3000"
 
 networks:
   coolify:
