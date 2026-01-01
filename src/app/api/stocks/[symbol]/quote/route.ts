@@ -135,11 +135,12 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
 
   // Parse values from the Finviz snapshot table
   const parseValue = (label: string): string | null => {
-    // Match pattern handles optional span inside b tag:
-    // <td>Label</td><td><b>Value</b></td>  OR
-    // <td>Label</td><td><b><span>Value</span></b></td>
+    // Match pattern handles:
+    // 1. Optional <a> around label: <td><a>Label</a></td> or <td>Label</td>
+    // 2. Optional <a> around value: <td><a><b>Value</b></a></td> or <td><b>Value</b></td>
+    // 3. Optional <span> inside <b>: <b><span>Value</span></b> or <b>Value</b>
     const regex = new RegExp(
-      `<td[^>]*>${label}</td>\\s*<td[^>]*><b[^>]*>(?:<span[^>]*>)?([^<]+)(?:</span>)?</b></td>`,
+      `<td[^>]*>(?:<a[^>]*>)?${label}(?:</a>)?</td>\\s*<td[^>]*>(?:<a[^>]*>)?<b[^>]*>(?:<span[^>]*>)?([^<]+)(?:</span>)?</b>(?:</a>)?</td>`,
       'i'
     );
     const match = html.match(regex);
@@ -182,9 +183,19 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
     // Per Share
     eps: parseNumber(parseValue('EPS \\(ttm\\)')),
     bookValue: parseNumber(parseValue('Book/sh')),
-    // Dividend
-    dividendYield: parsePercent(parseValue('Dividend %')),
-    dividendRate: parseNumber(parseValue('Dividend')),
+    // Dividend - Finviz uses "Dividend TTM" with format "1.03 (0.38%)"
+    dividendYield: (() => {
+      const val = parseValue('Dividend TTM');
+      if (!val) return null;
+      const match = val.match(/\(([\d.]+)%\)/);
+      return match ? parseFloat(match[1]) / 100 : null;
+    })(),
+    dividendRate: (() => {
+      const val = parseValue('Dividend TTM');
+      if (!val) return null;
+      const match = val.match(/^([\d.]+)/);
+      return match ? parseFloat(match[1]) : null;
+    })(),
     payoutRatio: parsePercent(parseValue('Payout')),
     // Profitability
     profitMargin: parsePercent(parseValue('Profit Margin')),
@@ -216,7 +227,7 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
     beta: parseNumber(parseValue('Beta')),
     fiftyDayAverage: parseNumber(parseValue('SMA50')),
     twoHundredDayAverage: parseNumber(parseValue('SMA200')),
-    atr: parseNumber(parseValue('ATR')),
+    atr: parseNumber(parseValue('ATR \\(14\\)')),
     volatilityWeek: parsePercent(parseValue('Volatility')?.split(' ')[0] || null),
     volatilityMonth: parsePercent(parseValue('Volatility')?.split(' ')[1] || null),
     rsi: parseNumber(parseValue('RSI \\(14\\)')),
