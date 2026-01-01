@@ -225,8 +225,11 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
     heldPercentInstitutions: parsePercent(parseValue('Inst Own')),
     // Technical
     beta: parseNumber(parseValue('Beta')),
-    fiftyDayAverage: parseNumber(parseValue('SMA50')),
-    twoHundredDayAverage: parseNumber(parseValue('SMA200')),
+    // Finviz SMA values are already percentages (like -0.79%), not prices
+    // Store them as percentages for the frontend to use directly
+    sma20Pct: parsePercent(parseValue('SMA20')),
+    sma50Pct: parsePercent(parseValue('SMA50')),
+    sma200Pct: parsePercent(parseValue('SMA200')),
     atr: parseNumber(parseValue('ATR \\(14\\)')),
     volatilityWeek: parsePercent(parseValue('Volatility')?.split(' ')[0] || null),
     volatilityMonth: parsePercent(parseValue('Volatility')?.split(' ')[1] || null),
@@ -570,9 +573,13 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
         heldPercentInsiders: nasdaqData.heldPercentInsiders ?? finvizStats.heldPercentInsiders ?? null,
         heldPercentInstitutions: nasdaqData.heldPercentInstitutions ?? finvizStats.heldPercentInstitutions ?? null,
         beta: nasdaqData.beta ?? finvizStats.beta ?? null,
-        fiftyDayAverage: nasdaqData.fiftyDayAverage || finvizStats.fiftyDayAverage || 0,
-        twoHundredDayAverage: nasdaqData.twoHundredDayAverage || finvizStats.twoHundredDayAverage || 0,
+        fiftyDayAverage: nasdaqData.fiftyDayAverage || 0,
+        twoHundredDayAverage: nasdaqData.twoHundredDayAverage || 0,
         avgVolume: nasdaqData.avgVolume || finvizStats.avgVolume || 0,
+        // SMA percentages from Finviz (already calculated as % difference from current price)
+        sma20Pct: finvizStats.sma20Pct ?? null,
+        sma50Pct: finvizStats.sma50Pct ?? null,
+        sma200Pct: finvizStats.sma200Pct ?? null,
         // Technical indicators from Finviz
         atr: finvizStats.atr ?? null,
         rsi: finvizStats.rsi ?? null,

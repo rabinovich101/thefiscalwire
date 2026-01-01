@@ -70,6 +70,10 @@ interface StockData {
   fiftyTwoWeekLow: number;
   fiftyDayAverage?: number;
   twoHundredDayAverage?: number;
+  // SMA percentages from Finviz (already calculated as % difference from current price)
+  sma20Pct?: number | null;
+  sma50Pct?: number | null;
+  sma200Pct?: number | null;
   beta?: number | null;
   fiftyTwoWeekChange?: number | null;
   atr?: number | null;
@@ -178,13 +182,14 @@ function getValueColor(val: number | string | null | undefined, colorize?: boole
 
 export function StockStatsTable({ stock }: StockStatsTableProps) {
   // Calculate derived values (as decimals, formatPercent will multiply by 100)
-  // Note: We don't have 20-day SMA from API, only 50-day and 200-day
-  const sma50Pct = stock.fiftyDayAverage && stock.price
+  // SMA percentages: prefer pre-calculated Finviz values, fallback to Yahoo calculation
+  const sma20Pct = stock.sma20Pct ?? null;
+  const sma50Pct = stock.sma50Pct ?? (stock.fiftyDayAverage && stock.price
     ? (stock.price - stock.fiftyDayAverage) / stock.fiftyDayAverage
-    : null;
-  const sma200Pct = stock.twoHundredDayAverage && stock.price
+    : null);
+  const sma200Pct = stock.sma200Pct ?? (stock.twoHundredDayAverage && stock.price
     ? (stock.price - stock.twoHundredDayAverage) / stock.twoHundredDayAverage
-    : null;
+    : null);
   const high52Pct = stock.fiftyTwoWeekHigh && stock.price
     ? (stock.price - stock.fiftyTwoWeekHigh) / stock.fiftyTwoWeekHigh
     : null;
@@ -283,7 +288,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'Employees', value: stock.employees, format: 'number' },
       { label: 'Quick Ratio', value: stock.quickRatio, format: 'ratio' },
       { label: 'EPS Q/Q', value: stock.earningsQuarterlyGrowth, format: 'percent', colorize: true },
-      { label: 'SMA20', value: null, format: 'percent', colorize: true }, // 20-day SMA not available from API
+      { label: 'SMA20', value: sma20Pct, format: 'percent', colorize: true },
       { label: 'Rel Volume', value: relVolume, format: 'ratio' },
       { label: 'Prev Close', value: stock.previousClose, format: 'price' },
     ],
