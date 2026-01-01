@@ -46,6 +46,7 @@ interface StockData {
   // Profitability
   profitMargin?: number | null;
   operatingMargin?: number | null;
+  grossMargin?: number | null;
   returnOnAssets?: number | null;
   returnOnEquity?: number | null;
 
@@ -54,6 +55,7 @@ interface StockData {
   totalDebt?: number | null;
   debtToEquity?: number | null;
   currentRatio?: number | null;
+  quickRatio?: number | null;
   bookValue?: number | null;
   totalCashPerShare?: number | null;
   freeCashflow?: number | null;
@@ -70,6 +72,18 @@ interface StockData {
   twoHundredDayAverage?: number;
   beta?: number | null;
   fiftyTwoWeekChange?: number | null;
+  atr?: number | null;
+  rsi?: number | null;
+  volatilityWeek?: number | null;
+  volatilityMonth?: number | null;
+
+  // Performance
+  perfWeek?: number | null;
+  perfMonth?: number | null;
+  perfQuarter?: number | null;
+  perfHalfYear?: number | null;
+  perfYear?: number | null;
+  perfYTD?: number | null;
 
   // Analyst
   targetMeanPrice?: number | null;
@@ -199,7 +213,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'EPS (ttm)', value: stock.eps, format: 'ratio' },
       { label: 'Insider Own', value: stock.heldPercentInsiders, format: 'percent' },
       { label: 'Shs Outstand', value: stock.sharesOutstanding, format: 'largeNumber' },
-      { label: 'Perf Week', value: null, colorize: true }, // Not available from API
+      { label: 'Perf Week', value: stock.perfWeek, format: 'percent', colorize: true },
     ],
     // Row 2
     [
@@ -208,7 +222,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'EPS next Y', value: stock.forwardEps, format: 'ratio' },
       { label: 'Inst Own', value: stock.heldPercentInstitutions, format: 'percent' },
       { label: 'Shs Float', value: stock.floatShares, format: 'largeNumber' },
-      { label: 'Perf Month', value: null, colorize: true }, // Not available from API
+      { label: 'Perf Month', value: stock.perfMonth, format: 'percent', colorize: true },
     ],
     // Row 3
     [
@@ -217,7 +231,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'EPS this Y', value: stock.earningsQuarterlyGrowth, format: 'percent', colorize: true },
       { label: 'Short Float', value: stock.shortPercentFloat, format: 'percent' },
       { label: 'Short Ratio', value: stock.shortRatio, format: 'ratio' },
-      { label: 'Perf Quart', value: null, colorize: true }, // Not available from API
+      { label: 'Perf Quart', value: stock.perfQuarter, format: 'percent', colorize: true },
     ],
     // Row 4
     [
@@ -226,7 +240,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'EPS next Y%', value: null, format: 'percent', colorize: true }, // Not available
       { label: 'ROA', value: stock.returnOnAssets, format: 'percent', colorize: true },
       { label: '52W High', value: stock.fiftyTwoWeekHigh ? `${formatPrice(stock.fiftyTwoWeekHigh)} ${high52Pct !== null ? formatPercent(high52Pct, true) : ''}` : '-', colorize: true },
-      { label: 'Perf Half Y', value: null, colorize: true }, // Not available from API
+      { label: 'Perf Half Y', value: stock.perfHalfYear, format: 'percent', colorize: true },
     ],
     // Row 5
     [
@@ -242,8 +256,8 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'Cash/sh', value: stock.totalCashPerShare, format: 'ratio' },
       { label: 'P/FCF', value: stock.freeCashflow && stock.marketCap ? stock.marketCap / stock.freeCashflow : null, format: 'ratio' },
       { label: 'EPS past 5Y', value: null, format: 'percent' }, // Not available
-      { label: 'Gross Margin', value: null, format: 'percent', colorize: true }, // Not in API
-      { label: 'Volatility', value: null }, // Not available
+      { label: 'Gross Margin', value: stock.grossMargin, format: 'percent', colorize: true },
+      { label: 'Volatility', value: stock.volatilityWeek && stock.volatilityMonth ? `${(stock.volatilityWeek * 100).toFixed(2)}% ${(stock.volatilityMonth * 100).toFixed(2)}%` : null },
       { label: 'Beta', value: stock.beta, format: 'ratio' },
     ],
     // Row 7
@@ -252,7 +266,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'EV/EBITDA', value: stock.enterpriseToEbitda, format: 'ratio' },
       { label: 'Sales past 5Y', value: null, format: 'percent' }, // Not available
       { label: 'Oper. Margin', value: stock.operatingMargin, format: 'percent', colorize: true },
-      { label: 'ATR', value: null }, // Not available
+      { label: 'ATR (14)', value: stock.atr, format: 'ratio' },
       { label: 'Target Price', value: stock.targetMeanPrice, format: 'price' },
     ],
     // Row 8
@@ -261,13 +275,13 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
       { label: 'EV/Sales', value: stock.enterpriseToRevenue, format: 'ratio' },
       { label: 'Sales Q/Q', value: stock.revenueGrowth, format: 'percent', colorize: true },
       { label: 'Profit Margin', value: stock.profitMargin, format: 'percent', colorize: true },
-      { label: 'RSI (14)', value: null }, // Not available
+      { label: 'RSI (14)', value: stock.rsi, format: 'ratio' },
       { label: 'Avg Volume', value: stock.avgVolume, format: 'largeNumber' },
     ],
     // Row 9
     [
       { label: 'Employees', value: stock.employees, format: 'number' },
-      { label: 'Quick Ratio', value: null, format: 'ratio' }, // Not in API
+      { label: 'Quick Ratio', value: stock.quickRatio, format: 'ratio' },
       { label: 'EPS Q/Q', value: stock.earningsQuarterlyGrowth, format: 'percent', colorize: true },
       { label: 'SMA20', value: null, format: 'percent', colorize: true }, // 20-day SMA not available from API
       { label: 'Rel Volume', value: relVolume, format: 'ratio' },
