@@ -20,10 +20,10 @@ function getCached(key: string) {
   return null;
 }
 
-function setCache(key: string, data: unknown, symbol: string) {
+function setCache(key: string, data: unknown) {
   chartCache.set(key, { data, timestamp: Date.now() });
-  // Also save as last known good data for this symbol
-  lastKnownChartData.set(symbol, data);
+  // Also save as last known good data for this cache key (symbol+period+interval)
+  lastKnownChartData.set(key, data);
 }
 
 // Nasdaq API fallback when Yahoo Finance is blocked
@@ -225,7 +225,7 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
     };
 
     // Cache the successful result
-    setCache(cacheKey, responseData, upperSymbol);
+    setCache(cacheKey, responseData);
 
     return NextResponse.json(responseData, {
       headers: {
@@ -244,7 +244,7 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
     if (period === "1d" || period === "5d") {
       try {
         const nasdaqData = await fetchChartFromNasdaq(upperSymbol, period);
-        setCache(cacheKey, nasdaqData, upperSymbol);
+        setCache(cacheKey, nasdaqData);
 
         return NextResponse.json(nasdaqData, {
           headers: {
@@ -261,7 +261,7 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
     }
 
     // Return last known good data if available
-    const lastKnown = lastKnownChartData.get(upperSymbol);
+    const lastKnown = lastKnownChartData.get(cacheKey);
     if (lastKnown) {
       console.log(`Returning last known chart data for ${upperSymbol}`);
       return NextResponse.json(lastKnown, {
