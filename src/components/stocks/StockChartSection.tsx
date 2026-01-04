@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, lazy, Suspense } from "react";
-import { BarChart3, LineChart, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { BarChart3, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StockChart } from "./StockChart";
-
-// Lazy load the advanced chart since it's heavy
-const AdvancedStockChart = lazy(() =>
-  import("./AdvancedStockChart").then((mod) => ({ default: mod.AdvancedStockChart }))
-);
+import { TradingViewMiniChart } from "./TradingViewMiniChart";
+import { TradingViewAdvancedChart } from "./TradingViewAdvancedChart";
 
 interface StockChartSectionProps {
   symbol: string;
@@ -48,17 +44,9 @@ export function StockChartSection({ symbol, className }: StockChartSectionProps)
 
       {/* Chart Content */}
       {isAdvanced ? (
-        <Suspense
-          fallback={
-            <div className="h-[500px] flex items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          }
-        >
-          <AdvancedStockChart symbol={symbol} />
-        </Suspense>
+        <TradingViewAdvancedChart symbol={symbol} theme="dark" height={500} />
       ) : (
-        <StockChart symbol={symbol} />
+        <TradingViewMiniChart symbol={symbol} theme="dark" height={400} dateRange="12M" />
       )}
     </div>
   );

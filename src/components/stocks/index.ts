@@ -3,6 +3,8 @@ export { StockPriceHeader } from "./StockPriceHeader";
 export { StockChart } from "./StockChart";
 export { AdvancedStockChart } from "./AdvancedStockChart";
 export { StockChartSection } from "./StockChartSection";
+export { TradingViewMiniChart } from "./TradingViewMiniChart";
+export { TradingViewAdvancedChart } from "./TradingViewAdvancedChart";
 export { StockStatistics } from "./StockStatistics";
 export { StockNews } from "./StockNews";
 export { StockSidebar } from "./StockSidebar";
