@@ -21,12 +21,20 @@ export function TradingViewAdvancedChart({
     // Clear previous widget
     containerRef.current.innerHTML = "";
 
+    // Create the widget container div first
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "tradingview-widget-container__widget";
+    widgetDiv.style.height = `${height}px`;
+    widgetDiv.style.width = "100%";
+    containerRef.current.appendChild(widgetDiv);
+
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
     script.innerHTML = JSON.stringify({
-      autosize: true,
+      width: "100%",
+      height: height,
       symbol: symbol,
       interval: "D",
       timezone: "America/New_York",
@@ -48,18 +56,13 @@ export function TradingViewAdvancedChart({
         containerRef.current.innerHTML = "";
       }
     };
-  }, [symbol, theme]);
+  }, [symbol, theme, height]);
 
   return (
     <div
       className="tradingview-widget-container"
       ref={containerRef}
       style={{ height, minHeight: height }}
-    >
-      <div
-        className="tradingview-widget-container__widget"
-        style={{ height: "100%", width: "100%" }}
-      />
-    </div>
+    />
   );
 }
