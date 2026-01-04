@@ -169,6 +169,24 @@ function calculateEMA(data: OHLCData[], period: number): LineData[] {
   return result;
 }
 
+// Format time for Lightweight Charts based on data granularity
+// Daily/weekly/monthly data requires "YYYY-MM-DD" string format
+// Intraday data uses Unix timestamp in seconds
+function formatTimeForChart(timestamp: number, period: Period): Time {
+  const date = new Date(timestamp);
+
+  // For intraday periods (1d, 5d), use Unix timestamp in seconds
+  if (period === "1d" || period === "5d") {
+    return Math.floor(timestamp / 1000) as Time;
+  }
+
+  // For daily/weekly/monthly data, use YYYY-MM-DD string format
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}` as Time;
+}
+
 export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProps) {
   const [period, setPeriod] = useState<Period>("6mo");
   const [interval, setInterval] = useState<Interval>("1d");
@@ -207,18 +225,29 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
         const res = await fetch(`/api/stocks/${symbol}/chart?period=${period}&interval=${interval}`);
         const result = await res.json();
 
-        const ohlcData: OHLCData[] = (result.data || [])
+        const mappedData = (result.data || [])
           .filter((d: { open?: number; high?: number; low?: number; price?: number }) =>
             d.open !== undefined && d.high !== undefined && d.low !== undefined
           )
           .map((d: { timestamp: number; open: number; high: number; low: number; price: number; volume?: number }) => ({
-            time: Math.floor(d.timestamp / 1000) as Time,
+            time: formatTimeForChart(d.timestamp, period),
             open: d.open,
             high: d.high,
             low: d.low,
             close: d.price,
             volume: d.volume || 0,
           }));
+
+        // Deduplicate by time (keep last entry for each time) - required by Lightweight Charts
+        const seenTimes = new Set<string>();
+        const ohlcData: OHLCData[] = [];
+        for (let i = mappedData.length - 1; i >= 0; i--) {
+          const timeStr = String(mappedData[i].time);
+          if (!seenTimes.has(timeStr)) {
+            seenTimes.add(timeStr);
+            ohlcData.unshift(mappedData[i]);
+          }
+        }
 
         setRawData(ohlcData);
       } catch (error) {
@@ -279,6 +308,8 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
         borderColor: "#374151",
         timeVisible: period === "1d" || period === "5d",
         secondsVisible: false,
+        barSpacing: 8,
+        minBarSpacing: 4,
       },
       handleScale: {
         axisPressedMouseMove: true,
@@ -431,20 +462,12 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
     );
   }
 
-  if (rawData.length === 0) {
-    return (
-      <div className={cn("relative h-[500px]", className)}>
-        <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-          No chart data available for advanced view. Try a longer time period.
-        </div>
-      </div>
-    );
-  }
+  const hasData = rawData.length > 0;
 
   return (
     <div className={cn("space-y-4", className)}>
       {/* Price Info Bar */}
-      {lastData && (
+      {hasData && lastData && (
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <span className="font-semibold text-lg">${lastData.close.toFixed(2)}</span>
           <span className={cn("font-medium", isPositive ? "text-positive" : "text-negative")}>
@@ -523,10 +546,16 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
       </div>
 
       {/* Chart Container */}
-      <div
-        ref={chartContainerRef}
-        className="h-[400px] w-full"
-      />
+      {hasData ? (
+        <div
+          ref={chartContainerRef}
+          className="h-[400px] w-full"
+        />
+      ) : (
+        <div className="h-[400px] w-full flex items-center justify-center text-muted-foreground">
+          No chart data available. Try selecting 1D or 5D period for intraday data.
+        </div>
+      )}
 
       {/* Period Selector - BOTTOM */}
       <div className="flex justify-center">
@@ -549,6 +578,7 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
       </div>
 
       {/* Legend */}
+      {hasData && (
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2 border-t border-border/50">
         {chartType === "candlestick" && (
           <>
@@ -593,6 +623,7 @@ export function AdvancedStockChart({ symbol, className }: AdvancedStockChartProp
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

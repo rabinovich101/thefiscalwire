@@ -237,59 +237,64 @@ export async function GET(request: NextRequest, { params }: ChartParams) {
       },
     });
   } catch (yahooError) {
-    console.error("Yahoo Finance chart error, trying Nasdaq:", yahooError);
+    console.error("Yahoo Finance chart error:", yahooError);
 
-    // Try Nasdaq API as fallback
-    try {
-      const nasdaqData = await fetchChartFromNasdaq(upperSymbol, period);
-      setCache(cacheKey, nasdaqData, upperSymbol);
+    // Try Nasdaq API as fallback ONLY for intraday periods (1d, 5d)
+    // Nasdaq API only returns current day's intraday data, not historical
+    if (period === "1d" || period === "5d") {
+      try {
+        const nasdaqData = await fetchChartFromNasdaq(upperSymbol, period);
+        setCache(cacheKey, nasdaqData, upperSymbol);
 
-      return NextResponse.json(nasdaqData, {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-          "X-Cache": "MISS",
-          "X-Source": "nasdaq-fallback",
-        },
-      });
-    } catch (nasdaqError) {
-      console.error("Nasdaq fallback also failed:", nasdaqError);
-
-      // Return last known good data if available
-      const lastKnown = lastKnownChartData.get(upperSymbol);
-      if (lastKnown) {
-        console.log(`Returning last known chart data for ${upperSymbol}`);
-        return NextResponse.json(lastKnown, {
+        return NextResponse.json(nasdaqData, {
           headers: {
             "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
-            "X-Cache": "STALE",
+            "X-Cache": "MISS",
+            "X-Source": "nasdaq-fallback",
           },
         });
+      } catch (nasdaqError) {
+        console.error("Nasdaq fallback also failed:", nasdaqError);
       }
-
-      // Return empty fallback data instead of 500 error
-      console.log(`Returning fallback chart data for ${upperSymbol}`);
-      return NextResponse.json(
-        {
-          symbol: upperSymbol,
-          period,
-          data: [],
-          summary: {
-            firstPrice: 0,
-            lastPrice: 0,
-            priceChange: 0,
-            percentChange: 0,
-            high: 0,
-            low: 0,
-          },
-          fallback: true,
-        },
-        {
-          headers: {
-            "Cache-Control": "no-cache",
-            "X-Cache": "FALLBACK",
-          },
-        }
-      );
+    } else {
+      console.log(`Skipping Nasdaq fallback for ${period} period (only supports intraday)`);
     }
+
+    // Return last known good data if available
+    const lastKnown = lastKnownChartData.get(upperSymbol);
+    if (lastKnown) {
+      console.log(`Returning last known chart data for ${upperSymbol}`);
+      return NextResponse.json(lastKnown, {
+        headers: {
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+          "X-Cache": "STALE",
+        },
+      });
+    }
+
+    // Return empty fallback data instead of 500 error
+    console.log(`Returning fallback chart data for ${upperSymbol}`);
+    return NextResponse.json(
+      {
+        symbol: upperSymbol,
+        period,
+        data: [],
+        summary: {
+          firstPrice: 0,
+          lastPrice: 0,
+          priceChange: 0,
+          percentChange: 0,
+          high: 0,
+          low: 0,
+        },
+        fallback: true,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-cache",
+          "X-Cache": "FALLBACK",
+        },
+      }
+    );
   }
 }
