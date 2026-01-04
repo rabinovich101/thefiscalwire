@@ -183,6 +183,7 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
     // Per Share
     eps: parseNumber(parseValue('EPS \\(ttm\\)')),
     bookValue: parseNumber(parseValue('Book/sh')),
+    totalCashPerShare: parseNumber(parseValue('Cash/sh')),
     // Dividend - Finviz uses "Dividend TTM" with format "1.03 (0.38%)"
     dividendYield: (() => {
       const val = parseValue('Dividend TTM');
@@ -597,6 +598,14 @@ export async function GET(request: NextRequest, { params }: QuoteParams) {
         numberOfAnalystOpinions: nasdaqData.numberOfAnalystOpinions ?? finvizStats.numberOfAnalystOpinions ?? null,
         revenueGrowth: nasdaqData.revenueGrowth ?? finvizStats.revenueGrowth ?? null,
         earningsQuarterlyGrowth: nasdaqData.earningsQuarterlyGrowth ?? finvizStats.earningsQuarterlyGrowth ?? null,
+        // Growth metrics from Finviz
+        epsGrowthThisYear: finvizStats.epsGrowthThisYear ?? null,
+        epsGrowthNextYear: finvizStats.epsGrowthNextYear ?? null,
+        epsGrowthPast5Y: finvizStats.epsGrowthPast5Y ?? null,
+        epsGrowthNext5Y: finvizStats.epsGrowthNext5Y ?? null,
+        salesGrowthPast5Y: finvizStats.salesGrowthPast5Y ?? null,
+        // Cash per share
+        totalCashPerShare: nasdaqData.totalCashPerShare ?? finvizStats.totalCashPerShare ?? null,
         employees: nasdaqData.employees ?? finvizStats.employees ?? null,
         sector: nasdaqData.sector ?? finvizStats.sector ?? null,
         industry: nasdaqData.industry ?? finvizStats.industry ?? null,

@@ -31,6 +31,12 @@ interface StockData {
   forwardEps?: number | null;
   earningsQuarterlyGrowth?: number | null;
   revenueGrowth?: number | null;
+  // Growth metrics from Finviz
+  epsGrowthThisYear?: number | null;
+  epsGrowthNextYear?: number | null;
+  epsGrowthPast5Y?: number | null;
+  epsGrowthNext5Y?: number | null;
+  salesGrowthPast5Y?: number | null;
 
   // Shares
   sharesOutstanding?: number | null;
@@ -183,11 +189,12 @@ function getValueColor(val: number | string | null | undefined, colorize?: boole
 export function StockStatsTable({ stock }: StockStatsTableProps) {
   // Calculate derived values (as decimals, formatPercent will multiply by 100)
   // SMA percentages: prefer pre-calculated Finviz values, fallback to Yahoo calculation
+  // Note: Validate that averages are > 1 to prevent division by zero/small numbers
   const sma20Pct = stock.sma20Pct ?? null;
-  const sma50Pct = stock.sma50Pct ?? (stock.fiftyDayAverage && stock.price
+  const sma50Pct = stock.sma50Pct ?? (stock.fiftyDayAverage && stock.fiftyDayAverage > 1 && stock.price
     ? (stock.price - stock.fiftyDayAverage) / stock.fiftyDayAverage
     : null);
-  const sma200Pct = stock.sma200Pct ?? (stock.twoHundredDayAverage && stock.price
+  const sma200Pct = stock.sma200Pct ?? (stock.twoHundredDayAverage && stock.twoHundredDayAverage > 1 && stock.price
     ? (stock.price - stock.twoHundredDayAverage) / stock.twoHundredDayAverage
     : null);
   const high52Pct = stock.fiftyTwoWeekHigh && stock.price
@@ -242,7 +249,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
     [
       { label: 'Sales', value: stock.priceToSales && stock.marketCap ? stock.marketCap / stock.priceToSales : null, format: 'largeNumber' },
       { label: 'P/S', value: stock.priceToSales, format: 'ratio' },
-      { label: 'EPS next Y%', value: null, format: 'percent', colorize: true }, // Not available
+      { label: 'EPS next Y%', value: stock.epsGrowthNextYear, format: 'percent', colorize: true },
       { label: 'ROA', value: stock.returnOnAssets, format: 'percent', colorize: true },
       { label: '52W High', value: stock.fiftyTwoWeekHigh ? `${formatPrice(stock.fiftyTwoWeekHigh)} ${high52Pct !== null ? formatPercent(high52Pct, true) : ''}` : '-', colorize: true },
       { label: 'Perf Half Y', value: stock.perfHalfYear, format: 'percent', colorize: true },
@@ -251,16 +258,16 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
     [
       { label: 'Book/sh', value: stock.bookValue, format: 'ratio' },
       { label: 'P/B', value: stock.priceToBook, format: 'ratio' },
-      { label: 'EPS next 5Y', value: null, format: 'percent' }, // Not available
+      { label: 'EPS next 5Y', value: stock.epsGrowthNext5Y, format: 'percent' },
       { label: 'ROE', value: stock.returnOnEquity, format: 'percent', colorize: true },
       { label: '52W Low', value: stock.fiftyTwoWeekLow ? `${formatPrice(stock.fiftyTwoWeekLow)} ${low52Pct !== null ? formatPercent(low52Pct, true) : ''}` : '-', colorize: true },
-      { label: 'Perf Year', value: stock.fiftyTwoWeekChange, format: 'percent', colorize: true },
+      { label: 'Perf Year', value: stock.perfYear, format: 'percent', colorize: true },
     ],
     // Row 6
     [
       { label: 'Cash/sh', value: stock.totalCashPerShare, format: 'ratio' },
       { label: 'P/FCF', value: stock.freeCashflow && stock.marketCap ? stock.marketCap / stock.freeCashflow : null, format: 'ratio' },
-      { label: 'EPS past 5Y', value: null, format: 'percent' }, // Not available
+      { label: 'EPS past 5Y', value: stock.epsGrowthPast5Y, format: 'percent' },
       { label: 'Gross Margin', value: stock.grossMargin, format: 'percent', colorize: true },
       { label: 'Volatility', value: stock.volatilityWeek && stock.volatilityMonth ? `${(stock.volatilityWeek * 100).toFixed(2)}% ${(stock.volatilityMonth * 100).toFixed(2)}%` : null },
       { label: 'Beta', value: stock.beta, format: 'ratio' },
@@ -269,7 +276,7 @@ export function StockStatsTable({ stock }: StockStatsTableProps) {
     [
       { label: 'Dividend', value: stock.dividendRate, format: 'price' },
       { label: 'EV/EBITDA', value: stock.enterpriseToEbitda, format: 'ratio' },
-      { label: 'Sales past 5Y', value: null, format: 'percent' }, // Not available
+      { label: 'Sales past 5Y', value: stock.salesGrowthPast5Y, format: 'percent' },
       { label: 'Oper. Margin', value: stock.operatingMargin, format: 'percent', colorize: true },
       { label: 'ATR (14)', value: stock.atr, format: 'ratio' },
       { label: 'Target Price', value: stock.targetMeanPrice, format: 'price' },
