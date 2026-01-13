@@ -379,7 +379,6 @@ export async function GET(request: Request) {
       // Fetch recent articles to fill zones (need 4+6+8=18 total)
       console.log(`[FiscalWire Cron] Fetching recent articles to fill homepage zones...`);
       const recentArticles = await prisma.article.findMany({
-        where: { NOT: { publishedAt: null } },
         orderBy: { publishedAt: 'desc' },
         take: 18,
         select: { id: true, slug: true, title: true }
