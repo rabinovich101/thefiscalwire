@@ -242,7 +242,10 @@ async function updatePageBuilderZones(articleIds: string[]) {
 
   for (const zoneSlug of zones) {
     const zone = await prisma.pageZone.findFirst({
-      where: { zoneDefinition: { slug: zoneSlug } },
+      where: {
+        zoneDefinition: { slug: zoneSlug },
+        page: { slug: 'homepage' }
+      },
     });
 
     if (!zone) continue;
