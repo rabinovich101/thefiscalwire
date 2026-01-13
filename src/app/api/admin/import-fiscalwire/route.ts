@@ -16,10 +16,17 @@ import {
 // POST /api/admin/import-fiscalwire
 // Imports breaking news articles from FiscalWire API
 export async function POST(request: NextRequest) {
-  // Verify admin authentication
-  const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Verify authentication - either admin session OR cron secret
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  const isAuthorizedByCron = authHeader === `Bearer ${cronSecret}` && cronSecret;
+
+  if (!isAuthorizedByCron) {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
   }
 
   try {
