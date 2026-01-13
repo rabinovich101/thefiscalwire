@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   try {
     // Fetch 18 most recent articles
     const recentArticles = await prisma.article.findMany({
-      where: { publishedAt: { not: null } },
+      where: { NOT: { publishedAt: null } },
       orderBy: { publishedAt: 'desc' },
       take: 18,
       select: { id: true, slug: true, title: true }
