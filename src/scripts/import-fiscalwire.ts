@@ -19,6 +19,7 @@ import {
   mapSentiment,
   FiscalWireArticle,
 } from "../lib/fiscalwire";
+import { selectArticleImage } from "../lib/article-images";
 
 const prisma = new PrismaClient();
 
@@ -258,9 +259,13 @@ async function main() {
               fwArticle.title,
             content: contentBlocks,
             headings: [],
-            imageUrl:
-              fwArticle.image_url ||
-              "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&h=630&fit=crop",
+            imageUrl: fwArticle.image_url || selectArticleImage({
+              category: fwArticle.category || undefined,
+              businessType,
+              marketsCategory: marketsSlug,
+              sentiment,
+              articleId: String(fwArticle.id),
+            }),
             readTime,
             isFeatured,
             isBreaking,

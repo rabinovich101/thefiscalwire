@@ -13,6 +13,7 @@ import {
 } from '@/lib/fiscalwire';
 import { logImport, logError, logFiscalWireApiUsage } from '@/lib/activityLogger';
 import { addArticleToPageBuilderZones } from '@/lib/page-builder-placement';
+import { selectArticleImage } from '@/lib/article-images';
 
 // Force dynamic - no caching for cron jobs
 export const dynamic = 'force-dynamic';
@@ -213,7 +214,13 @@ async function importArticle(
         slug,
         excerpt,
         content: contentBlocks,
-        imageUrl: article.image_url || '/images/placeholder-news.jpg',
+        imageUrl: article.image_url || selectArticleImage({
+          category: article.category || undefined,
+          businessType,
+          marketsCategory: marketsCategorySlug,
+          sentiment,
+          articleId: externalId,
+        }),
         publishedAt: new Date(article.published_at),
         readTime: estimateReadTime(article.content),
         isFeatured: false,

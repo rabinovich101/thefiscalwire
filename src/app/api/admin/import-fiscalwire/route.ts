@@ -12,6 +12,7 @@ import {
   mapSentiment,
   FiscalWireArticle,
 } from "@/lib/fiscalwire";
+import { selectArticleImage } from "@/lib/article-images";
 
 // POST /api/admin/import-fiscalwire
 // Imports breaking news articles from FiscalWire API
@@ -163,7 +164,13 @@ export async function POST(request: NextRequest) {
             excerpt: fwArticle.ai_summary || fwArticle.summary || fwArticle.title,
             content: contentBlocks,
             headings: [],
-            imageUrl: fwArticle.image_url || "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&h=630&fit=crop",
+            imageUrl: fwArticle.image_url || selectArticleImage({
+              category: fwArticle.category || undefined,
+              businessType: determineBusinessType(fwArticle.category),
+              marketsCategory: marketsSlug,
+              sentiment: mapSentiment(fwArticle.sentiment_label, fwArticle.sentiment_score).sentiment,
+              articleId: String(fwArticle.id),
+            }),
             readTime: estimateReadTime(fwArticle.content || fwArticle.summary),
             isFeatured,
             isBreaking,
