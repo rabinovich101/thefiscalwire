@@ -81,6 +81,75 @@ async function ensureUniqueSlug(baseSlug: string): Promise<string> {
 }
 
 /**
+ * Refresh homepage zones with new articles only
+ * Clears existing placements and adds new articles in order
+ */
+async function refreshHomepageZones(articleIds: string[]) {
+  if (articleIds.length === 0) return;
+
+  const zones = ["hero-featured", "article-grid", "trending-sidebar"];
+  const zoneLimits: Record<string, number> = {
+    "hero-featured": 4,
+    "article-grid": 6,
+    "trending-sidebar": 8
+  };
+
+  let articleIndex = 0;
+
+  for (const zoneSlug of zones) {
+    const zone = await prisma.pageZone.findFirst({
+      where: { zoneDefinition: { slug: zoneSlug } }
+    });
+    if (!zone) {
+      console.log(`[FiscalWire Import] Zone not found: ${zoneSlug}`);
+      continue;
+    }
+
+    // Clear ALL existing placements for this zone
+    await prisma.contentPlacement.deleteMany({
+      where: { zoneId: zone.id }
+    });
+
+    // Add new articles up to zone limit
+    const limit = zoneLimits[zoneSlug] || 4;
+    for (let i = 0; i < limit && articleIndex < articleIds.length; i++) {
+      await prisma.contentPlacement.create({
+        data: {
+          zoneId: zone.id,
+          contentType: "ARTICLE",
+          articleId: articleIds[articleIndex],
+          position: i,
+          isPinned: false,
+        }
+      });
+      articleIndex++;
+    }
+    console.log(`[FiscalWire Import] Refreshed zone ${zoneSlug} with ${Math.min(limit, articleIds.length - (articleIndex - limit))} articles`);
+  }
+}
+
+/**
+ * Update breaking news banner with new article
+ */
+async function updateBreakingNews(slug: string, title: string) {
+  // Deactivate all existing breaking news
+  await prisma.breakingNews.updateMany({
+    where: { isActive: true },
+    data: { isActive: false }
+  });
+
+  // Create new breaking news entry
+  await prisma.breakingNews.create({
+    data: {
+      isActive: true,
+      headline: title,
+      url: `/article/${slug}`
+    }
+  });
+  console.log(`[FiscalWire Import] Updated breaking news: ${title.substring(0, 50)}...`);
+}
+
+/**
  * Import a single article from Fiscal Wire
  * Note: Fiscal Wire already provides AI summary and sentiment, so we skip Perplexity
  */
@@ -257,7 +326,7 @@ export async function GET(request: Request) {
       });
     }
 
-    // Import each article
+    // Import each article and track IDs
     const results = {
       imported: 0,
       skipped: 0,
@@ -265,13 +334,25 @@ export async function GET(request: Request) {
       aiEnhanced: 0,
       details: [] as { title: string; status: string }[],
     };
+    const importedArticleIds: string[] = [];
+    let firstImportedArticle: { slug: string; title: string } | null = null;
 
     for (const article of articles) {
       const authorId = await getRandomAuthor(authors);
       const result = await importArticle(article, authorId);
 
-      if (result.success) {
+      if (result.success && result.articleId) {
         results.imported++;
+        importedArticleIds.push(result.articleId);
+
+        // Track first article for breaking news
+        if (!firstImportedArticle) {
+          firstImportedArticle = {
+            slug: generateSlug(article.title),
+            title: article.title
+          };
+        }
+
         if (article.ai_summary) {
           results.aiEnhanced++;
         }
@@ -289,6 +370,40 @@ export async function GET(request: Request) {
     }
 
     console.log(`[FiscalWire Cron] Import complete: ${results.imported} imported (${results.aiEnhanced} with AI summary), ${results.skipped} skipped, ${results.errors} errors`);
+
+    // Refresh homepage zones with newly imported articles
+    // If no new articles imported, use recent articles from database
+    let articleIdsForZones = importedArticleIds;
+
+    if (articleIdsForZones.length < 18) {
+      // Fetch recent articles to fill zones (need 4+6+8=18 total)
+      console.log(`[FiscalWire Cron] Fetching recent articles to fill homepage zones...`);
+      const recentArticles = await prisma.article.findMany({
+        where: { publishedAt: { not: null } },
+        orderBy: { publishedAt: 'desc' },
+        take: 18,
+        select: { id: true, slug: true, title: true }
+      });
+      articleIdsForZones = recentArticles.map(a => a.id);
+
+      // Use first recent article for breaking news if no new imports
+      if (!firstImportedArticle && recentArticles.length > 0) {
+        firstImportedArticle = {
+          slug: recentArticles[0].slug,
+          title: recentArticles[0].title
+        };
+      }
+    }
+
+    if (articleIdsForZones.length > 0) {
+      console.log(`[FiscalWire Cron] Refreshing homepage zones with ${articleIdsForZones.length} articles...`);
+      await refreshHomepageZones(articleIdsForZones);
+
+      // Update breaking news banner
+      if (firstImportedArticle) {
+        await updateBreakingNews(firstImportedArticle.slug, firstImportedArticle.title);
+      }
+    }
 
     // Log import completion
     await logImport({
