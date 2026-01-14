@@ -81,15 +81,22 @@ export async function addArticleToPageBuilderZones(
         }
 
         // Shift all existing placements down (increment position by 1)
-        await prisma.contentPlacement.updateMany({
-          where: {
-            zoneId: zone.id,
-            position: { gte: 0 },
-          },
-          data: {
-            position: { increment: 1 },
-          },
-        });
+        // Use two-phase update to avoid unique constraint violations:
+        // Phase 1: Add large offset to move all positions out of conflict range
+        // Phase 2: Subtract offset minus 1 to get final positions
+        const TEMP_OFFSET = 10000;
+        await prisma.$executeRaw`
+          UPDATE "ContentPlacement"
+          SET position = position + ${TEMP_OFFSET}
+          WHERE "zoneId" = ${zone.id}
+          AND position >= 0
+        `;
+        await prisma.$executeRaw`
+          UPDATE "ContentPlacement"
+          SET position = position - ${TEMP_OFFSET - 1}
+          WHERE "zoneId" = ${zone.id}
+          AND position >= ${TEMP_OFFSET}
+        `;
 
         // Create new placement at position 0 (top)
         await prisma.contentPlacement.create({
