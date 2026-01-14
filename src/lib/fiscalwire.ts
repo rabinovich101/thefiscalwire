@@ -308,3 +308,41 @@ export function determineBusinessType(category: string | null): string {
 
   return businessTypeMap[category.toLowerCase()] || 'news';
 }
+
+/**
+ * Normalize title for comparison (remove special chars, lowercase)
+ */
+export function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '') // Remove special characters
+    .replace(/\s+/g, ' ')    // Normalize whitespace
+    .trim();
+}
+
+/**
+ * Check if two titles are similar (for duplicate detection)
+ * Returns true if titles are >80% similar
+ */
+export function areTitlesSimilar(title1: string, title2: string): boolean {
+  const norm1 = normalizeTitle(title1);
+  const norm2 = normalizeTitle(title2);
+
+  // Exact match after normalization
+  if (norm1 === norm2) return true;
+
+  // Check if one contains the other (substring match)
+  if (norm1.includes(norm2) || norm2.includes(norm1)) return true;
+
+  // Calculate Jaccard similarity on words
+  const words1 = new Set(norm1.split(' ').filter(w => w.length > 2));
+  const words2 = new Set(norm2.split(' ').filter(w => w.length > 2));
+
+  if (words1.size === 0 || words2.size === 0) return false;
+
+  const intersection = new Set([...words1].filter(w => words2.has(w)));
+  const union = new Set([...words1, ...words2]);
+
+  const similarity = intersection.size / union.size;
+  return similarity > 0.6; // 60% word overlap threshold
+}
