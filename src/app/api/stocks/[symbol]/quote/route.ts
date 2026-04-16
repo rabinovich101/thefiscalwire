@@ -135,12 +135,12 @@ async function fetchStatsFromFinviz(symbol: string): Promise<Record<string, unkn
 
   // Parse values from the Finviz snapshot table
   const parseValue = (label: string): string | null => {
+    // Finviz wraps labels in <div class="snapshot-td-label"> and values in <div class="snapshot-td-content">.
     // Match pattern handles:
-    // 1. Optional <a> around label: <td><a>Label</a></td> or <td>Label</td>
-    // 2. Optional <a> around value: <td><a><b>Value</b></a></td> or <td><b>Value</b></td>
-    // 3. Optional <span> or <small> inside <b>: <b><span>Value</span></b> or <b>Value</b>
+    // 1. Label cell: <td><div>Label</div></td> with optional <a> around label
+    // 2. Value cell: <td><div><b>Value</b></div></td> with optional <a>, <span>, or <small>
     const regex = new RegExp(
-      `<td[^>]*>(?:<a[^>]*>)?${label}(?:</a>)?</td>\\s*<td[^>]*>(?:<a[^>]*>)?<b[^>]*>(?:<span[^>]*>|<small[^>]*>)?([^<]+)(?:</span>|</small>)?</b>(?:</a>)?</td>`,
+      `<td[^>]*>\\s*<div[^>]*>\\s*(?:<a[^>]*>)?${label}(?:</a>)?\\s*</div>\\s*</td>\\s*<td[^>]*>\\s*<div[^>]*>\\s*(?:<a[^>]*>)?<b[^>]*>(?:<span[^>]*>|<small[^>]*>)?([^<]+)(?:</span>|</small>)?</b>(?:</a>)?\\s*</div>\\s*</td>`,
       'i'
     );
     const match = html.match(regex);
