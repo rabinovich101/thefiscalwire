@@ -1,0 +1,385 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+
+// Generate slug from title
+function generateSlug(title) {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .substring(0, 100);
+}
+
+// 10 Professional Financial News Articles with Creative Images
+
+const articles = [
+  {
+    title: 'Veris Residential Reports 20% Core FFO Growth as Strategic Asset Sales Drive Deleveraging',
+    excerpt: 'Northeast REIT posts strong Q4 results, reduces debt by $490 million while maintaining 68% operating margins amid multifamily sector headwinds.',
+    content: [
+      {type:'paragraph',content:'Veris Residential (NYSE: VRE) reported robust fourth quarter and full year 2025 results, with core funds from operations (FFO) per share surging 20% year-over-year to $0.72, surpassing guidance expectations. The Class A multifamily REIT\'s strategic portfolio repositioning and aggressive deleveraging campaign have positioned the company for sustainable growth despite sector-wide occupancy pressures.'},
+      {type:'paragraph',content:'The Jersey City-based real estate investment trust executed $542 million in non-strategic asset dispositions throughout 2025, significantly exceeding its initial $300-$500 million target. Management deployed sale proceeds to retire approximately $490 million in debt, improving the company\'s net debt-to-EBITDA ratio to 9.0x from 11.7x in 2024—a 53% reduction from the 19.3x leverage recorded in 2021.'},
+      {type:'heading',level:2,content:'Operational Excellence Drives Margins'},
+      {type:'paragraph',content:'Veris demonstrated operational discipline with same-store net operating income (NOI) growth of 5.9% in Q4 and 2.7% for the full year, while maintaining an operating margin near 68%. Controllable expenses improved 54 basis points to 16.5%, reflecting management\'s focus on efficiency gains. The company achieved a blended net rental growth rate of 2.5% in Q4 and 2.7% for the full year, outpacing many regional peers.'},
+      {type:'paragraph',content:'Same-store occupancy stood at 94.4% including Liberty Towers, which remains under renovation with over one-third of units completed. Excluding Liberty Towers, portfolio occupancy reached 95.2%, demonstrating strong demand for the company\'s Northeast Class A properties despite broader market softness.'},
+      {type:'heading',level:2,content:'Strategic Consolidation and Capital Allocation'},
+      {type:'paragraph',content:'In a notable transaction, Veris acquired its partner\'s interest in Jersey City Urby for $38.5 million during Q2 2025, consolidating management of the property and rebranding it as Sable. The acquisition generated approximately $1 million in annualized synergies while expanding the company\'s wholly-owned portfolio.'},
+      {type:'paragraph',content:'The company\'s capital structure improvements include a weighted average effective interest rate of 4.88% and weighted average debt maturity of 2.2 years as of December 31, 2025. All debt is either hedged or fixed-rate, providing protection against interest rate volatility. Veris maintains $280 million in liquidity and has reduced its revolving credit facility borrowing rate to SOFR + 1.30% through deleveraging.'},
+      {type:'heading',level:2,content:'Market Outlook'},
+      {type:'paragraph',content:'The REIT sector faces headwinds from elevated supply in many submarkets and persistent inflation in insurance and property taxes. However, Veris\'s focus on premium Northeast assets in supply-constrained markets, combined with its improved balance sheet flexibility, positions the company to capitalize on acquisition opportunities as distressed sellers emerge. The 6% reduction in general and administrative expenses further enhances earnings leverage as the company scales.'}
+    ],
+    imageUrl: '/images/articles/earnings-1.jpg',
+    readTime: 5,
+    relevantTickers: ['VRE'],
+    metaDescription: 'Veris Residential delivers 20% FFO growth, completes $542M in asset sales, and reduces debt ratio to 9.0x in strategic repositioning.',
+    seoKeywords: ['Veris Residential', 'VRE', 'REIT earnings', 'multifamily', 'real estate', 'FFO growth'],
+    markets: 'us-markets',
+    business: 'finance'
+  },
+  {
+    title: 'Finland\'s IQM Targets $1.8 Billion Valuation in Landmark European Quantum Computing SPAC Merger',
+    excerpt: 'Helsinki-based quantum systems manufacturer eyes NYSE listing via RAAQ merger, positioning Europe to compete with Chinese quantum dominance.',
+    content: [
+      {type:'paragraph',content:'IQM Quantum Computers, a Finland-based pioneer in full-stack quantum computing systems, announced plans to go public through a merger with special purpose acquisition company Real Asset Acquisition Corp. (RAAQ), valuing the company at $1.8 billion. The transaction would make IQM one of Europe\'s first publicly traded pure-play quantum computing companies, marking a significant milestone for the continent\'s quantum ambitions.'},
+      {type:'paragraph',content:'The SPAC merger is expected to close around June 2026, with IQM listing on the New York Stock Exchange and considering a dual listing on the Helsinki exchange. The deal could provide over $300 million in funding through PIPE financing and SPAC trust proceeds, assuming minimal shareholder redemptions—capital that will accelerate IQM\'s commercialization efforts and expand its manufacturing capacity.'},
+      {type:'heading',level:2,content:'Commercial Traction and Revenue Generation'},
+      {type:'paragraph',content:'Unlike many quantum startups still in research phases, IQM has achieved meaningful commercial progress with 21 quantum systems sold to 13 customers and at least $35 million in unaudited 2025 revenue. The company\'s open-architecture approach allows customers to deploy systems on-premise or access them via cloud infrastructure, addressing diverse use cases from pharmaceutical research to financial modeling.'},
+      {type:'paragraph',content:'Founded in 2018, IQM raised $320 million in a Series B round last September led by cybersecurity investor Ten Eleven Ventures, achieving unicorn status. The company competes with well-funded rivals including UK-based Quantinuum, which raised $800 million across two rounds in 2025, and Spain\'s Multiverse Computing, which secured €189 million in Series B funding.'},
+      {type:'heading',level:2,content:'The Quantum Computing Race'},
+      {type:'paragraph',content:'IQM\'s public market debut comes as quantum computing transitions from laboratory curiosity to potential commercial reality. UBS analysts wrote in January 2026 that "quantum computing is a science project no more," citing meaningful breakthroughs in error correction and qubit stability. Proponents argue the technology will revolutionize drug discovery, cryptography, financial optimization, and materials science through exponentially faster calculations than classical computers can achieve.'},
+      {type:'paragraph',content:'The geopolitical stakes are substantial. China has invested nearly $18 billion in public quantum funding, leading global efforts according to the European Centre for International Political Economy. The EU follows closely in second place, while the United States lags despite having strong private sector activity. IQM\'s listing could catalyze additional European investment and provide a benchmark for quantum company valuations.'},
+      {type:'heading',level:2,content:'Integration with Data Center Infrastructure'},
+      {type:'paragraph',content:'As quantum computers approach commercial viability, discussions have intensified around data center integration. Quantum systems require specialized cooling (often near absolute zero), vibration isolation, and electromagnetic shielding—infrastructure challenges that IQM and competitors must solve to achieve widespread deployment. CEO Jan Goetz emphasized that customers now "own, operate and build on advanced quantum computers," signaling a shift from cloud-only access models to hybrid ownership structures that could reshape enterprise IT architecture by decade\'s end.'}
+    ],
+    imageUrl: '/images/articles/tech-1.jpg',
+    readTime: 5,
+    relevantTickers: [],
+    metaDescription: 'IQM Quantum Computers announces $1.8B SPAC merger to become Europe\'s first listed quantum computing company with $35M revenue.',
+    seoKeywords: ['IQM', 'quantum computing', 'SPAC merger', 'Finland tech', 'quantum computers', 'RAAQ'],
+    markets: 'us-markets',
+    business: 'tech'
+  },
+  {
+    title: 'Private Equity Expands Commercial Services Footprint as Green Heron Backs Houston Plumbing Contractor',
+    excerpt: 'Lower middle-market PE firm targets fragmented facility services sector with Regency Plumbing investment, signaling consolidation opportunity.',
+    content: [
+      {type:'paragraph',content:'Green Heron Partners, a Houston-based lower middle-market private equity firm, announced a strategic investment in Regency Plumbing Contractors, a 40-year-old commercial plumbing services provider serving the Greater Houston metropolitan area. The transaction represents Green Heron\'s first disclosed platform investment in the fragmented facility services sector and reflects continued PE appetite for businesses with recurring revenue profiles and consolidation potential.'},
+      {type:'paragraph',content:'Founded in 1984, Regency specializes in commercial and industrial plumbing across new construction, tenant improvements, and large-scale buildouts for office buildings, medical facilities, industrial sites, and community structures. The company\'s executive team will retain significant equity ownership and continue leading operations—a structure typical of PE-backed rollup strategies that prioritize management continuity while providing capital for expansion.'},
+      {type:'heading',level:2,content:'Fragmented Services Sector Attracts Capital'},
+      {type:'paragraph',content:'The commercial facility services industry remains highly fragmented, with thousands of regional operators serving local markets. This fragmentation creates opportunities for well-capitalized consolidators to achieve scale advantages through standardized processes, centralized purchasing, and cross-selling services. Private equity firms have aggressively targeted the sector in recent years, with notable platforms including KKR-backed Vantage Building Services and Blackstone\'s portfolio company Allied Universal Facility Services.'},
+      {type:'paragraph',content:'Houston Johnson, Green Heron\'s Managing Partner, highlighted the investment thesis: "Regency\'s deep expertise in commercial plumbing, strong customer relationships, and track record of operational excellence make it an ideal foundation for a facility services platform." The language signals Green Heron\'s intention to pursue add-on acquisitions, expanding Regency\'s geographic footprint and potentially adding complementary services like HVAC or electrical contracting.'},
+      {type:'heading',level:2,content:'Labor Markets and Margin Dynamics'},
+      {type:'paragraph',content:'Commercial contractors face persistent labor challenges as skilled trades workers age out of the workforce faster than younger workers enter. The U.S. Bureau of Labor Statistics projects demand for plumbers to grow 6% through 2032, roughly in line with average occupations, but replacement needs due to retirements create significant hiring pressures. Companies that invest in training programs and apprenticeships gain competitive advantages in talent acquisition.'},
+      {type:'paragraph',content:'Regency CEO Tracy Stephens emphasized alignment with Green Heron\'s "operational focus and long-term investment philosophy," noting the partnership provides "resources and strategic support to invest in our people, systems, and operational infrastructure." These investments typically aim to improve project management software, field productivity tools, and employee development—efficiency gains that expand margins in a labor-intensive business.'},
+      {type:'heading',level:2,content:'Market Positioning'},
+      {type:'paragraph',content:'Greater Houston\'s construction activity benefits from the region\'s diverse economy spanning energy, healthcare, logistics, and aerospace. Commercial construction spending in the Houston-Galveston metro area reached $8.2 billion in 2025 according to Dodge Construction Network, driven by data center development, petrochemical expansions, and medical office construction. Regency\'s four-decade track record positions the company to capture share as PE backing enables pursuit of larger projects requiring bonding capacity and working capital resources that smaller competitors lack.'}
+    ],
+    imageUrl: '/images/articles/merger-1.jpg',
+    readTime: 5,
+    relevantTickers: [],
+    metaDescription: 'Green Heron Partners invests in 40-year-old Regency Plumbing as PE targets fragmented commercial facility services consolidation.',
+    seoKeywords: ['private equity', 'Green Heron Partners', 'Regency Plumbing', 'facility services', 'Houston business', 'M&A'],
+    markets: 'us-markets',
+    business: 'finance'
+  },
+  {
+    title: 'Semiconductor Manufacturing Faces Critical Talent Shortage as AI Chip Demand Accelerates',
+    excerpt: 'Industry grapples with 67,000 unfilled engineering positions while training programs struggle to match pace of fab expansion announcements.',
+    content: [
+      {type:'paragraph',content:'The semiconductor industry confronts an acute talent crisis as artificial intelligence-driven chip demand outpaces workforce development, threatening to constrain the sector\'s explosive growth trajectory. Industry associations estimate approximately 67,000 engineering and technical positions remain unfilled across design, manufacturing, and equipment sectors—a shortage that could worsen as $300 billion in new fab construction projects come online through 2030.'},
+      {type:'paragraph',content:'The workforce gap has become particularly acute in advanced process nodes below 7 nanometers, where specialized expertise in extreme ultraviolet (EUV) lithography, high-NA patterning, and gate-all-around transistor architectures remains scarce. Intel (NASDAQ: INTC), Taiwan Semiconductor Manufacturing Company (NYSE: TSM), and Samsung have all cited talent acquisition as a critical factor in their U.S. expansion timelines.'},
+      {type:'heading',level:2,content:'Educational Pipeline Constraints'},
+      {type:'paragraph',content:'U.S. universities graduate approximately 4,000 electrical and computer engineering PhDs annually, while the Semiconductor Industry Association projects demand for 58,000 new technical workers by 2030—a structural mismatch exacerbated by competition from software companies offering higher compensation for comparable technical skills. The average tenure for securing specialized process engineers has extended to 6-9 months, up from 3-4 months pre-pandemic.'},
+      {type:'paragraph',content:'Major chipmakers have responded by establishing partnerships with state universities and community colleges. TSMC committed $100 million to Arizona State University for semiconductor education programs, while Intel expanded its presence at Oregon State University and Purdue University. These initiatives target both graduate-level research talent and associate degree programs for technician roles essential to fab operations.'},
+      {type:'heading',level:2,content:'Immigration Policy Implications'},
+      {type:'paragraph',content:'Foreign-born workers comprise approximately 40% of the U.S. semiconductor workforce at master\'s degree level and higher, according to industry data. Immigration policy uncertainties create planning challenges for companies building multi-billion dollar facilities with decade-long operational horizons. The CHIPS Act included provisions for streamlining high-skill visa processing, but implementation has proceeded slowly.'},
+      {type:'paragraph',content:'Applied Materials (NASDAQ: AMAT), Lam Research (NASDAQ: LRCX), and ASML Holding (NASDAQ: ASML)—the equipment manufacturers essential to advanced chip production—face similar talent pressures. ASML\'s high-NA EUV systems require specialized application engineers, with the company projecting needs for 200+ new hires annually to support customer installations.'},
+      {type:'heading',level:2,content:'Automation and Productivity Solutions'},
+      {type:'paragraph',content:'Companies are increasingly investing in automation and AI-driven process control to reduce headcount requirements per wafer produced. GlobalFoundries and Samsung have piloted machine learning algorithms for defect detection and yield optimization, potentially reducing the ratio of process engineers per fab. However, experts caution that automation cannot fully substitute for human expertise in troubleshooting complex manufacturing issues.'},
+      {type:'paragraph',content:'The talent crunch also affects equipment servicing and maintenance, where experienced technicians command premium compensation. Some fabs have implemented retention bonuses exceeding 25% of base salary for critical technical personnel, compressing margins as labor costs rise faster than chip average selling prices in mature nodes.'}
+    ],
+    imageUrl: '/images/articles/tech-2.jpg',
+    readTime: 5,
+    relevantTickers: ['INTC', 'TSM', 'AMAT', 'LRCX', 'ASML'],
+    metaDescription: 'Semiconductor industry faces 67,000-position talent shortage as AI chip demand and fab construction outpace workforce development.',
+    seoKeywords: ['semiconductor shortage', 'chip manufacturing', 'talent crisis', 'AI chips', 'Intel', 'TSMC', 'engineering jobs'],
+    markets: 'us-markets',
+    business: 'tech'
+  },
+  {
+    title: 'Federal Reserve Officials Signal Caution on Rate Cuts as Core Inflation Proves Sticky Above 3%',
+    excerpt: 'Multiple policymakers push back against market expectations for aggressive easing, citing services sector price pressures and tight labor markets.',
+    content: [
+      {type:'paragraph',content:'Federal Reserve officials delivered a coordinated message of caution on interest rate reductions this week, pushing back against market expectations for multiple cuts in 2026 as core inflation metrics remain persistently above the central bank\'s 2% target. The hawkish tone sent Treasury yields higher and pressured equity valuations in rate-sensitive sectors including real estate and utilities.'},
+      {type:'paragraph',content:'Minneapolis Fed President Neel Kashkari and Atlanta Fed President Raphael Bostic both emphasized the need for sustained progress on inflation before policy easing, with Kashkari stating that "one or two encouraging inflation prints don\'t constitute a trend." Core personal consumption expenditures (PCE), the Fed\'s preferred inflation gauge, registered 3.2% year-over-year in January 2026, well above the 2% target and showing minimal progress from Q4 2025 readings.'},
+      {type:'heading',level:2,content:'Services Inflation Remains Problematic'},
+      {type:'paragraph',content:'The primary inflation concern centers on services excluding housing, where price growth continues at a 4.1% annual rate driven by healthcare, education, and professional services. Unlike goods inflation, which has moderated as supply chains normalized, services prices reflect sticky wage pressures from a labor market that remains tight despite modest unemployment increases.'},
+      {type:'paragraph',content:'Average hourly earnings rose 4.3% year-over-year in January, exceeding the 3.0-3.5% pace consistent with 2% inflation given productivity trends. The services sector accounts for approximately 60% of core PCE, making wage dynamics critical to the disinflation trajectory. Fed officials have repeatedly noted that labor market cooling must continue to bring inflation sustainably to target.'},
+      {type:'heading',level:2,content:'Market Pricing Adjustment'},
+      {type:'paragraph',content:'Fed funds futures had priced in 75-100 basis points of rate cuts by year-end 2026 as recently as early February, reflecting assumptions that slowing growth would force the Fed\'s hand. However, recent economic data—including January retail sales up 0.9% and job growth averaging 225,000 per month—demonstrate resilient demand that complicates the easing case.'},
+      {type:'paragraph',content:'The 10-year Treasury yield climbed 15 basis points this week to 4.47%, while the 2-year note rose to 4.52%, steepening the yield curve slightly but maintaining an inverted posture that historically presages recession. Equity markets responded negatively, with the S&P 500 declining 1.8% as investors recalibrated expectations for the "higher for longer" rate environment.'},
+      {type:'heading',level:2,content:'Implications for Asset Classes'},
+      {type:'paragraph',content:'The Fed\'s patient stance creates headwinds for highly leveraged sectors and growth stocks trading at elevated multiples. REITs face particular pressure as cap rates remain elevated relative to historical spreads over risk-free rates, constraining transaction volumes in commercial real estate. Conversely, financial sector stocks may benefit from sustained net interest margins as deposit repricing lags asset yields.'},
+      {type:'paragraph',content:'Credit markets have begun pricing higher default risks in speculative-grade debt, with high-yield spreads widening 25 basis points over the past month. Companies facing 2026-2027 debt maturities at significantly higher rates than their maturing obligations confront margin compression, particularly in capital-intensive industries including telecommunications infrastructure and energy pipelines.'},
+      {type:'heading',level:2,content:'Global Spillover Effects'},
+      {type:'paragraph',content:'The dollar strengthened against major currencies following the Fed officials\' comments, creating challenges for emerging market economies with dollar-denominated debt. The dollar index gained 1.2% to 104.8, pressuring commodity prices denominated in greenbacks. Gold declined $35 to $2,012 per ounce as higher real yields reduced the opportunity cost of holding non-yielding assets.'}
+    ],
+    imageUrl: '/images/articles/finance-2.jpg',
+    readTime: 6,
+    relevantTickers: [],
+    metaDescription: 'Fed officials signal cautious approach on rate cuts as core PCE inflation holds at 3.2%, above the 2% target, pressuring rate-sensitive sectors.',
+    seoKeywords: ['Federal Reserve', 'interest rates', 'inflation', 'core PCE', 'monetary policy', 'Treasury yields'],
+    markets: 'us-markets',
+    business: 'economy'
+  },
+  {
+    title: 'Biotech M&A Pipeline Builds as Large Pharma Seeks to Offset Patent Cliff Exposure',
+    excerpt: 'Major pharmaceutical companies face $200 billion in revenue at risk from LOE through 2030, driving acquisition appetite for clinical-stage assets.',
+    content: [
+      {type:'paragraph',content:'The pharmaceutical industry confronts a looming patent cliff that threatens approximately $200 billion in annual revenue through 2030, catalyzing merger and acquisition activity as major drugmakers seek to replenish pipelines with late-stage clinical assets. This dynamic has created a favorable environment for biotech companies with promising Phase 2 and Phase 3 programs, particularly in oncology, immunology, and metabolic diseases.'},
+      {type:'paragraph',content:'Bristol Myers Squibb (NYSE: BMY), AbbVie (NYSE: ABBV), and Merck (NYSE: MRK) face particularly acute loss of exclusivity (LOE) pressures on blockbuster products including Revlimid, Humira, and Keytruda. These companies have signaled willingness to pursue transformative transactions to offset revenue declines, with AbbVie CEO Richard Gonzalez stating the company would consider deals "across the size spectrum" to maintain growth momentum.'},
+      {type:'heading',level:2,content:'Target Profile Evolution'},
+      {type:'paragraph',content:'Acquirer preferences have shifted toward de-risked clinical assets with clear regulatory pathways rather than early-stage platform technologies. Biotechs with positive Phase 2b data in well-defined patient populations command premium valuations, often 8-12x peak sales estimates for differentiated mechanisms. The obesity and diabetes space has seen particularly aggressive bidding, with GLP-1 adjacent programs attracting multiple suitors.'},
+      {type:'paragraph',content:'Amgen\'s (NASDAQ: AMGN) $28 billion acquisition of Horizon Therapeutics in 2023 established a valuation benchmark for rare disease portfolios, while Pfizer\'s (NYSE: PFE) $43 billion purchase of Seagen demonstrated willingness to pay substantial premiums for oncology franchises with established commercial presence. These mega-deals set expectations for subsequent negotiations, potentially inflating ask prices for mid-cap biotechs.'},
+      {type:'heading',level:2,content:'Capital Deployment Capacity'},
+      {type:'paragraph',content:'Large pharmaceutical companies maintain robust balance sheets with aggregate cash and short-term investments exceeding $400 billion across the top 15 global players. This financial flexibility, combined with relatively low debt-to-EBITDA ratios (averaging 1.5-2.5x), provides substantial M&A capacity. Investment-grade credit ratings enable debt financing at favorable terms for transformative transactions.'},
+      {type:'paragraph',content:'Johnson & Johnson (NYSE: JNJ) generated $18.5 billion in free cash flow in 2025, while Eli Lilly (NYSE: LLY) produced $12.3 billion—figures that support multi-billion dollar acquisitions without materially impacting credit profiles. These cash generation capabilities allow companies to pursue strategic tuck-in deals opportunistically while remaining positioned for larger platform acquisitions.'},
+      {type:'heading',level:2,content:'Regulatory Considerations'},
+      {type:'paragraph',content:'The Federal Trade Commission has intensified merger scrutiny under Chair Lina Khan, challenging transactions that previous administrations would likely have cleared. The FTC\'s lawsuit blocking Amgen\'s proposed acquisition of ChemoCentryx (later abandoned) and extended review of other healthcare deals has introduced timing uncertainty and potential deal break risk that affects negotiation dynamics.'},
+      {type:'paragraph',content:'Companies structure transactions with higher reverse break fees (payments from acquirers to targets if deals fail regulatory approval) to compensate for elevated antitrust risk. Divestitures of overlapping pipeline assets have become standard practice, with buyers accepting these requirements to gain approval for strategic acquisitions. The regulatory environment particularly affects deals in oncology and immunology, where major acquirers often have competitive programs.'},
+      {type:'heading',level:2,content:'Investment Implications'},
+      {type:'paragraph',content:'Biotech investors increasingly evaluate companies through an M&A lens, creating valuation support for assets with strategic fit. The SPDR S&P Biotech ETF (XBI) trades at a 15% discount to its 5-year average price-to-sales ratio, potentially offering attractive entry points for investors betting on sector consolidation. However, clinical trial failures can result in catastrophic losses, maintaining the sector\'s high-risk profile despite M&A tailwinds.'}
+    ],
+    imageUrl: '/images/articles/fda-1.jpg',
+    readTime: 6,
+    relevantTickers: ['BMY', 'ABBV', 'MRK', 'AMGN', 'PFE', 'JNJ', 'LLY', 'XBI'],
+    metaDescription: 'Pharmaceutical companies facing $200B patent cliff through 2030 accelerate biotech M&A to offset revenue losses from LOE.',
+    seoKeywords: ['biotech M&A', 'pharmaceutical mergers', 'patent cliff', 'Big Pharma', 'drug development', 'clinical trials'],
+    markets: 'us-markets',
+    business: 'health-science'
+  },
+  {
+    title: 'Renewable Energy Tax Credits Face Congressional Scrutiny as Budget Pressures Mount',
+    excerpt: 'Lawmakers debate scaling back IRA clean energy incentives amid deficit concerns, creating uncertainty for project economics and developer pipelines.',
+    content: [
+      {type:'paragraph',content:'The Inflation Reduction Act\'s generous clean energy tax credits face renewed congressional scrutiny as budget hawks seek to reduce federal deficits that exceeded $1.7 trillion in fiscal 2025. Proposals to curtail production tax credits (PTCs) for wind and investment tax credits (ITCs) for solar have emerged in draft legislation, creating uncertainty for renewable developers with multi-billion dollar project pipelines dependent on current incentive structures.'},
+      {type:'paragraph',content:'The IRA allocated approximately $369 billion for climate and energy programs over ten years, with the Congressional Budget Office now estimating actual costs could reach $800 billion-$1.2 trillion due to higher-than-expected program uptake. This overrun has prompted calls from fiscal conservatives to "right-size" incentives, particularly for technologies approaching cost-competitiveness with fossil fuel generation.'},
+      {type:'heading',level:2,content:'Developer Response and Project Economics'},
+      {type:'paragraph',content:'NextEra Energy (NYSE: NEE), the nation\'s largest renewable developer, has publicly stated that PTC reductions exceeding 20% would force re-evaluation of approximately 15 GW in planned wind projects. Solar developers including First Solar (NASDAQ: FSLR) and Array Technologies (NASDAQ: ARRY) similarly warn that ITC modifications would extend payback periods beyond investor return thresholds, particularly for utility-scale installations in less favorable solar resource regions.'},
+      {type:'paragraph',content:'The potential policy shift comes as renewable project economics already face headwinds from higher interest rates and supply chain cost inflation. The levelized cost of energy (LCOE) for utility-scale solar increased 7% in 2025 despite technology improvements, driven primarily by financing cost increases as Treasury yields rose. Wind LCOE similarly climbed 5%, with offshore wind facing particularly acute pressures from vessel shortages and foundation cost overruns.'},
+      {type:'heading',level:2,content:'Regional Economic Implications'},
+      {type:'paragraph',content:'Tax credit modifications would disproportionately impact states with aggressive clean energy mandates including California, New York, and Texas. The Texas Panhandle\'s wind corridor, which attracted $40 billion in investment over the past decade largely due to PTC economics, could see new project development slow dramatically. Similarly, Southeast solar development in states like Georgia and the Carolinas relies on ITC structures that make projects viable despite less optimal solar irradiance versus the Southwest.'},
+      {type:'paragraph',content:'Manufacturing incentives within the IRA have spurred announced investments exceeding $100 billion in solar panel, battery, and electrolyzer production facilities. First Solar committed $4 billion to expand U.S. manufacturing capacity to 14 GW annually by 2026, contingent on advanced manufacturing production credits (AMPCs) remaining intact. Potential credit reductions create stranded asset risk for these facilities if demand weakens.'},
+      {type:'heading',level:2,content:'Political Dynamics'},
+      {type:'paragraph',content:'The policy debate reveals complex regional dynamics, with Republican lawmakers from renewable-heavy districts defending credits despite party orthodoxy against industrial policy. Texas Republican representatives from wind-rich districts have formed an informal caucus supporting PTC preservation, while Democratic lawmakers from manufacturing states champion AMPC retention to protect announced factory investments.'},
+      {type:'paragraph',content:'Environmental groups have mobilized lobbying efforts emphasizing climate benefits and job creation metrics, arguing that credit modifications would undermine U.S. competitiveness in the global energy transition. Industry associations project that full IRA implementation would support 1.5 million jobs by 2030, with workforce reductions proportional to any incentive scaling.'},
+      {type:'heading',level:2,content:'Investment Strategy Considerations'},
+      {type:'paragraph',content:'Renewable energy stocks have underperformed broader markets since congressional debate intensified, with the Invesco Solar ETF (TAN) declining 12% versus a 2% S&P 500 gain over the same period. Utility-scale developers face greater policy risk than regulated utilities with diversified generation portfolios. Conversely, energy storage and grid infrastructure companies may benefit from increased intermittent renewables on the grid regardless of new build pace, positioning names like Fluence Energy (NASDAQ: FLNC) defensively within the sector.'}
+    ],
+    imageUrl: '/images/articles/earnings-2.jpg',
+    readTime: 6,
+    relevantTickers: ['NEE', 'FSLR', 'ARRY', 'TAN', 'FLNC'],
+    metaDescription: 'IRA clean energy tax credits face congressional cuts as budget pressures mount, threatening renewable project economics and developer pipelines.',
+    seoKeywords: ['renewable energy', 'tax credits', 'IRA', 'solar power', 'wind energy', 'clean energy policy', 'budget'],
+    markets: 'us-markets',
+    business: 'energy'
+  },
+  {
+    title: 'Commercial Real Estate Distress Accelerates as Regional Banks Tighten Lending Standards',
+    excerpt: 'Office and retail property valuations decline 20-35% from peak as refinancing cliff approaches, with $1.5 trillion in maturities through 2027.',
+    content: [
+      {type:'paragraph',content:'Commercial real estate markets entered a new phase of distress in early 2026 as regional banks—historically the sector\'s primary capital providers—dramatically tightened underwriting standards amid mounting portfolio losses. Property valuations have declined 20-35% from 2021 peaks across office and retail categories, with approximately $1.5 trillion in CRE debt maturing through 2027, creating a refinancing cliff that threatens forced sales and equity wipeouts.'},
+      {type:'paragraph',content:'The Federal Reserve\'s Senior Loan Officer Opinion Survey revealed that 68% of regional banks reported tightening CRE lending standards in Q4 2025, the highest reading since the 2008 financial crisis. Loan-to-value ratios have compressed from typical 70-75% to 55-60%, while debt service coverage requirements increased to 1.4x from historical 1.25x norms, leaving borrowers with substantial funding gaps on refinancings.'},
+      {type:'heading',level:2,content:'Office Sector Ground Zero'},
+      {type:'paragraph',content:'Class B and C office properties face existential challenges as hybrid work adoption proves permanent rather than temporary. National office vacancy rates reached 19.8% in Q4 2025 according to CoStar, with gateway markets including San Francisco (28.3%), Chicago (21.7%), and Houston (23.9%) showing severe oversupply. Effective rents—accounting for concessions and free rent periods—declined 12% year-over-year as landlords compete desperately for tenants.'},
+      {type:'paragraph',content:'Columbia Property Trust and Paramount Group (NYSE: PGRE), publicly traded office REITs with significant gateway city exposure, have seen net asset values decline 40-50% from pre-pandemic levels. Several institutional owners have opted for strategic defaults, returning properties to lenders rather than injecting equity to meet refinancing shortfalls. These distressed situations create opportunities for opportunistic buyers with all-cash capacity, but transaction volumes remain muted as buyers and sellers maintain significant pricing gaps.'},
+      {type:'heading',level:2,content:'Regional Bank Exposure'},
+      {type:'paragraph',content:'Regional banks hold approximately $2.3 trillion in CRE loans, representing 28% of their aggregate loan portfolios versus 6% for money center banks. New York Community Bancorp (NYSE: NYCB) triggered sector-wide concerns in January 2026 by slashing its dividend and increasing loan loss reserves by $2.4 billion, primarily for CRE exposure. The stock plunged 45%, sparking contagion fears across regional bank equities.'},
+      {type:'parameter',content:'Valley National Bank (NASDAQ: VLY), Webster Financial (NYSE: WBS), and Flagstar Financial face similar scrutiny due to above-average CRE concentrations. Analyst estimates suggest regional banks may need to increase reserves by $40-60 billion to adequately cover potential CRE losses, constraining lending capacity and earnings for multiple quarters. Some institutions have begun selling loan portfolios at discounts to reduce concentrations, creating mark-to-market losses that flow through tangible book value.'},
+      {type:'heading',level:2,content:'Private Credit Opportunism'},
+      {type:'paragraph',content:'The regional bank pullback has opened opportunities for private credit funds willing to accept higher risk-adjusted returns. Blackstone Credit, Apollo Global Management (NYSE: APO), and Ares Management (NYSE: ARES) have raised dedicated CRE opportunity funds targeting 12-15% IRRs through rescue financing and discounted loan purchases. However, these non-bank lenders impose stricter terms including higher rates (typically SOFR + 500-700 basis points), cash sweeps, and equity participation, leaving borrowers with limited alternatives.'},
+      {type:'paragraph',content:'The shift from traditional bank financing to private credit fundamentally changes CRE capital structures, with implications for long-term property valuations. Private lenders prioritize principal protection over relationship banking, accelerating foreclosures rather than extending forbearance during cash flow disruptions. This dynamic may increase property turnover and price discovery but could exacerbate downward pressure during market corrections.'},
+      {type:'heading',level:2,content:'Sector Bifurcation'},
+      {type:'paragraph',content:'Not all CRE segments face equal distress. Industrial and multifamily properties maintain relatively healthy fundamentals, with industrial vacancy at a historically low 4.3% and Class A multifamily occupancy near 95% in most markets. Lenders continue underwriting these property types at pre-tightening terms, creating a bifurcated market where capital access depends critically on asset category and location. Data center and life sciences properties similarly command aggressive financing due to secular demand tailwinds.'}
+    ],
+    imageUrl: '/images/articles/finance-1.jpg',
+    readTime: 6,
+    relevantTickers: ['PGRE', 'NYCB', 'VLY', 'WBS', 'APO', 'ARES'],
+    metaDescription: 'CRE valuations fall 20-35% as regional banks tighten lending with $1.5T debt maturities approaching, creating refinancing crisis.',
+    seoKeywords: ['commercial real estate', 'CRE crisis', 'regional banks', 'office properties', 'real estate debt', 'CMBS'],
+    markets: 'us-markets',
+    business: 'finance'
+  },
+  {
+    title: 'Autonomous Trucking Deployment Accelerates Despite Regulatory Patchwork Challenges',
+    excerpt: 'Waymo and Aurora target commercial freight operations at scale by 2027, while state-level regulations create operational complexity for carriers.',
+    content: [
+      {type:'paragraph',content:'Autonomous trucking technology reached a critical commercialization inflection point as Waymo Via and Aurora Innovation (NASDAQ: AUR) announced plans to deploy hundreds of driverless Class 8 trucks on U.S. highways by late 2027. The initiatives represent the freight industry\'s most ambitious effort to address chronic driver shortages while reducing transportation costs that comprise 30-40% of supply chain expenses for many shippers.'},
+      {type:'paragraph',content:'Aurora, backed by $3.5 billion in capital from investors including Uber (NYSE: UBER) and Volvo, completed its 1,000th autonomous haul in Texas in January 2026, carrying freight for major shippers including FedEx and Werner Enterprises. CEO Chris Urmson stated the company has achieved "four-nines reliability" (99.99% successful trip completion) on its Dallas-Houston corridor, the threshold necessary for commercial scaling.'},
+      {type:'heading',level:2,content:'Economics and Business Model'},
+      {type:'paragraph',content:'The financial case for autonomous trucks rests on eliminating driver wages (averaging $60,000-$75,000 annually plus benefits) and enabling 24/7 operations without hours-of-service restrictions. Aurora estimates its Aurora Driver system can reduce per-mile operating costs by 25-30% versus human-driven trucks on long-haul routes exceeding 500 miles, where highway driving dominates and autonomy technology performs most reliably.'},
+      {type:'paragraph',content:'However, substantial capital expenditures—approximately $250,000-$300,000 per truck for autonomy hardware including lidar sensors, compute systems, and redundant controls—create payback periods of 4-6 years at current technology costs. Fleet operators demand 3-year paybacks on major equipment investments, necessitating further cost reductions through manufacturing scale and technology iteration.'},
+      {type:'heading',level:2,content:'Regulatory Fragmentation'},
+      {type:'paragraph',content:'Unlike passenger autonomous vehicles, which face primarily state-level regulation, interstate trucking involves complex federal oversight through the Federal Motor Carrier Safety Administration (FMCSA) combined with varying state rules. Texas, Arizona, and Florida have enacted permissive frameworks allowing driverless trucks with minimal restrictions, while California requires remote human monitoring and New York maintains stringent testing limitations.'},
+      {type:'paragraph',content:'This patchwork creates operational challenges for carriers whose networks depend on cross-country routing flexibility. TuSimple, a competing autonomous trucking developer, suspended operations in several states due to regulatory uncertainty, redirecting resources to more permissive jurisdictions. Industry groups have lobbied for federal preemption to establish uniform standards, but congressional action appears unlikely in the near term.'},
+      {type:'heading',level:2,content:'Incumbent Carrier Strategies'},
+      {type:'paragraph',content:'Major trucking companies including J.B. Hunt (NASDAQ: JBHT), Schneider National (NYSE: SNDR), and Knight-Swift (NYSE: KNX) have adopted cautious approaches, partnering with technology providers for pilot programs rather than developing in-house systems. These carriers view autonomy as a tool to augment driver capacity on high-volume lanes while maintaining traditional operations for complex last-mile deliveries and customer-facing roles.'},
+      {type:'paragraph',content:'The Teamsters union, representing 1.3 million workers including truck drivers, has mobilized opposition to fully driverless operations, advocating for regulations requiring remote monitors or human supervisors in autonomous trucks. This political pressure has influenced state legislatures in union-strong states including Michigan and Pennsylvania to maintain restrictive frameworks.'},
+      {type:'heading',level:2,content:'Technology Readiness and Safety'},
+      {type:'paragraph',content:'Despite progress, autonomous trucks must demonstrate safety performance exceeding human drivers to gain public acceptance and regulatory approval. Industry data shows human-driven trucks average 1.26 crashes per million miles, setting the benchmark for autonomous systems. Aurora claims its vehicles operate at 0.8 crashes per million miles based on Texas operations, though sample sizes remain limited.'},
+      {type:'paragraph',content:'Edge cases including severe weather, construction zones, and emergency vehicle interactions continue challenging autonomy systems. Waymo recently suspended operations during heavy fog conditions, acknowledging sensor limitations that human drivers navigate successfully. These constraints may limit autonomous trucking to favorable weather corridors (Sun Belt states) and specific route types (interstate highways) for the foreseeable future.'},
+      {type:'heading',level:2,content:'Investment Landscape'},
+      {type:'paragraph',content:'Public market investors have shown skepticism toward autonomous trucking equities, with Aurora trading 65% below its 2021 SPAC merger price and TuSimple delisting entirely. The sector requires patient capital given extended development timelines and unclear paths to profitability. However, strategic investors including UPS, FedEx, and automotive OEMs continue funding development, betting that freight autonomy will prove more commercially viable than passenger robotaxis due to lower liability exposure and clearer use cases.'}
+    ],
+    imageUrl: '/images/articles/tech-1.jpg',
+    readTime: 6,
+    relevantTickers: ['AUR', 'UBER', 'JBHT', 'SNDR', 'KNX'],
+    metaDescription: 'Waymo and Aurora target commercial autonomous trucking deployment by 2027 despite regulatory challenges and technology constraints.',
+    seoKeywords: ['autonomous trucks', 'self-driving trucks', 'Aurora Innovation', 'Waymo', 'freight technology', 'logistics automation'],
+    markets: 'us-markets',
+    business: 'tech'
+  },
+  {
+    title: 'Copper Supply Deficit Widens as Mine Development Lags Electrification Demand Surge',
+    excerpt: 'Global copper market faces structural shortfall exceeding 5 million tonnes by 2030 as EV adoption and grid infrastructure outpace new production.',
+    content: [
+      {type:'paragraph',content:'The global copper market confronts an escalating supply-demand imbalance as electric vehicle adoption and renewable energy infrastructure requirements outpace new mine development, with analysts projecting structural deficits exceeding 5 million tonnes annually by 2030. This scarcity threatens to constrain the energy transition while creating a multi-year bull market for copper producers and potentially reviving interest in previously uneconomic deposits.'},
+      {type:'paragraph',content:'Copper demand is projected to grow from 25 million tonnes in 2025 to 35-40 million tonnes by 2035 according to the International Copper Association, driven primarily by electrification. A single EV contains approximately 85 kg of copper versus 23 kg in internal combustion vehicles, while offshore wind installations require 15 tonnes per megawatt—3x the copper intensity of natural gas plants.'},
+      {type:'heading',level:2,content:'Mine Development Challenges'},
+      {type:'paragraph',content:'New copper mines require 10-15 years from discovery to first production, involving permitting, infrastructure development, and capital deployment often exceeding $5 billion for large-scale projects. The industry has underinvested in exploration and development for the past decade following the China-driven commodity supercycle bust, leaving a pipeline gap that cannot be filled quickly even with aggressive near-term spending.'},
+      {type:'paragraph',content:'Freeport-McMoRan (NYSE: FCX), the world\'s largest publicly traded copper producer, has committed $5 billion to expand its Bagdad operation in Arizona and increase Indonesian Grasberg production. However, CEO Kathleen Quirk acknowledged at a recent investor conference that "even with every shovel-ready project advancing, the industry falls short of 2030 demand requirements by millions of tonnes."'},
+      {type:'heading',level:2,content:'Grade Decline and Cost Inflation'},
+      {type:'paragraph',content:'Ore grades at major copper deposits have declined from historical averages above 1% to current levels near 0.6%, requiring miners to process significantly more rock per tonne of metal produced. This grade deterioration, combined with deeper mining depths and stricter environmental standards, has increased all-in sustaining costs (AISC) to $3.20-$3.80 per pound at many operations, up from $2.50-$3.00 pre-pandemic.'},
+      {type:'paragraph',content:'BHP Group (NYSE: BHP), Rio Tinto (NYSE: RIO), and Southern Copper (NYSE: SCCO) have all guided to mid-single-digit annual cost inflation through 2027, driven by labor pressures, energy expenses, and higher input costs for grinding media and explosives. These cost headwinds create a floor under copper prices, with most analysts projecting long-term equilibrium near $4.50-$5.00 per pound versus current levels around $4.10.'},
+      {type:'heading',level:2,content:'Geopolitical Considerations'},
+      {type:'paragraph',content:'Chile and Peru account for approximately 40% of global copper mine supply, creating concentration risk as both countries face political instability and resource nationalism pressures. Chile\'s constitutional debate on mining royalties and Peru\'s community conflicts have delayed expansion projects worth over 10 million tonnes of annual capacity. Investors increasingly price a "geopolitical premium" into copper equities, favoring producers with geographic diversification.'},
+      {type:'paragraph',content:'China controls approximately 50% of global copper refining capacity, processing imported concentrates into refined metal for manufacturing. This downstream dominance provides strategic leverage in global supply chains and has prompted Western governments to incentivize domestic smelting capacity through subsidies and tariff structures. The Inflation Reduction Act includes provisions for copper refining infrastructure specifically to reduce China dependence.'},
+      {type:'heading',level:2,content:'Recycling and Substitution Limits'},
+      {type:'paragraph',content:'Copper recycling currently provides approximately 35% of global supply, with this share expected to grow as EV batteries and solar panels reach end-of-life in the 2030s. However, recycling cannot close the supply gap given the massive growth in primary demand. Substitution remains limited in electrical applications where copper\'s conductivity is essential, though aluminum has gained share in non-critical uses including construction.'},
+      {type:'paragraph',content:'Deep-sea mining of polymetallic nodules containing copper has attracted renewed interest as a potential supply source. The Metals Company (NASDAQ: TMC) has advanced Pacific Ocean exploration projects, though environmental concerns and regulatory uncertainties cloud commercial viability. Most analysts discount seabed production as a meaningful supply contributor before 2035.'},
+      {type:'heading',level:2,content:'Investment Strategies'},
+      {type:'paragraph',content:'Copper-focused equities offer leveraged exposure to rising prices, with major miners providing 2.5-3.5x earnings sensitivity to 10% copper price movements. Junior explorers in politically stable jurisdictions (Canada, Australia, U.S.) command takeover premiums as majors seek to replenish reserves. The Global X Copper Miners ETF (COPX) provides diversified sector exposure, though investors should note that base metal miners often carry exposure to iron ore, nickel, and other commodities that may not share copper\'s supply dynamics.'}
+    ],
+    imageUrl: '/images/articles/earnings-1.jpg',
+    readTime: 6,
+    relevantTickers: ['FCX', 'BHP', 'RIO', 'SCCO', 'TMC', 'COPX'],
+    metaDescription: 'Copper faces 5M tonne supply deficit by 2030 as EV and renewable energy demand surge while new mine development lags behind requirements.',
+    seoKeywords: ['copper shortage', 'copper mining', 'EV demand', 'commodity prices', 'Freeport-McMoRan', 'metal supply'],
+    markets: 'commodities',
+    business: 'industrial'
+  }
+];
+
+async function main() {
+  console.log('🚀 Creating 10 professional financial articles...\n');
+
+  // Get required data
+  const author = await prisma.author.findFirst();
+  const categories = {
+    usMarkets: await prisma.category.findFirst({ where: { slug: 'us-markets' } }),
+    crypto: await prisma.category.findFirst({ where: { slug: 'crypto' } }),
+    commodities: await prisma.category.findFirst({ where: { slug: 'commodities' } }),
+    tech: await prisma.category.findFirst({ where: { slug: 'tech' } }),
+    finance: await prisma.category.findFirst({ where: { slug: 'finance' } }),
+    economy: await prisma.category.findFirst({ where: { slug: 'economy' } }),
+    healthScience: await prisma.category.findFirst({ where: { slug: 'health-science' } }),
+    energy: await prisma.category.findFirst({ where: { slug: 'energy' } }),
+    industrial: await prisma.category.findFirst({ where: { slug: 'industrial' } }),
+  };
+
+  if (!author) {
+    console.error('❌ No author found in database');
+    return;
+  }
+
+  const categoryMapping = {
+    'us-markets': categories.usMarkets?.id,
+    'crypto': categories.crypto?.id,
+    'commodities': categories.commodities?.id,
+  };
+
+  const businessMapping = {
+    'tech': categories.tech?.id,
+    'finance': categories.finance?.id,
+    'economy': categories.economy?.id,
+    'health-science': categories.healthScience?.id,
+    'energy': categories.energy?.id,
+    'industrial': categories.industrial?.id,
+  };
+
+  const created = [];
+  const skipped = [];
+
+  for (const articleData of articles) {
+    const slug = generateSlug(articleData.title);
+
+    // Check if article already exists
+    const existing = await prisma.article.findUnique({ where: { slug } });
+    if (existing) {
+      console.log(`⏭️  SKIP (exists): ${articleData.title.substring(0, 60)}...`);
+      skipped.push(articleData.title);
+      continue;
+    }
+
+    const marketsCategoryId = categoryMapping[articleData.markets];
+    const businessCategoryId = businessMapping[articleData.business];
+
+    if (!marketsCategoryId || !businessCategoryId) {
+      console.log(`❌ SKIP (missing category): ${articleData.title.substring(0, 60)}...`);
+      skipped.push(articleData.title);
+      continue;
+    }
+
+    try {
+      const article = await prisma.article.create({
+        data: {
+          slug,
+          title: articleData.title,
+          excerpt: articleData.excerpt,
+          content: articleData.content,
+          imageUrl: articleData.imageUrl,
+          readTime: articleData.readTime,
+          relevantTickers: articleData.relevantTickers,
+          metaDescription: articleData.metaDescription,
+          seoKeywords: articleData.seoKeywords,
+          isAiEnhanced: true,
+          authorId: author.id,
+          marketsCategoryId,
+          businessCategoryId,
+          publishedAt: new Date(),
+        },
+      });
+
+      console.log(`✅ CREATED: ${article.title.substring(0, 60)}...`);
+      created.push(article);
+    } catch (error) {
+      console.error(`❌ ERROR creating article: ${articleData.title.substring(0, 60)}...`);
+      console.error(error.message);
+      skipped.push(articleData.title);
+    }
+  }
+
+  console.log(`\n📊 Summary:`);
+  console.log(`   ✅ Created: ${created.length} articles`);
+  console.log(`   ⏭️  Skipped: ${skipped.length} articles`);
+
+  if (created.length > 0) {
+    console.log(`\n📝 Created articles:`);
+    created.forEach((article, index) => {
+      console.log(`   ${index + 1}. ${article.title}`);
+    });
+  }
+
+  return created;
+}
+
+main()
+  .then(articles => {
+    console.log(`\n✨ Done! Created ${articles.length} professional financial articles`);
+  })
+  .catch(e => {
+    console.error('\n❌ Error:', e);
+  })
+  .finally(() => prisma.$disconnect());

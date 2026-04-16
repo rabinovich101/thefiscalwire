@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Playwright MCP screenshots
 .playwright-mcp/
+
+# Local Claude settings (contains sensitive command approvals)
+.claude/settings.local.json
