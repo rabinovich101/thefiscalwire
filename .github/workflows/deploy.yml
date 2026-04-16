@@ -1,0 +1,25 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, fiscalwire]
+    steps:
+      - name: Pull latest code
+        run: |
+          cd /home/ooo/thefiscalwire
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Build and restart container
+        run: |
+          cd /home/ooo/thefiscalwire
+          docker compose build --no-cache
+          docker compose up -d
+
+      - name: Prune unused images
+        run: docker image prune -f
