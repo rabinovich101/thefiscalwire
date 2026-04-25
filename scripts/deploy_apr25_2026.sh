@@ -54,6 +54,6 @@ echo "Copying April 25 article importer to ${DEPLOY_TARGET}..."
 run_with_expect "scp '$LOCAL_SCRIPT' '${DEPLOY_TARGET}:${REMOTE_SCRIPT}'"
 
 echo "Running importer inside the Fiscal Wire production container..."
-run_with_expect "ssh '${DEPLOY_TARGET}' 'set -e; CONTAINER=\$(docker ps --filter \"name=fiscal\" --format \"{{.Names}}\" | head -1); if [ -z \"\$CONTAINER\" ]; then echo \"No fiscal container found\" >&2; docker ps --format \"{{.Names}}\"; exit 1; fi; docker cp ${REMOTE_SCRIPT} \$CONTAINER:/app/scripts/create_articles_apr25_2026.js; docker exec \$CONTAINER node scripts/create_articles_apr25_2026.js'"
+run_with_expect "ssh '${DEPLOY_TARGET}' 'set -e; CONTAINER=\$(docker ps --filter \"name=fiscal\" --format \"{{.Names}}\" | head -1); if [ -z \"\$CONTAINER\" ]; then echo \"No fiscal container found\" >&2; docker ps --format \"{{.Names}}\"; exit 1; fi; docker cp ${REMOTE_SCRIPT} \$CONTAINER:/app/create_articles_apr25_2026.js; docker exec -w /app \$CONTAINER node create_articles_apr25_2026.js'"
 
 echo "Production article import complete."

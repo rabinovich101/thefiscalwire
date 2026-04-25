@@ -24,10 +24,30 @@ Create and publish 15 fresh articles covering the most viral current stories in 
 - [x] 10. Run local validation checks (`npm run lint` or focused syntax/build checks as appropriate).
 - [x] 11. Run the local article creation script against the dev database.
 - [x] 12. Start the local app and test as a regular user with Playwright using `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
-- [ ] 13. Commit/push the approved code changes to the repo's deployment branch.
-- [ ] 14. Deploy to production through `$DEPLOY_HOST`/`fiscalwire` over SSH, using `$SSH_PASSPHRASE` and `$SSH_PASSWORD` only through non-logged automation.
-- [ ] 15. Verify production as a regular user with Playwright using `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
-- [ ] 16. Mark completed checklist items and write the final review summary below.
+- [x] 13. Commit/push the approved code changes to the repo's deployment branch.
+- [x] 14. Deploy to production through `$DEPLOY_HOST`/`fiscalwire` over SSH, using `$SSH_PASSPHRASE` and `$SSH_PASSWORD` only through non-logged automation.
+- [x] 15. Verify production as a regular user with Playwright using `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
+- [x] 16. Mark completed checklist items and write the final review summary below.
 
 ## Review
-Pending. This section will be updated after implementation, testing, push, and deployment.
+Completed on April 25, 2026.
+
+Summary:
+- Created `scripts/create_articles_apr25_2026.js` with exactly 15 current viral articles across economics, finance, geopolitics, and crypto.
+- The importer resolves category IDs, author IDs, and homepage zones dynamically from the active database so the same file works locally and inside production.
+- The importer updates existing April 25 articles on rerun, creates missing ones, places five stories in each homepage article zone, and trims back to the zone's pre-import count.
+- Added `scripts/deploy_apr25_2026.sh` for SSH deployment to the running Fiscal Wire container.
+- Updated `ARCHITECTURE.md` with the editorial batch import and homepage placement behavior.
+
+Validation:
+- `node --check scripts/create_articles_apr25_2026.js` passed.
+- `bash -n scripts/deploy_apr25_2026.sh` passed.
+- All 15 article image URLs returned HTTP 200.
+- Local importer created/updated 15 dev articles and preserved local homepage zone counts.
+- Production SSH import created 15 production articles and preserved production homepage zone counts.
+- Playwright verified local homepage/article and production homepage/article with `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
+- `npm run lint` still fails because of pre-existing repository lint issues, mostly old CommonJS scripts and unrelated React lint rules. The new article script has an explicit lint exemption for its CommonJS runtime style.
+
+Notes:
+- Production Playwright verification shows the new IMF lead story live on the homepage and article page.
+- Browser console errors during verification were limited to third-party analytics resources (`googletagmanager.com` locally/production and Cloudflare Insights production) failing DNS resolution in the test environment.
