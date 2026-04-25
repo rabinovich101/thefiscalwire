@@ -219,6 +219,29 @@ UPLOADTHING_APP_ID="..."
 
 ---
 
+## Editorial Batch Imports
+
+The April 25, 2026 article batch uses `scripts/create_articles_apr25_2026.js`.
+The script is intentionally environment-neutral: it resolves category IDs,
+authors, and homepage page-builder zones from the active database instead of
+hardcoding local or production IDs.
+
+Homepage placement is managed through the Page Builder tables:
+- `PageDefinition` with slug `homepage`
+- `PageZone` entries for `HERO_FEATURED`, `ARTICLE_GRID`, and `TRENDING_SIDEBAR`
+- `ContentPlacement` rows ordered by `position`
+
+When a new 15-article batch is imported, the importer places five articles in
+each homepage article zone, moves existing placements down, and trims the tail
+back to the zone's pre-import placement count. This keeps the number of
+homepage placements unchanged while allowing old stories to move down or drop
+off when there is no space.
+
+Production deployment for this batch can be run with
+`scripts/deploy_apr25_2026.sh`, which copies the importer to the `fiscalwire`
+host (or `$DEPLOY_HOST`) and executes it inside the running Fiscal Wire Docker
+container so it uses production environment variables.
+
 ## Scripts
 
 ```bash
