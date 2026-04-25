@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+npm-debug.log*
+.env
+.env.local
+.env*.local
+.playwright-mcp
+.claude
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif

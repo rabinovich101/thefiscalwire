@@ -156,6 +156,11 @@ newswebbyclaude/
 
 ### Docker Configuration
 - **Dockerfile**: Multi-stage build, Node.js 22 Alpine
+- **Dependency install**: `npm ci` runs with npm fetch retry/timeout settings
+  and a BuildKit cache mount at `/root/.npm` to reduce production rebuild
+  failures from transient npm registry timeouts.
+- **Build context**: `.dockerignore` excludes local caches, Git metadata,
+  environment files, and generated browser/test artifacts from image builds.
 - **docker-compose.yml**: Traefik labels for SSL/routing
 - **Network**: Connected to Coolify's Traefik proxy
 
