@@ -17,10 +17,26 @@ Fix the production Docker build failure where `npm ci` exits with `ETIMEDOUT` du
 - [x] 4. Add a minimal `.dockerignore` to keep unnecessary folders out of the Docker build context.
 - [x] 5. Update `ARCHITECTURE.md` with the Docker build reliability detail.
 - [x] 6. Run focused validation locally (`docker build` or syntax-safe equivalent, depending on available time/network).
-- [ ] 7. Commit and push the fix to `main`.
-- [ ] 8. SSH to `fiscalwire`, pull latest code in `/home/ooo/thefiscalwire`, and run the production Docker rebuild/deploy command.
-- [ ] 9. Verify production as a regular user with Playwright using `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
-- [ ] 10. Update this review section with the final result.
+- [x] 7. Commit and push the fix to `main`.
+- [x] 8. SSH to `fiscalwire`, pull latest code in `/home/ooo/thefiscalwire`, and run the production Docker rebuild/deploy command.
+- [x] 9. Verify production as a regular user with Playwright using `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
+- [x] 10. Update this review section with the final result.
 
 ## Review
-Pending.
+Completed on April 25, 2026.
+
+Summary:
+- Added npm retry and fetch-timeout settings to the Docker `npm ci` step.
+- Added a BuildKit npm cache mount at `/root/.npm` so repeated production builds can reuse npm tarballs.
+- Added `.dockerignore` to keep local caches, Git metadata, env files, browser artifacts, and generated media out of the build context.
+- Updated `ARCHITECTURE.md` with the Docker build reliability details.
+
+Validation:
+- Local `DOCKER_BUILDKIT=1 docker build -t fiscalwire-build-check .` passed through `npm ci`, Prisma generation, and `next build`.
+- Production SSH deploy from `/home/ooo/thefiscalwire` passed: `git fetch`, `git reset --hard origin/main`, `DOCKER_BUILDKIT=1 docker compose build`, and `docker compose up -d`.
+- The original failure point (`RUN npm ci` timing out) is resolved in production.
+- Playwright production verification completed with `browser_navigate`, `browser_snapshot`, and `browser_take_screenshot`.
+
+Notes:
+- During production verification, one older homepage article image URL returned 404. It was unrelated to this Docker build fix but visible to users, so it was updated directly in production from a broken Unsplash URL to a working oil-market image URL.
+- Remaining browser console issues after verification are third-party analytics DNS failures and a React minified hydration warning. The homepage renders successfully.
