@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import YahooFinance from "yahoo-finance2";
+import { yahooFinance } from "@/lib/yahoo-finance";
 import {
   calculateCallGreeks,
   calculatePutGreeks,
@@ -10,9 +10,6 @@ import {
 } from "@/lib/black-scholes";
 
 export const dynamic = "force-dynamic";
-
-// Create Yahoo Finance singleton
-const yahooFinance = new YahooFinance();
 
 // Cache for Yahoo options data (5 minutes)
 const yahooOptionsCache = new Map<string, { data: Map<string, { callIV: number | null; putIV: number | null }>; expires: number }>();

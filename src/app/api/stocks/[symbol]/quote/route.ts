@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import YahooFinance from "yahoo-finance2";
-
-const yahooFinance = new YahooFinance();
+import { yahooFinance } from "@/lib/yahoo-finance";
 
 // Simple in-memory cache to reduce API calls
 const cache = new Map<string, { data: unknown; timestamp: number }>();

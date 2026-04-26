@@ -84,7 +84,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in /api/market/quotes:", error);
+    console.error("[/api/market/quotes] Yahoo Finance failed:", {
+      name: error instanceof Error ? error.name : "Unknown",
+      message: error instanceof Error ? error.message : String(error),
+    });
 
     // Return last known good data if available
     if (lastKnownGoodData) {

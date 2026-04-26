@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import YahooFinance from "yahoo-finance2";
-
-const yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] });
+import { yahooFinance } from "@/lib/yahoo-finance";
 
 export const dynamic = "force-dynamic";
 

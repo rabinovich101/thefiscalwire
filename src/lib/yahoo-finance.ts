@@ -1,7 +1,12 @@
 import YahooFinance from "yahoo-finance2";
 
-// Create singleton instance
-const yahooFinance = new YahooFinance();
+// globalThis singleton — same pattern as prisma.ts — ensures one cookie jar
+// across all route bundles in Next.js standalone mode
+const globalForYahoo = globalThis as unknown as { __yahooFinance?: InstanceType<typeof YahooFinance> };
+const yahooFinance = globalForYahoo.__yahooFinance ??
+  (globalForYahoo.__yahooFinance = new YahooFinance({ suppressNotices: ["yahooSurvey"] }));
+
+export { yahooFinance };
 
 // ============================================================================
 // Expected Move Types (for earnings)
