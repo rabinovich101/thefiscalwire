@@ -201,6 +201,49 @@ export async function getQuotes(symbols: string[]): Promise<MarketQuote[]> {
 }
 
 /**
+ * Fetch a single quote via Yahoo's v8 chart API (no crumb needed).
+ */
+async function fetchChartQuote(yahooSymbol: string, name: string): Promise<MarketQuote | null> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=1d&range=1d`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const meta = data?.chart?.result?.[0]?.meta;
+    if (!meta?.regularMarketPrice) return null;
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose || price;
+    const change = price - prevClose;
+    const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+    return { symbol: yahooSymbol, name, price, change, changePercent };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch market indices via direct v8 chart API (fallback when crumb-based API is rate-limited).
+ */
+export async function getMarketIndicesDirect(): Promise<MarketQuote[]> {
+  const symbols: Array<{ yahoo: string; name: string }> = [
+    { yahoo: "^GSPC", name: "S&P 500" },
+    { yahoo: "^IXIC", name: "NASDAQ" },
+    { yahoo: "^DJI", name: "Dow Jones" },
+    { yahoo: "^RUT", name: "Russell 2000" },
+    { yahoo: "BTC-USD", name: "Bitcoin" },
+    { yahoo: "ETH-USD", name: "Ethereum" },
+    { yahoo: "GC=F", name: "Gold" },
+    { yahoo: "CL=F", name: "Crude Oil" },
+  ];
+  const results = await Promise.all(
+    symbols.map(s => fetchChartQuote(s.yahoo, s.name))
+  );
+  return results.filter((r): r is MarketQuote => r !== null);
+}
+
+/**
  * Fetch market indices (S&P 500, NASDAQ, DOW, etc.)
  */
 export async function getMarketIndices(): Promise<MarketQuote[]> {

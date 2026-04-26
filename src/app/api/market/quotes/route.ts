@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getQuotes, getMarketIndices } from "@/lib/yahoo-finance";
+import { getQuotes, getMarketIndices, getMarketIndicesDirect } from "@/lib/yahoo-finance";
 import { rateLimitMiddleware } from "@/lib/rate-limit";
 import { validateSearchParams, marketQuotesSchema, validationErrorResponse } from "@/lib/validations";
 
@@ -84,10 +84,30 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("[/api/market/quotes] Yahoo Finance failed:", {
+    console.error("[/api/market/quotes] Yahoo Finance library failed:", {
       name: error instanceof Error ? error.name : "Unknown",
       message: error instanceof Error ? error.message : String(error),
     });
+
+    // Try direct v8 chart API (no crumb needed, works when library is rate-limited)
+    try {
+      console.log("[/api/market/quotes] Trying direct v8 chart API fallback...");
+      const directQuotes = await getMarketIndicesDirect();
+      if (directQuotes.length > 0) {
+        console.log("[/api/market/quotes] Direct API succeeded with", directQuotes.length, "quotes");
+        setCache("default-indices", directQuotes);
+        return NextResponse.json(directQuotes, {
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "X-Cache": "DIRECT-API",
+          },
+        });
+      }
+    } catch (directError) {
+      console.error("[/api/market/quotes] Direct API also failed:", {
+        message: directError instanceof Error ? directError.message : String(directError),
+      });
+    }
 
     // Return last known good data if available
     if (lastKnownGoodData) {
