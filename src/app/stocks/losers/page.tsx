@@ -4,7 +4,7 @@ import { TrendingDown, ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { TrendingStockCard } from "@/components/stocks";
-import { getTopLosers } from "@/lib/yahoo-finance";
+import { getTopLosers, getTopLosersDirect } from "@/lib/yahoo-finance";
 
 export const metadata: Metadata = {
   title: "Top 10 Losers | The Fiscal Wire",
@@ -14,7 +14,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function LosersPage() {
-  const losers = await getTopLosers().catch(() => []);
+  const yahooLosers = await getTopLosers().catch(() => []);
+  const losers = yahooLosers.length > 0 ? yahooLosers : await getTopLosersDirect();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

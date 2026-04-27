@@ -52,7 +52,9 @@ export async function generateMetadata({ params }: LayoutProps): Promise<Metadat
   }
 
   // Dynamic description based on performance
-  const changePercent = (stock.changePercent || 0) * 100;
+  // changePercent comes from /api/stocks/[symbol]/quote in percent units (e.g. -1.27)
+  // — same scale as Yahoo's regularMarketChangePercent. Don't multiply by 100.
+  const changePercent = stock.changePercent || 0;
   const absChange = Math.abs(changePercent);
   let trend = "trading";
   if (changePercent > 5) trend = "surging";
@@ -106,8 +108,9 @@ export default async function StockLayout({ children, params }: LayoutProps) {
   const formatPrice = (price: number) => `$${price?.toFixed(2) || "0.00"}`;
   const formatChange = (change: number, percent: number) => {
     const sign = change >= 0 ? "+" : "";
-    // percent from Yahoo Finance is a decimal (e.g., -0.0027 for -0.27%)
-    const percentDisplay = percent ? (percent * 100).toFixed(2) : "0.00";
+    // percent is already in percent units (e.g. -1.27 means -1.27%) — same scale
+    // returned by Yahoo's regularMarketChangePercent and the Nasdaq fallback.
+    const percentDisplay = percent ? percent.toFixed(2) : "0.00";
     return `${sign}${change?.toFixed(2) || "0.00"} (${sign}${percentDisplay}%)`;
   };
 

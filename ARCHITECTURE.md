@@ -35,12 +35,20 @@
 - **Index Constituents API**: S&P 500, DJIA, Nasdaq 100 composition (GitHub)
 
 ### Data Fallback Chain
-Stock quotes use a three-tier fallback strategy:
-1. Yahoo Finance (primary) → 2. Nasdaq + Finviz (parallel) → 3. Last known good data
 
-Chart data: Yahoo → Nasdaq (intraday only) → Cached data → Empty fallback
+When Yahoo Finance's authenticated endpoints are rate-limited (the recurring failure
+mode in production), the app falls back to two unauthenticated paths that have proven
+reliable: Yahoo's v8 chart endpoint (no crumb required) and the Nasdaq Screener API.
 
-All endpoints return graceful fallbacks instead of 500 errors.
+- **Stock quotes**: Yahoo `quoteSummary` → Nasdaq + Finviz (parallel) → last-known-good
+- **Market indices** (`/api/market/quotes`): Yahoo lib → `getMarketIndicesDirect()` (v8 chart) → last-known-good → static fallback. Response sets `X-Cache: HIT|MISS|DIRECT-API|STALE|STATIC-FALLBACK`.
+- **Top gainers / losers** (`/api/market/movers`): Yahoo screener → `getTopGainersDirect()` / `getTopLosersDirect()` (derived from Nasdaq Screener; filters to price ≥ $5, market cap ≥ $2B, excludes warrants/units/preferred) → last-known-good → static fallback.
+- **Trending / most-active** (`/stocks/trending`, `/stocks/active`, `/api/stocks/trending`): Yahoo trending+screener → `getMostActiveDirect()` (Nasdaq Screener sorted by market cap × |%|).
+- **Chart data** (`/api/market/chart`, `getChartData`): Yahoo chart → `getChartDataDirect()` (v8 chart endpoint with `interval`/`range` mapping per period). Sets `X-Source: yahoo|direct`.
+
+All `*Direct` helpers live in `src/lib/yahoo-finance.ts` and reuse `fetchAllNasdaqPrices()` from `src/lib/stock-lists.ts` (which is also what the heatmap consumes). All endpoints return graceful fallbacks instead of 500 errors.
+
+**`changePercent` scale convention**: Everywhere in the app — Yahoo's `regularMarketChangePercent`, the Nasdaq fallback path, the heatmap, and the v8 direct helpers — `changePercent` is in **percent units** (e.g. `-1.27` means `-1.27%`). UI consumers render with `${pct.toFixed(2)}%`. Do **not** multiply by 100 again at the consumer; that bug existed in `/stocks/[symbol]/layout.tsx` and `/api/og/stock/[symbol]` and was fixed.
 
 ### Caching
 - In-memory caching with 60-second TTL for market data

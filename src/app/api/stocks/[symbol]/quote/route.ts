@@ -52,7 +52,11 @@ async function fetchFromNasdaq(symbol: string) {
 
   const price = parsePrice(pd.lastSalePrice);
   const change = parseFloat(pd.netChange) || 0;
-  const changePercent = parseFloat((pd.percentageChange || "0").replace('%', '')) / 100;
+  // Nasdaq returns the percent string in percent units (e.g. "-1.37%"). The rest of the
+  // app — Yahoo's regularMarketChangePercent, the heatmap, the ticker — also passes
+  // changePercent in percent units (so consumers can render `${pct.toFixed(2)}%`).
+  // Don't divide by 100 here or downstream displays show a value 100× too small.
+  const changePercent = parseFloat((pd.percentageChange || "0").replace('%', '')) || 0;
 
   return {
     symbol: symbol.toUpperCase(),

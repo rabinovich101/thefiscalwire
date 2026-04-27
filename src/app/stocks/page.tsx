@@ -2,7 +2,14 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, Sparkles, Flame, BarChart3 } from "lucide-react";
 import { StockSearchBar } from "@/components/stocks";
-import { getTopGainers, getTopLosers, getMarketIndices } from "@/lib/yahoo-finance";
+import {
+  getTopGainers,
+  getTopLosers,
+  getMarketIndices,
+  getTopGainersDirect,
+  getTopLosersDirect,
+  getMarketIndicesDirect,
+} from "@/lib/yahoo-finance";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
@@ -26,12 +33,17 @@ const POPULAR_STOCKS = [
 ];
 
 export default async function StocksPage() {
-  // Fetch market data in parallel
-  const [gainers, losers, indices] = await Promise.all([
+  // Fetch market data in parallel from Yahoo (primary)
+  const [gainersRaw, losersRaw, indicesRaw] = await Promise.all([
     getTopGainers().catch(() => []),
     getTopLosers().catch(() => []),
     getMarketIndices().catch(() => []),
   ]);
+
+  // Fall back to Nasdaq/v8-chart direct paths when Yahoo is rate-limited
+  const gainers = gainersRaw.length > 0 ? gainersRaw : await getTopGainersDirect();
+  const losers = losersRaw.length > 0 ? losersRaw : await getTopLosersDirect();
+  const indices = indicesRaw.length > 0 ? indicesRaw : await getMarketIndicesDirect();
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

@@ -1,4 +1,5 @@
 import YahooFinance from "yahoo-finance2";
+import { fetchAllNasdaqPrices, type NasdaqStock } from "./stock-lists";
 
 // globalThis singleton — same pattern as prisma.ts — ensures one cookie jar
 // across all route bundles in Next.js standalone mode
@@ -241,6 +242,163 @@ export async function getMarketIndicesDirect(): Promise<MarketQuote[]> {
     symbols.map(s => fetchChartQuote(s.yahoo, s.name))
   );
   return results.filter((r): r is MarketQuote => r !== null);
+}
+
+// Parse a NasdaqStock row's stringly-typed fields into numbers.
+// Returns null if the row is missing/halted (e.g. "N/A" prices).
+function parseNasdaqRow(stock: NasdaqStock): MarketQuote | null {
+  const price = parseFloat((stock.lastsale || "").replace(/[$,]/g, ""));
+  const change = parseFloat(stock.netchange || "");
+  const changePercent = parseFloat((stock.pctchange || "").replace("%", ""));
+  if (!Number.isFinite(price) || price <= 0) return null;
+  if (!Number.isFinite(changePercent)) return null;
+  return {
+    symbol: stock.symbol,
+    name: stock.name || stock.symbol,
+    price,
+    change: Number.isFinite(change) ? change : 0,
+    changePercent,
+  };
+}
+
+// Returns parsed market cap in dollars; 0 if unparseable
+function parseNasdaqMarketCap(stock: NasdaqStock): number {
+  const cap = parseFloat((stock.marketCap || "").replace(/,/g, ""));
+  return Number.isFinite(cap) ? cap : 0;
+}
+
+const MIN_MOVER_PRICE = 5;            // skip penny-stock noise
+const MIN_MOVER_MARKET_CAP = 2e9;     // $2B+ keeps quality close to Yahoo day_gainers screener
+// Exclude warrants, rights, units, preferred, notes — Nasdaq lumps these with stocks
+const NON_COMMON_STOCK_PATTERN = /\b(warrant|warrants|right|rights|unit|units|preferred|note|notes|debenture|debentures)\b/i;
+
+/**
+ * Top gainers via Nasdaq Screener API (fallback when Yahoo screener is rate-limited).
+ * Mirrors the filter behavior of Yahoo's day_gainers (price ≥ $5, market cap ≥ $1B).
+ */
+export async function getTopGainersDirect(): Promise<MarketQuote[]> {
+  try {
+    const priceMap = await fetchAllNasdaqPrices();
+    if (priceMap.size === 0) return [];
+    const candidates: MarketQuote[] = [];
+    for (const stock of priceMap.values()) {
+      const parsed = parseNasdaqRow(stock);
+      if (!parsed || parsed.price < MIN_MOVER_PRICE) continue;
+      if (parseNasdaqMarketCap(stock) < MIN_MOVER_MARKET_CAP) continue;
+      if (NON_COMMON_STOCK_PATTERN.test(stock.name || "")) continue;
+      if (parsed.changePercent <= 0) continue;
+      candidates.push(parsed);
+    }
+    return candidates
+      .sort((a, b) => b.changePercent - a.changePercent)
+      .slice(0, 5);
+  } catch (error) {
+    console.error("Error in getTopGainersDirect:", error);
+    return [];
+  }
+}
+
+/**
+ * Top losers via Nasdaq Screener API (fallback when Yahoo screener is rate-limited).
+ */
+export async function getTopLosersDirect(): Promise<MarketQuote[]> {
+  try {
+    const priceMap = await fetchAllNasdaqPrices();
+    if (priceMap.size === 0) return [];
+    const candidates: MarketQuote[] = [];
+    for (const stock of priceMap.values()) {
+      const parsed = parseNasdaqRow(stock);
+      if (!parsed || parsed.price < MIN_MOVER_PRICE) continue;
+      if (parseNasdaqMarketCap(stock) < MIN_MOVER_MARKET_CAP) continue;
+      if (NON_COMMON_STOCK_PATTERN.test(stock.name || "")) continue;
+      if (parsed.changePercent >= 0) continue;
+      candidates.push(parsed);
+    }
+    return candidates
+      .sort((a, b) => a.changePercent - b.changePercent)
+      .slice(0, 5);
+  } catch (error) {
+    console.error("Error in getTopLosersDirect:", error);
+    return [];
+  }
+}
+
+/**
+ * Most-active proxy via Nasdaq Screener API: sort mega-caps by absolute % move.
+ * (Nasdaq screener doesn't expose volume, so we approximate with marketCap × |%| as activity.)
+ */
+export async function getMostActiveDirect(count: number = 10): Promise<MarketQuote[]> {
+  try {
+    const priceMap = await fetchAllNasdaqPrices();
+    if (priceMap.size === 0) return [];
+    const candidates: Array<MarketQuote & { _activity: number }> = [];
+    for (const stock of priceMap.values()) {
+      const parsed = parseNasdaqRow(stock);
+      if (!parsed || parsed.price < MIN_MOVER_PRICE) continue;
+      const cap = parseNasdaqMarketCap(stock);
+      if (cap < MIN_MOVER_MARKET_CAP) continue;
+      candidates.push({ ...parsed, _activity: cap * Math.abs(parsed.changePercent) });
+    }
+    return candidates
+      .sort((a, b) => b._activity - a._activity)
+      .slice(0, count)
+      .map((c): MarketQuote => ({
+        symbol: c.symbol,
+        name: c.name,
+        price: c.price,
+        change: c.change,
+        changePercent: c.changePercent,
+      }));
+  } catch (error) {
+    console.error("Error in getMostActiveDirect:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch historical chart data via direct v8 chart API (fallback when library is rate-limited).
+ */
+export async function getChartDataDirect(
+  symbol: string,
+  period: "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" = "1mo"
+): Promise<ChartDataPoint[]> {
+  try {
+    const yahooSymbol = getYahooSymbol(symbol);
+    const intervalRangeMap: Record<string, { interval: string; range: string }> = {
+      "1d": { interval: "5m", range: "1d" },
+      "5d": { interval: "15m", range: "5d" },
+      "1mo": { interval: "1d", range: "1mo" },
+      "3mo": { interval: "1d", range: "3mo" },
+      "6mo": { interval: "1d", range: "6mo" },
+      "1y": { interval: "1d", range: "1y" },
+    };
+    const { interval, range } = intervalRangeMap[period] || intervalRangeMap["1mo"];
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${interval}&range=${range}`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const result = data?.chart?.result?.[0];
+    const timestamps: number[] = result?.timestamp || [];
+    const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close || [];
+    const volumes: (number | null)[] = result?.indicators?.quote?.[0]?.volume || [];
+    if (timestamps.length === 0) return [];
+    const points: ChartDataPoint[] = [];
+    for (let i = 0; i < timestamps.length; i++) {
+      const close = closes[i];
+      if (close === null || close === undefined) continue;
+      points.push({
+        time: formatDate(new Date(timestamps[i] * 1000), period),
+        value: close,
+        volume: volumes[i] ?? undefined,
+      });
+    }
+    return points;
+  } catch (error) {
+    console.error(`Error in getChartDataDirect for ${symbol}:`, error);
+    return [];
+  }
 }
 
 /**

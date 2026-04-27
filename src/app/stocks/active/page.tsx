@@ -4,7 +4,12 @@ import { Activity, ArrowLeft } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { TrendingStockCard } from "@/components/stocks";
-import { getMostActiveStocks } from "@/lib/yahoo-finance";
+import {
+  getMostActiveStocks,
+  getMostActiveDirect,
+  type TrendingStock,
+  type MarketQuote,
+} from "@/lib/yahoo-finance";
 
 export const metadata: Metadata = {
   title: "Most Active Stocks | The Fiscal Wire",
@@ -13,8 +18,34 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+function padToTrending(q: MarketQuote): TrendingStock {
+  return {
+    symbol: q.symbol,
+    name: q.name,
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: 0,
+    avgVolume: 0,
+    marketCap: 0,
+    fiftyTwoWeekHigh: 0,
+    fiftyTwoWeekLow: 0,
+    fiftyDayAverage: 0,
+    twoHundredDayAverage: 0,
+    trailingPE: null,
+    forwardPE: null,
+    eps: null,
+    dividendYield: null,
+    beta: null,
+    exchange: "",
+    quoteType: "EQUITY",
+  };
+}
+
 export default async function MostActivePage() {
-  const mostActive = await getMostActiveStocks(20).catch(() => []);
+  const yahooActive = await getMostActiveStocks(20).catch(() => []);
+  const mostActive: TrendingStock[] =
+    yahooActive.length > 0 ? yahooActive : (await getMostActiveDirect(20)).map(padToTrending);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">

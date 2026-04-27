@@ -28,7 +28,8 @@ export async function GET(
 
   const price = stock?.price?.toFixed(2) || "N/A";
   const change = stock?.change || 0;
-  const changePercent = ((stock?.changePercent || 0) * 100).toFixed(2);
+  // changePercent is already in percent units (e.g. -1.27 means -1.27%)
+  const changePercent = (stock?.changePercent || 0).toFixed(2);
   const name = stock?.name || upperSymbol;
   const isPositive = change >= 0;
 

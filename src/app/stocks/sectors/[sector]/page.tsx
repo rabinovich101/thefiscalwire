@@ -27,6 +27,7 @@ import {
   getSymbolsForSector,
   SECTORS,
   getMarketIndices,
+  getMarketIndicesDirect,
 } from "@/lib/yahoo-finance";
 
 // Map icon names to components
@@ -165,7 +166,7 @@ export default async function SectorPage({ params }: PageProps) {
 
   // Fetch initial page of stocks and market indices
   const INITIAL_LIMIT = 20;
-  const [paginatedResult, indices] = await Promise.all([
+  const [paginatedResult, indicesRaw] = await Promise.all([
     getSectorStocksPaginated(sectorId, 1, INITIAL_LIMIT).catch(() => ({
       stocks: [],
       page: 1,
@@ -176,6 +177,7 @@ export default async function SectorPage({ params }: PageProps) {
     })),
     getMarketIndices().catch(() => []),
   ]);
+  const indices = indicesRaw.length > 0 ? indicesRaw : await getMarketIndicesDirect();
 
   const stocks = paginatedResult.stocks;
   const totalStocks = getSymbolsForSector(sectorId).length;

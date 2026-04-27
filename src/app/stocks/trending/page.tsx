@@ -20,6 +20,12 @@ import {
   getTopGainers,
   getTopLosers,
   getMarketIndices,
+  getTopGainersDirect,
+  getTopLosersDirect,
+  getMostActiveDirect,
+  getMarketIndicesDirect,
+  type TrendingStock,
+  type MarketQuote,
 } from "@/lib/yahoo-finance";
 
 export const metadata: Metadata = {
@@ -30,15 +36,55 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+// Pad a MarketQuote up to a TrendingStock with zero/null defaults for unknown fields,
+// so cards render gracefully when the rich Yahoo data isn't available.
+function padToTrending(q: MarketQuote): TrendingStock {
+  return {
+    symbol: q.symbol,
+    name: q.name,
+    price: q.price,
+    change: q.change,
+    changePercent: q.changePercent,
+    volume: 0,
+    avgVolume: 0,
+    marketCap: 0,
+    fiftyTwoWeekHigh: 0,
+    fiftyTwoWeekLow: 0,
+    fiftyDayAverage: 0,
+    twoHundredDayAverage: 0,
+    trailingPE: null,
+    forwardPE: null,
+    eps: null,
+    dividendYield: null,
+    beta: null,
+    exchange: "",
+    quoteType: "EQUITY",
+  };
+}
+
 export default async function TrendingStocksPage() {
-  // Fetch all data in parallel
-  const [trending, mostActive, gainers, losers, indices] = await Promise.all([
+  // Fetch all data in parallel from Yahoo Finance (primary path)
+  const [trendingRaw, mostActiveRaw, gainersRaw, losersRaw, indicesRaw] = await Promise.all([
     getTrendingStocks(20).catch(() => []),
     getMostActiveStocks(10).catch(() => []),
     getTopGainers().catch(() => []),
     getTopLosers().catch(() => []),
     getMarketIndices().catch(() => []),
   ]);
+
+  // Fall back to Nasdaq-derived direct path for any empty result (Yahoo rate-limited)
+  let trending = trendingRaw;
+  let mostActive = mostActiveRaw;
+  if (trending.length === 0 || mostActive.length === 0) {
+    const direct = await getMostActiveDirect(25);
+    const padded = direct.map(padToTrending);
+    if (trending.length === 0) trending = padded;
+    if (mostActive.length === 0) mostActive = padded.slice(0, 10);
+  }
+
+  const gainers = gainersRaw.length > 0 ? gainersRaw : await getTopGainersDirect();
+  const losers = losersRaw.length > 0 ? losersRaw : await getTopLosersDirect();
+  const indices = indicesRaw.length > 0 ? indicesRaw : await getMarketIndicesDirect();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {

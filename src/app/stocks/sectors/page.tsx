@@ -11,7 +11,7 @@ import {
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { SectorCard } from "@/components/stocks/SectorCard";
-import { getAllSectorsPerformance, getMarketIndices } from "@/lib/yahoo-finance";
+import { getAllSectorsPerformance, getMarketIndices, getMarketIndicesDirect } from "@/lib/yahoo-finance";
 
 export const metadata: Metadata = {
   title: "Market Sectors | The Fiscal Wire",
@@ -22,10 +22,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function SectorsPage() {
-  const [sectors, indices] = await Promise.all([
+  const [sectors, indicesRaw] = await Promise.all([
     getAllSectorsPerformance().catch(() => []),
     getMarketIndices().catch(() => []),
   ]);
+  const indices = indicesRaw.length > 0 ? indicesRaw : await getMarketIndicesDirect();
 
   // Calculate market overview stats
   const totalStocks = sectors.reduce((sum, s) => sum + s.stockCount, 0);

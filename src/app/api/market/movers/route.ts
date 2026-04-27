@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTopGainers, getTopLosers } from "@/lib/yahoo-finance";
+import {
+  getTopGainers,
+  getTopLosers,
+  getTopGainersDirect,
+  getTopLosersDirect,
+  type MarketQuote,
+} from "@/lib/yahoo-finance";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -9,11 +15,11 @@ const cache = new Map<string, { data: unknown; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 60 seconds
 
 // Last known good data as fallback
-let lastKnownGoodData: { gainers?: unknown; losers?: unknown } = {};
+let lastKnownGoodData: { gainers?: MarketQuote[]; losers?: MarketQuote[] } = {};
 
-// Static fallback data when Yahoo Finance is rate-limited
+// Static fallback data when both Yahoo Finance and Nasdaq are down
 // Format matches MarketMovers component expectations: name, price, change, changePercent
-const STATIC_FALLBACK_GAINERS = [
+const STATIC_FALLBACK_GAINERS: MarketQuote[] = [
   { symbol: "NVDA", name: "NVIDIA Corporation", price: 140.50, change: 5.25, changePercent: 3.88 },
   { symbol: "TSLA", name: "Tesla, Inc.", price: 425.00, change: 12.50, changePercent: 3.03 },
   { symbol: "AMD", name: "Advanced Micro Devices", price: 125.75, change: 3.25, changePercent: 2.65 },
@@ -21,13 +27,15 @@ const STATIC_FALLBACK_GAINERS = [
   { symbol: "AAPL", name: "Apple Inc.", price: 248.50, change: 4.75, changePercent: 1.95 },
 ];
 
-const STATIC_FALLBACK_LOSERS = [
+const STATIC_FALLBACK_LOSERS: MarketQuote[] = [
   { symbol: "INTC", name: "Intel Corporation", price: 20.25, change: -0.85, changePercent: -4.03 },
   { symbol: "BA", name: "The Boeing Company", price: 175.50, change: -5.25, changePercent: -2.90 },
   { symbol: "DIS", name: "The Walt Disney Company", price: 112.75, change: -2.50, changePercent: -2.17 },
   { symbol: "NKE", name: "NIKE, Inc.", price: 76.25, change: -1.45, changePercent: -1.87 },
   { symbol: "PFE", name: "Pfizer Inc.", price: 26.50, change: -0.45, changePercent: -1.67 },
 ];
+
+type MoverSource = "yahoo" | "direct";
 
 function getCached(key: string) {
   const cached = cache.get(key);
@@ -41,112 +49,113 @@ function setCache(key: string, data: unknown) {
   cache.set(key, { data, timestamp: Date.now() });
 }
 
+// Try Yahoo screener first, fall back to Nasdaq-derived direct path. Empty result counts as failure.
+async function fetchGainersWithFallback(): Promise<{ data: MarketQuote[]; source: MoverSource }> {
+  try {
+    const data = await getTopGainers();
+    if (data.length > 0) return { data, source: "yahoo" };
+    console.warn("[/api/market/movers] Yahoo getTopGainers returned empty, trying direct path");
+  } catch (error) {
+    console.error("[/api/market/movers] Yahoo getTopGainers failed:", error instanceof Error ? error.message : String(error));
+  }
+  const direct = await getTopGainersDirect();
+  return { data: direct, source: "direct" };
+}
+
+async function fetchLosersWithFallback(): Promise<{ data: MarketQuote[]; source: MoverSource }> {
+  try {
+    const data = await getTopLosers();
+    if (data.length > 0) return { data, source: "yahoo" };
+    console.warn("[/api/market/movers] Yahoo getTopLosers returned empty, trying direct path");
+  } catch (error) {
+    console.error("[/api/market/movers] Yahoo getTopLosers failed:", error instanceof Error ? error.message : String(error));
+  }
+  const direct = await getTopLosersDirect();
+  return { data: direct, source: "direct" };
+}
+
+const NO_CACHE_HEADERS = { "Cache-Control": "no-cache, no-store, must-revalidate" };
+
+function staleOrStatic(kind: "gainers" | "losers" | "all"): NextResponse {
+  if (kind === "all" && (lastKnownGoodData.gainers || lastKnownGoodData.losers)) {
+    return NextResponse.json(lastKnownGoodData, { headers: { ...NO_CACHE_HEADERS, "X-Cache": "STALE" } });
+  }
+  if (kind === "gainers" && lastKnownGoodData.gainers) {
+    return NextResponse.json(lastKnownGoodData.gainers, { headers: { ...NO_CACHE_HEADERS, "X-Cache": "STALE" } });
+  }
+  if (kind === "losers" && lastKnownGoodData.losers) {
+    return NextResponse.json(lastKnownGoodData.losers, { headers: { ...NO_CACHE_HEADERS, "X-Cache": "STALE" } });
+  }
+  if (kind === "all") {
+    return NextResponse.json(
+      { gainers: STATIC_FALLBACK_GAINERS, losers: STATIC_FALLBACK_LOSERS },
+      { headers: { ...NO_CACHE_HEADERS, "X-Cache": "STATIC-FALLBACK" } }
+    );
+  }
+  return NextResponse.json(
+    kind === "gainers" ? STATIC_FALLBACK_GAINERS : STATIC_FALLBACK_LOSERS,
+    { headers: { ...NO_CACHE_HEADERS, "X-Cache": "STATIC-FALLBACK" } }
+  );
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const type = searchParams.get("type"); // "gainers" or "losers"
+    const type = request.nextUrl.searchParams.get("type");
 
     if (type === "gainers") {
-      // Check cache first
       const cached = getCached("gainers");
       if (cached) {
-        return NextResponse.json(cached, {
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "X-Cache": "HIT",
-          },
-        });
+        return NextResponse.json(cached, { headers: { ...NO_CACHE_HEADERS, "X-Cache": "HIT" } });
       }
-
-      const gainers = await getTopGainers();
-      setCache("gainers", gainers);
-      lastKnownGoodData.gainers = gainers;
-
-      return NextResponse.json(gainers, {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "X-Cache": "MISS",
-        },
-      });
+      const { data, source } = await fetchGainersWithFallback();
+      if (data.length === 0) return staleOrStatic("gainers");
+      setCache("gainers", data);
+      lastKnownGoodData.gainers = data;
+      const xCache = source === "yahoo" ? "MISS" : "DIRECT-API";
+      return NextResponse.json(data, { headers: { ...NO_CACHE_HEADERS, "X-Cache": xCache } });
     }
 
     if (type === "losers") {
-      // Check cache first
       const cached = getCached("losers");
       if (cached) {
-        return NextResponse.json(cached, {
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "X-Cache": "HIT",
-          },
-        });
+        return NextResponse.json(cached, { headers: { ...NO_CACHE_HEADERS, "X-Cache": "HIT" } });
       }
-
-      const losers = await getTopLosers();
-      setCache("losers", losers);
-      lastKnownGoodData.losers = losers;
-
-      return NextResponse.json(losers, {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "X-Cache": "MISS",
-        },
-      });
+      const { data, source } = await fetchLosersWithFallback();
+      if (data.length === 0) return staleOrStatic("losers");
+      setCache("losers", data);
+      lastKnownGoodData.losers = data;
+      const xCache = source === "yahoo" ? "MISS" : "DIRECT-API";
+      return NextResponse.json(data, { headers: { ...NO_CACHE_HEADERS, "X-Cache": xCache } });
     }
 
-    // Check cache for combined data
+    // Combined: both gainers and losers
     const cached = getCached("all");
     if (cached) {
-      return NextResponse.json(cached, {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "X-Cache": "HIT",
-        },
-      });
+      return NextResponse.json(cached, { headers: { ...NO_CACHE_HEADERS, "X-Cache": "HIT" } });
     }
 
-    // Fetch both if no type specified
-    const [gainers, losers] = await Promise.all([
-      getTopGainers(),
-      getTopLosers(),
+    const [gainersResult, losersResult] = await Promise.all([
+      fetchGainersWithFallback(),
+      fetchLosersWithFallback(),
     ]);
 
-    const result = { gainers, losers };
-    setCache("all", result);
-    setCache("gainers", gainers);
-    setCache("losers", losers);
-    lastKnownGoodData = { gainers, losers };
+    if (gainersResult.data.length === 0 && losersResult.data.length === 0) {
+      return staleOrStatic("all");
+    }
 
+    const result = { gainers: gainersResult.data, losers: losersResult.data };
+    setCache("all", result);
+    setCache("gainers", gainersResult.data);
+    setCache("losers", losersResult.data);
+    lastKnownGoodData = result;
+
+    // If either path used direct, surface that to clients
+    const usedDirect = gainersResult.source === "direct" || losersResult.source === "direct";
     return NextResponse.json(result, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "X-Cache": "MISS",
-      },
+      headers: { ...NO_CACHE_HEADERS, "X-Cache": usedDirect ? "DIRECT-API" : "MISS" },
     });
   } catch (error) {
     console.error("Error in /api/market/movers:", error);
-
-    // Return last known good data if available
-    if (lastKnownGoodData.gainers || lastKnownGoodData.losers) {
-      console.log("Returning last known good movers data");
-      return NextResponse.json(lastKnownGoodData, {
-        headers: {
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "X-Cache": "STALE",
-        },
-      });
-    }
-
-    // Return static fallback data when all else fails
-    console.log("Returning static fallback movers data");
-    return NextResponse.json({
-      gainers: STATIC_FALLBACK_GAINERS,
-      losers: STATIC_FALLBACK_LOSERS,
-    }, {
-      headers: {
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "X-Cache": "STATIC-FALLBACK",
-      },
-    });
+    return staleOrStatic("all");
   }
 }

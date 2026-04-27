@@ -8,7 +8,7 @@ import {
   groupEarningsByDate,
   type EarningsCalendarEntry,
 } from "@/lib/alpha-vantage";
-import { getMarketIndices } from "@/lib/yahoo-finance";
+import { getMarketIndices, getMarketIndicesDirect } from "@/lib/yahoo-finance";
 import { Calendar, TrendingUp, TrendingDown, Clock, Info } from "lucide-react";
 import Script from "next/script";
 
@@ -106,10 +106,11 @@ export const dynamic = "force-dynamic";
 
 export default async function EarningsPage() {
   // Fetch from NASDAQ API (primary data source - includes past, present, and future dates)
-  const [allEarnings, indices] = await Promise.all([
+  const [allEarnings, indicesRaw] = await Promise.all([
     getNasdaqEarnings().catch(() => []),
     getMarketIndices().catch(() => []),
   ]);
+  const indices = indicesRaw.length > 0 ? indicesRaw : await getMarketIndicesDirect();
 
   console.log(`[Earnings Page] Loaded ${allEarnings.length} earnings from NASDAQ API`);
 
